@@ -1,24 +1,32 @@
 // Helper lane (B).
 import { browser } from 'wxt/browser';
 import { pageMap } from '@/guide';
+import { getOverlay } from '@/hands';
 import type { LaneContext } from '@/shared/lanes';
 import type { Msg, ToolResultMsg } from '@/shared/tools';
 import { getTool, registerTool } from './registry';
+import { startPause } from './pause';
 
 registerTool({
   name: 'point_at',
   description: 'Point at one thing on the page so the person can see it.',
   owner: 'helper',
-  parameters: { id: { type: 'string', description: 'Element id from the page map', required: true } },
+  parameters: {
+    id: { type: 'string', description: 'Element id from the page map', required: true },
+    label: { type: 'string', description: 'Two or three plain words shown next to it' },
+  },
   async run(args) {
     const id = String(args.id);
     const rect = pageMap.liveRect(id);
     if (!rect) return { ok: false, said: "I can't find that on the page any more." };
+    getOverlay().show({ id: 'helper-point', where: () => pageMap.liveRect(id), label: typeof args.label === 'string' ? args.label : 'This one', tone: 'info' });
+    setTimeout(() => getOverlay().hide('helper-point'), 10000);
     return { ok: true, said: 'Pointing at it.', data: { id, rect } };
   },
 });
 
 export function startHelper(ctx: LaneContext): void {
+  startPause(ctx);
   const onMessage = (message: unknown, _sender: unknown, sendResponse: (r: ToolResultMsg) => void) => {
     const msg = message as Partial<Msg> | null;
     if (msg?.type !== 'tool/run') return undefined;
