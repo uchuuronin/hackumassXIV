@@ -7,6 +7,7 @@ import type { Msg, ToolResultMsg } from '@/shared/tools';
 import { getTool, registerTool } from './registry';
 import { startPause } from './pause';
 import { startFakeCheck } from './fake';
+import { startHomeTurf } from './sites';
 
 registerTool({
   name: 'point_at',
@@ -29,6 +30,7 @@ registerTool({
 export function startHelper(ctx: LaneContext): void {
   startPause(ctx);
   startFakeCheck(ctx);
+  startHomeTurf(ctx).catch((err) => console.error('[Steady] home turf', err));
   const onMessage = (message: unknown, _sender: unknown, sendResponse: (r: ToolResultMsg) => void) => {
     const msg = message as Partial<Msg> | null;
     if (msg?.type !== 'tool/run') return undefined;
