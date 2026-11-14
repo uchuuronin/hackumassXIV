@@ -43,7 +43,15 @@ export function adaptOverlay(getOverlay: () => Overlay): OverlayPort {
         }
         return;
       }
-      const where = () => pageMap.liveRect(target.targetId);
+      // One element, or the whole set of options under one question.
+      const ids = target.group?.length ? target.group : [target.targetId];
+      const where = () => {
+        const rects = ids.map((id) => pageMap.liveRect(id)).filter((r): r is NonNullable<typeof r> => !!r);
+        if (rects.length <= 1) return rects[0] ?? null;
+        const x = Math.min(...rects.map((r) => r.x));
+        const y = Math.min(...rects.map((r) => r.y));
+        return { x, y, width: Math.max(...rects.map((r) => r.x + r.width)) - x, height: Math.max(...rects.map((r) => r.y + r.height)) - y };
+      };
       getOverlay().show({ id: SPOTLIGHT, where, label: target.text, tone: 'step' });
       // Dim the rest of the page, unless the step asked for a ring only.
       getOverlay().setSpotlight?.(target.dim === false ? null : where);

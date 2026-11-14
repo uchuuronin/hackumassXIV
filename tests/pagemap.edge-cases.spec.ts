@@ -284,3 +284,46 @@ test('"Apply" beside a promo code is an ordinary button; other buttons that send
     f: 'submit', // "Apply" with no code box beside it could be applying for anything
   });
 });
+
+test("a button under Steady's own panel or pop-up counts as covered; one under a note that lets clicks through does not", async ({ page }) => {
+  const map = await html(
+    page,
+    `<button id="under-panel" style="position:fixed;left:20px;top:20px;width:160px;height:48px">Add to basket</button>
+     <button id="under-note" style="position:fixed;left:20px;top:200px;width:160px;height:48px">Checkout</button>
+     <button id="clear" style="position:fixed;left:20px;top:400px;width:160px;height:48px">Help</button>
+     <div data-steady-ui style="position:fixed;left:0;top:0;width:300px;height:100px;background:#fff"></div>
+     <div data-steady-ui style="position:fixed;left:0;top:180px;width:300px;height:100px;pointer-events:none"></div>`,
+  );
+  const covered = Object.fromEntries(map.elements.map((e) => [e.label, e.covered]));
+  expect(covered).toEqual({ 'Add to basket': true, Checkout: false, Help: false });
+  // So nothing that acts for the person can reach through Steady's own pop-up to the page behind it.
+  expect((await mayAutoClick(page, '#under-panel')).allowed).toBe(false);
+});
+
+test('a link that wraps over two lines: its place comes with one box per line, so a highlight can follow the words', async ({ page }) => {
+  const map = await html(
+    page,
+    `<p style="width:260px;font:18px/1.6 Arial">With <a href="/tool">a free accessible colour palette generator</a>, you can make a palette.</p>
+     <button style="width:200px">Checkout</button>`,
+  );
+  const parts = await page.evaluate((id) => window.__steady.api.liveRect(id)?.parts?.length ?? 0, one(map, /palette generator/).id);
+  expect(parts).toBeGreaterThanOrEqual(2);
+  const whole = await page.evaluate((id) => window.__steady.api.liveRect(id)!, one(map, /palette generator/).id);
+  for (const part of whole.parts!) {
+    expect(part.x).toBeGreaterThanOrEqual(whole.x - 1);
+    expect(part.x + part.width).toBeLessThanOrEqual(whole.x + whole.width + 1);
+    expect(part.height).toBeLessThan(whole.height);
+  }
+  // An ordinary button is one box.
+  expect(await page.evaluate((id) => window.__steady.api.liveRect(id)?.parts, one(map, 'Checkout').id)).toBeUndefined();
+});
+
+test("a link around a picture is one shape: A's picture-sized box, never split into lines", async ({ page }) => {
+  const map = await html(
+    page,
+    `<p style="width:220px;font:16px/1.2 Arial">Some words first <a href="/next" aria-label="Continue"><svg width="180" height="60" style="vertical-align:middle"><rect width="180" height="60" fill="green"/></svg></a> and words after.</p>`,
+  );
+  const rect = await page.evaluate((id) => window.__steady.api.liveRect(id)!, one(map, 'Continue').id);
+  expect(rect.height).toBeGreaterThanOrEqual(60);
+  expect(rect.parts).toBeUndefined();
+});

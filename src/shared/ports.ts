@@ -14,6 +14,8 @@ import type { ModelSafeElement, PageStage } from './pagemap';
 // ---- Overlay (owner: A). The only thing that draws on a web page. ----
 
 /** go = moves forward; careful = pays, sends or removes; stop = an advert or a trap; info = anything else. */
+import type { StuckNote } from './family';
+
 export type LabelTone = 'go' | 'careful' | 'stop' | 'info';
 
 export interface OverlayLabel {
@@ -29,7 +31,8 @@ export interface OverlayPort {
   labels(layer: string, labels: OverlayLabel[]): void;
   /** Dim everything except one element, with an optional sentence beside it. Null turns it off. */
   /** `dim: false` asks for a ring only, with the rest of the page left readable (a box in a form). */
-  spotlight(target: { targetId: string; text?: string; dim?: boolean } | null): void;
+  /** `group` lists every element of the step (all the options under one question): the light covers them all. */
+  spotlight(target: { targetId: string; text?: string; dim?: boolean; group?: string[] } | null): void;
   /** Remove one layer of labels, or everything this lane drew. */
   clear(layer?: string): void;
 }
@@ -83,7 +86,14 @@ export interface ClickPort {
 
 // ---- The registry ----
 
+/** Feature 12. The one message that may go to the person who helps: see StuckNote in ./family. */
+export interface FamilyPort {
+  /** True if the message was handed over for sending. */
+  tellHelper(note: StuckNote): Promise<boolean>;
+}
+
 export interface Ports {
+  family: FamilyPort;
   overlay: OverlayPort;
   speech: SpeechPort;
   model: ModelPort | null;
@@ -94,6 +104,7 @@ export interface Ports {
 const memory = new Map<string, unknown>();
 
 const standIns: Ports = {
+  family: { tellHelper: async () => false },
   overlay: { labels() {}, spotlight() {}, clear() {} },
   speech: { say() {} },
   model: null, // no Gemini: features fall back to what they can do on the device

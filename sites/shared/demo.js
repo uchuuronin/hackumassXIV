@@ -23,7 +23,8 @@
     },
     clear() {
       try {
-        sessionStorage.clear();
+        // Only the demo's own notes, so a page reset never wipes anything else kept for this tab.
+        for (const key of Object.keys(sessionStorage)) if (key.startsWith('demo-')) sessionStorage.removeItem(key);
         localStorage.removeItem('demo-basket');
       } catch {}
     },

@@ -4,6 +4,7 @@
 //   - sending a form counts as a click on its send button;
 //   - what was typed or chosen is never kept. Only where.
 
+import type { Tool } from '@/shared/tools';
 import type { PageElement } from '@/shared/pagemap';
 import { need } from '@/shared/ports';
 import type { RecordedTask, StepLocator, StepType, TaskStep } from '@/shared/tasks';
@@ -150,3 +151,29 @@ function sayFor(type: StepType, el: PageElement, name: string): string {
   if (!el.labelConfident) return `Click this button. I think it is "${el.label}".`;
   return el.context ? `Click "${el.label}" for the ${el.context}.` : `Click "${el.label}".`;
 }
+
+// ---- tools, for the panel: a family member records a task ----
+
+export const recordStartTool: Tool = {
+  name: 'record_start',
+  owner: 'guide',
+  description: 'For a family member: start recording a task on this website, so Steady can walk the person through it later. Keeps where to click, choose and type. Never keeps what was typed or chosen.',
+  parameters: { name: { type: 'string', description: 'What to call the task, in plain words: "Book a doctor\'s appointment"', required: true } },
+  async run(args) {
+    const name = String(args.name ?? '').trim();
+    if (!name) return { ok: false, said: 'Give the task a name first, such as "Order my prescription".' };
+    return { ok: true, ...(await start(name)) };
+  },
+};
+
+export const recordStopTool: Tool = {
+  name: 'record_stop',
+  owner: 'guide',
+  description: 'For a family member: stop recording and save the task.',
+  parameters: {},
+  async run() {
+    if (!isRecording()) return { ok: false, said: 'I am not recording at the moment.' };
+    const { task, said } = await stop();
+    return { ok: true, said, data: { id: task.id, name: task.name, steps: task.steps.length } };
+  },
+};

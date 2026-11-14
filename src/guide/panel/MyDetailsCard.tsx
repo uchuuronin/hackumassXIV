@@ -76,7 +76,7 @@ export function MyDetailsCard({ store = deviceStore }: { store?: StorePort }) {
     <section className="sd-card" aria-labelledby="sd-title">
       <style>{CSS}</style>
       <h2 id="sd-title">My details</h2>
-      <p>Steady can put these in forms for you, one box at a time. You check each one before it moves on.</p>
+      <p>Steady can put these in forms for you. It asks first, and you check them before you go on.</p>
       <p>Fill in only what you want to. These stay on this computer.</p>
       <p>Steady never saves card numbers or passwords.</p>
       <form onSubmit={save} noValidate>

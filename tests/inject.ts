@@ -7,6 +7,9 @@ import { adaptOverlay } from '@/guide/adapters';
 import { createClickSource } from '@/guide/clicks';
 import * as details from '@/guide/details';
 import * as recorder from '@/guide/recorder';
+import { answer } from '@/guide/answers';
+import * as family from '@/guide/family';
+import * as player from '@/guide/player';
 import * as spotlight from '@/guide/spotlight';
 import { pageMap } from '@/guide/map';
 import { toModelSafe } from '@/shared/pagemap';
@@ -78,6 +81,18 @@ const steady = {
   details,
   recorder,
   spotlight,
+  player,
+  family,
+  answer,
+  /** Tests play the part of the relay: true = sent, false = could not send. */
+  setFamily(reply: boolean) {
+    provide('family', {
+      async tellHelper(note) {
+        calls.push({ port: 'family', method: 'tellHelper', args: [note] });
+        return reply;
+      },
+    });
+  },
   calls,
   /** Tests set this to play the part of Gemini. */
   setModel(reply: ((request: ChoiceLabelRequest) => ChoiceLabelReply) | null) {

@@ -111,6 +111,11 @@ export interface Rect {
   y: number;
   width: number;
   height: number;
+  /**
+   * Only from `liveRect`, and only when the element's words wrap over several lines (a long link):
+   * one box per line, so a highlight can follow the words instead of boxing the whole area.
+   */
+  parts?: Rect[];
 }
 
 /** One option of a dropdown or radio group. */

@@ -1,11 +1,19 @@
 // Owner: B (panel). Type or speak a question, get a short answer (read aloud if voice is on), answer buttons, and a pointer on the page.
+// Layout and look reworked by C on Saturday afternoon. B's asking, listening and speaking are unchanged.
+// What C added: buttons that run the guide lane ("What do I click?", "Help me fill this in", saved tasks,
+// "I'm stuck"), Steady's own sentences as she goes along, and the "My details" screen. See src/guide/panel/.
 import { useEffect, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
 import { toModelSafe, type PageMapResponse } from '@/shared/pagemap';
 import { HELPER_KEYS, type GeminiAnswer, type GeminiAsk, type ToolResultMsg } from '@/shared/tools';
 import { getProfile, setProfile } from '@/helper/profile';
+import { theme } from '@/shared/theme';
+import { Buddy, type Mood } from '@/guide/panel/Buddy';
+import { HelperCard, TeachCard } from '@/guide/panel/FamilyCard';
+import { MyDetailsCard } from '@/guide/panel/MyDetailsCard';
+import { intent, useGuide } from '@/guide/panel/useGuide';
 
-interface Reply { quiet?: boolean; said: string; point?: string; options?: string[] }
+interface Reply { quiet?: boolean; said: string; point?: string; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean }
 
 const RULES = `You are Steady, a patient helper for an older adult using a web page.
 Use plain, short, kind words. At most two sentences. No jargon.
@@ -56,6 +64,15 @@ export default function App() {
   const inFlight = useRef(false);
   const lastAsk = useRef(0);
   const voiceRef = useRef(true);
+  const [screen, setScreen] = useState<'home' | 'details'>('home');
+  const [glad, setGlad] = useState(false);
+  // The guide lane: its sentences are shown and read aloud exactly like an answer.
+  const guide = useGuide((r) => {
+    setReply({ ...r, guide: true });
+    say(r.said);
+    setGlad(true);
+    window.setTimeout(() => setGlad(false), 1600);
+  }, () => setReply(null));
 
   useEffect(() => {
     getProfile(HELPER_KEYS.voiceOn, true).then((v) => { voiceRef.current = v; setVoiceOn(v); });
@@ -144,32 +161,140 @@ export default function App() {
     }
   }
 
+  const mood: Mood = listening ? 'listening' : busy || guide.working ? 'thinking' : glad ? 'glad' : 'idle';
+  const words = busy || guide.working ? 'Let me look…' : reply?.said || guide.hint.said || 'Hello. I am Steady. What shall we do?';
+  const answers = busy || guide.working ? [] : (reply?.options ?? []);
+  // Typed words that mean one of the buttons ("help me fill this in", the name of a saved task) press that
+  // button. Anything else goes to B's ask(), which is unchanged. (B: spoken words still go straight to ask().
+  // Call intent() there too if you want the same shortcut for the voice.)
+  const typed = () => {
+    const button = intent(text, guide.tasks);
+    if (!button) return ask(text);
+    setText('');
+    return guide.press(button);
+  };
+  const pressAnswer = (o: string) => (reply?.guide ? guide.press(o) : (setText(o), ask(o)));
+  const vars = {
+    '--paper': theme.paper, '--card': theme.card, '--ink': theme.ink, '--ink-quiet': theme.inkQuiet, '--edge': theme.edge, '--hairline': theme.hairline,
+    '--sun': theme.sun, '--teal': theme.teal, '--coral': theme.coral, '--focus': theme.focus,
+    '--go': theme.tones.go.soft, '--go-deep': theme.tones.go.deep, '--info': theme.tones.info.soft, '--info-deep': theme.tones.info.deep,
+    '--care': theme.tones.careful.soft, '--care-deep': theme.tones.careful.deep, '--depth': `${theme.depth}px`,
+  } as React.CSSProperties;
+
+  if (screen === 'details') {
+    return (
+      <div className="app" style={vars}>
+        <header className="band small">
+          <Dots />
+          <button type="button" className="btn back" onClick={() => setScreen('home')}><Icon name="back" /> Back</button>
+        </header>
+        <main className="sheet">
+          <section className="card"><MyDetailsCard /></section>
+          <HelperCard />
+          <TeachCard recording={guide.recording} />
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <main className="panel">
-      <h1>Steady</h1>
-      <form onSubmit={(e) => { e.preventDefault(); ask(text); }}>
-        <label htmlFor="q">What do you need help with?</label>
-        <input id="q" value={text} onChange={(e) => setText(e.target.value)} placeholder="For example: where do I pay?" autoFocus />
-        <button type="submit" disabled={busy}>{busy ? 'Looking…' : 'Help me'}</button>
-        <button type="button" className="choice" onClick={listen} disabled={busy || listening}>
-          {listening ? 'Listening… speak now' : '🎤 Talk to me'}
+    <div className="app" style={vars}>
+      <header className="band">
+        <Dots />
+        <div className="who">
+          <Buddy mood={mood} />
+          <h1>Steady</h1>
+        </div>
+        <section aria-live="polite" className="talk">
+          <p className={`bubble${reply?.quiet ? ' quiet' : ''}`} key={words}>{words}</p>
+          {answers.length > 0 && (
+            <div className="answers">
+              {answers.map((o, i) => (
+                <button key={o} type="button" className={`btn answer${i === 0 ? ' first' : ''}`} onClick={() => pressAnswer(o)}>{o}</button>
+              ))}
+            </div>
+          )}
+        </section>
+      </header>
+
+      <main className="sheet">
+        <h2>I can help you with</h2>
+        <div className="tiles">
+          <button type="button" className="tile go" onClick={() => guide.press('What do I click?')}>
+            <Icon name="point" /><span>What do I click?<small>I explain the buttons on this page</small></span>
+          </button>
+          <button type="button" className="tile info" onClick={() => guide.press('Help me fill this in')}>
+            <Icon name="pencil" /><span>Help me fill this in<small>Your name and address, box by box</small></span>
+          </button>
+          {guide.tasks.map((t) => (
+            <button key={t.id} type="button" className="tile sun" onClick={() => guide.press(t.name)}>
+              <Icon name="steps" /><span>{t.name}<small>{t.steps.length} steps, one at a time</small></span>
+            </button>
+          ))}
+        </div>
+
+        <form className="ask" onSubmit={(e) => { e.preventDefault(); typed(); }}>
+          <label htmlFor="q">Or ask me anything</label>
+          <input id="q" value={text} onChange={(e) => setText(e.target.value)} placeholder="For example: where do I pay?" autoFocus />
+          <div className="row">
+            <button type="submit" className="btn main" disabled={busy}>{busy ? 'Looking…' : 'Ask'}</button>
+            <button type="button" className="btn" onClick={listen} disabled={busy || listening}>
+              <Icon name="mic" /> {listening ? 'Listening…' : 'Talk to me'}
+            </button>
+          </div>
+        </form>
+        {micError && <p className="note">Microphone problem: {micError}</p>}
+        {micProblem && (
+          <button type="button" className="btn" onClick={openMicPage}>
+            I need your OK to use the microphone. Tap here.
+          </button>
+        )}
+
+        <button type="button" className="tile care stuck" onClick={() => guide.press("I'm stuck")}>
+          <Icon name="hand" /><span>I'm stuck<small>{guide.helper ? `Ask ${guide.helper.name} for help` : 'Ask someone you trust for help'}</small></span>
         </button>
-      </form>
-      {micError && <p className="said">Microphone problem: {micError}</p>}
-      {micProblem && (
-        <button type="button" className="choice" onClick={openMicPage}>
-          I need your OK to use the microphone. Tap here.
-        </button>
-      )}
-      <section aria-live="polite" className="reply">
-        {reply && <p className="said">{reply.said}</p>}
-        {reply?.options?.map((o) => (
-          <button key={o} className="choice" onClick={() => { setText(o); ask(o); }}>{o}</button>
-        ))}
-      </section>
-      <button type="button" className="choice small" onClick={toggleVoice}>
-        {voiceOn ? '🔊 Reading answers aloud: on' : '🔇 Reading answers aloud: off'}
-      </button>
-    </main>
+
+        <footer className="foot">
+          <button type="button" className="btn quiet" onClick={toggleVoice}>
+            <Icon name={voiceOn ? 'sound' : 'mute'} /> {voiceOn ? 'Voice: on' : 'Voice: off'}
+          </button>
+          <button type="button" className="btn quiet" onClick={() => setScreen('details')}>
+            <Icon name="person" /> My details
+          </button>
+        </footer>
+      </main>
+    </div>
+  );
+}
+
+/** The row of small squares from the top of the sheet, twinkling slowly. Decoration only. */
+function Dots() {
+  const colours = ['var(--coral)', 'var(--teal)', 'var(--sun)', '#8794a3'];
+  return (
+    <div className="dots" aria-hidden="true">
+      {Array.from({ length: 48 }, (_, i) => (
+        <i key={i} style={{ background: colours[(i + Math.floor(i / 12)) % colours.length], animationDelay: `${(i * 37) % 23 / 4}s` }} />
+      ))}
+    </div>
+  );
+}
+
+const ICONS: Record<string, string> = {
+  point: 'M9 11V4.5a1.5 1.5 0 0 1 3 0V10m0 0V8.5a1.5 1.5 0 0 1 3 0V11m0-1a1.5 1.5 0 0 1 3 0v4.5c0 3.6-2.4 6-6 6-2.6 0-4.2-1.2-5.6-3.4L4.5 14a1.5 1.5 0 0 1 2.4-1.8L9 14.5',
+  pencil: 'M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 3L8 18.5 4 20zm10.5-13.5l3 3',
+  steps: 'M5 6h2m4 0h8M5 12h2m4 0h8M5 18h2m4 0h8',
+  hand: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zm0-5v.5m-2.5-7a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8',
+  mic: 'M12 4a3 3 0 0 1 3 3v4a3 3 0 0 1-6 0V7a3 3 0 0 1 3-3zm-6 7a6 6 0 0 0 12 0m-6 6v3',
+  sound: 'M4 10v4h3l5 4V6L7 10H4zm12-1a4 4 0 0 1 0 6m2.5-9a8 8 0 0 1 0 12',
+  mute: 'M4 10v4h3l5 4V6L7 10H4zm12 0l4 4m0-4l-4 4',
+  person: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0',
+  back: 'M14 6l-6 6 6 6',
+};
+
+function Icon({ name }: { name: keyof typeof ICONS | string }) {
+  return (
+    <svg className="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={ICONS[name]} />
+    </svg>
   );
 }

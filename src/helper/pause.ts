@@ -48,17 +48,19 @@ function showPause(el: PageElement, target: Element) {
   const root = host.attachShadow({ mode: 'open' });
 
   const style = document.createElement('style');
-  // The calm look, shared by all three lanes (src/shared/theme.ts). "Not yet" is the safe choice, so it is the main button.
+  // The shared look (src/shared/theme.ts). "Not yet" is the safe choice, so it is the main button.
   style.textContent = `
     .back { position: fixed; inset: 0; background: ${theme.veil}; display: grid; place-items: center; font-family: ${theme.font}; }
-    .box { background: ${theme.paper}; color: ${theme.ink}; border: 1px solid ${theme.hairline}; border-top: 8px solid ${theme.tones.careful.line}; border-radius: 16px; padding: 28px; width: min(560px, 90vw); font-size: 24px; line-height: 1.45; box-shadow: ${theme.shadow}; }
-    h2 { margin: 0 0 12px; font-size: 30px; font-weight: 650; }
+    .box { background: ${theme.card}; color: ${theme.ink}; border: 2px solid ${theme.ink}; border-radius: 18px; padding: 0 28px 28px; width: min(560px, 90vw); font-size: 24px; line-height: 1.45; box-shadow: 0 6px 0 ${theme.ink}; overflow: hidden; }
+    h2 { margin: 0 -28px 18px; padding: 20px 28px; font-size: 30px; font-weight: 700; background: ${theme.tones.careful.soft}; border-bottom: 2px solid ${theme.ink}; }
     p { margin: 0 0 12px; }
-    button { display: block; width: 100%; min-height: 64px; margin-top: 14px; font: inherit; font-weight: 600; color: ${theme.ink}; border: 2px solid ${theme.edge}; border-radius: 12px; cursor: pointer; background: ${theme.card}; transition: background-color ${theme.motion.press}ms; }
+    button { display: block; width: 100%; height: 64px; margin-top: 16px; font: inherit; font-weight: 700; color: ${theme.ink}; border: 2px solid ${theme.ink}; border-radius: 14px; cursor: pointer; background: ${theme.card}; box-shadow: 0 ${theme.depth}px 0 ${theme.ink}; transition: transform ${theme.motion.press}ms ${theme.motion.ease}, box-shadow ${theme.motion.press}ms ${theme.motion.ease}, background-color ${theme.motion.press}ms; }
     button:hover { background: ${theme.tones.info.soft}; }
-    .stop { background: ${theme.main}; border-color: ${theme.main}; color: ${theme.onMain}; }
-    .stop:hover { background: ${theme.ink}; border-color: ${theme.ink}; }
-    button:focus-visible { outline: 4px solid ${theme.focus}; outline-offset: 3px; }
+    button:active { transform: translateY(${theme.depth}px); box-shadow: 0 0 0 ${theme.ink}; }
+    .stop { background: ${theme.main}; color: ${theme.onMain}; }
+    .stop:hover { background: ${theme.teal}; }
+    button:focus-visible { outline: 4px solid ${theme.focus}; outline-offset: 4px; }
+    @media (prefers-reduced-motion: reduce) { button { transition: none; } }
     ${gentleCss}
   `;
 

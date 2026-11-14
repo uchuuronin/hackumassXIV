@@ -1,5 +1,7 @@
 // Owner: B (background worker and messages).
 import { askRelay } from '@/helper/relay';
+import { sendStuck } from '@/guide/family/send';
+import type { StuckSend } from '@/shared/family';
 import type { GeminiAsk } from '@/shared/tools';
 
 export default defineBackground(() => {
@@ -14,6 +16,12 @@ export default defineBackground(() => {
     // Everything that needs Gemini goes through here, so the relay URL lives in one place.
     if (msg?.type === 'gemini/ask') {
       askRelay(String((msg as GeminiAsk).prompt ?? '')).then(sendResponse);
+      return true;
+    }
+
+    // "I'm stuck" (owner: C): the one short note to the person who helps goes out through the relay.
+    if (msg?.type === 'stuck/send') {
+      sendStuck((message as StuckSend).note).then(sendResponse);
       return true;
     }
 

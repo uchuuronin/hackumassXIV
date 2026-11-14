@@ -512,6 +512,9 @@ function stopQuietly(): void {
   spotlight.off();
 }
 
+/** In the middle of helping with a form. */
+export const isActive = (): boolean => !!session;
+
 export function stop(): FillState {
   stopQuietly();
   return { status: 'stopped', said: 'I have stopped. Everything already filled in is still there.' };

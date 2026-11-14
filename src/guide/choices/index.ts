@@ -102,7 +102,11 @@ export async function show(): Promise<ChoicesResult> {
   const rank = (tone: OverlayLabel['tone']) => (tone === 'go' ? 0 : tone === 'careful' || tone === 'stop' ? 2 : 1);
   const inOrder = [...labels].sort((a, b) => rank(a.tone) - rank(b.tone));
   void oneAtATime(inOrder, ++showing);
-  return { labels, unsure, said: summary(labels.length, unsure) };
+  // A cookie box is the pop-up people meet most, and nobody ever says what a cookie is.
+  const cookies = /cookie|privacy|consent|tracking/i.test(map.dialog?.label ?? '')
+    ? 'This box is asking about cookies. Cookies are small notes a website keeps on your computer so that it remembers you. Saying no is safe, and the website will still work. '
+    : '';
+  return { labels, unsure, said: cookies + summary(labels.length, unsure) };
 }
 
 /** One note at a time, so they never sit on top of each other. Then they clear, and hovering takes over. */

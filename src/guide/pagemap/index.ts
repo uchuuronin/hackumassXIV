@@ -428,6 +428,8 @@ export function createPageMap(doc: Document = document): PageMapApi & { stop(): 
     if (!data) return { allowed: false, reason: 'There is nothing to click here.' };
     if (fakeButton) return { allowed: false, id: data.id, reason: fakeButton.reason };
     if (data.disabled) return { allowed: false, id: data.id, reason: 'This button is switched off by the page for now.' };
+    // Never click something the person can't see: a pop-up, a banner or Steady's own panel is on top of it.
+    if (data.covered) return { allowed: false, id: data.id, reason: 'Something is on top of this button, so I will leave it alone.' };
     if (data.protection !== 'none') {
       const what = data.protection === 'pay' ? 'pays' : data.protection === 'delete' ? 'removes something' : 'sends something';
       return {
@@ -461,7 +463,16 @@ export function createPageMap(doc: Document = document): PageMapApi & { stop(): 
         frame = frame.ownerDocument.defaultView?.frameElement ?? null;
       }
     }
-    return source === el ? seenRectOf(source, x, y) : rectOf(source, x, y);
+    // A's seenRectOf: for a link or button around a picture, the picture counts too.
+    const whole = source === el ? seenRectOf(source, x, y) : rectOf(source, x, y);
+    // Words that wrap: a box per line, so a highlight can follow them. Six lines at most; beyond that
+    // one box is clearer. Not for a link around a picture: that is one shape, and A's box above is right.
+    const plain = rectOf(source, x, y);
+    const lines = [...source.getClientRects()].filter((r) => r.width > 1 && r.height > 1);
+    if (lines.length > 1 && lines.length <= 6 && whole.width === plain.width && whole.height === plain.height) {
+      whole.parts = lines.map((r) => ({ x: Math.round(r.left + x), y: Math.round(r.top + y), width: Math.round(r.width), height: Math.round(r.height) }));
+    }
+    return whole;
   };
 
   const resolve = (target: string | Element): Element | null => (typeof target === 'string' ? elementFor(target) : target);

@@ -58,3 +58,28 @@ test("the spotlight dims the rest of the page through A's overlay, unless a step
   // A ring-only step also says "dim off", so an earlier dimmed step can never leave the page dark.
   expect(log).toEqual(['show guide:spotlight', 'dim on, follows: true', 'hide guide:spotlight', 'dim off', 'show guide:spotlight', 'dim off', 'hide guide:spotlight', 'dim off']);
 });
+
+test('a spotlight on a set of choices covers all of them', async ({ page }) => {
+  const map = await html(
+    page,
+    `<fieldset><legend>Who would you like to see?</legend>
+       <label style="display:block;margin:30px"><input type="radio" name="d" value="a"> Dr. Okafor</label>
+       <label style="display:block;margin:30px"><input type="radio" name="d" value="b"> Dr. Herrera</label></fieldset>`,
+  );
+  const ids = map.elements.filter((e) => e.kind === 'radio').map((e) => e.id);
+  const covered = await page.evaluate((ids) => {
+    let lit: { y: number; height: number } | null = null;
+    const port = window.__steady.adaptOverlay(() => ({
+      show: () => undefined,
+      hide: () => undefined,
+      clear: () => undefined,
+      setCursor: () => undefined,
+      setDwell: () => undefined,
+      setSpotlight: (where) => (lit = where === null ? null : (where as () => { y: number; height: number })()),
+    }));
+    port.spotlight({ targetId: ids[0]!, group: ids });
+    const [a, b] = ids.map((id) => window.__steady.api.liveRect(id)!);
+    return lit!.y <= a!.y && lit!.y + lit!.height >= b!.y + b!.height;
+  }, ids);
+  expect(covered).toBe(true);
+});
