@@ -13,6 +13,7 @@ import { registerTool } from '@/helper/registry';
 import { hideChoicesTool, labelChoicesTool } from './choices';
 import { modelVia } from './choices/prompt';
 import { fillDetailsTool, fillNextTool, fillStopTool, fillTakeOutTool } from './details';
+import { createClickSource } from './clicks';
 import { pageMap } from './map';
 import * as recorder from './recorder';
 import * as spotlight from './spotlight';
@@ -30,6 +31,12 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
   const cleanups: Array<() => void> = [];
   if (!has('store')) provide('store', deviceStore);
   guideTools.forEach(registerTool);
+  // The recorder needs to hear clicks, including ones A's click steadying steered. See ./clicks.
+  if (!has('clicks')) {
+    const clicks = createClickSource();
+    provide('clicks', clicks);
+    cleanups.push(clicks.stop);
+  }
   // Gemini, for buttons Steady has no words of its own for. B's background worker holds the relay address.
   if (!has('model')) {
     provide(
@@ -51,18 +58,6 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
     const standIns = createStandIns();
     if (!has('overlay')) provide('overlay', standIns.overlay);
     if (!has('speech')) provide('speech', standIns.speech);
-    if (!has('clicks')) {
-      const listeners = new Set<(target: Element) => void>();
-      const onClick = (e: MouseEvent) => e.isTrusted && e.target instanceof Element && listeners.forEach((l) => l(e.target as Element));
-      document.addEventListener('click', onClick, true);
-      provide('clicks', {
-        onClick(listener) {
-          listeners.add(listener);
-          return () => listeners.delete(listener);
-        },
-      });
-      cleanups.push(() => document.removeEventListener('click', onClick, true));
-    }
     cleanups.push(standIns.stop, startTryIt());
   }
 

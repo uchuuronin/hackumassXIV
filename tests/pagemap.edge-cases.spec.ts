@@ -263,3 +263,24 @@ test('icon-only buttons: a name is trusted only when a second clue agrees with t
     g: 'Remove?', // never sure about a button that deletes
   });
 });
+
+test('"Apply" beside a promo code is an ordinary button; other buttons that send something stay protected', async ({ page }) => {
+  const map = await html(
+    page,
+    `<div><input name="promo" placeholder="Promo code"><button id="a">Apply</button></div>
+     <form><input name="coupon_code" aria-label="Coupon"><button id="b">Apply</button></form>
+     <div><input type="email" placeholder="Your email"><button id="c">Subscribe</button></div>
+     <div><input name="gift" placeholder="Gift card code"><button id="d">Redeem</button></div>
+     <div><input name="promo2" placeholder="Discount code"><button id="e">Delete</button></div>
+     <button id="f">Apply</button>`,
+  );
+  const got = await page.evaluate((m) => Object.fromEntries(m.elements.filter((e) => e.kind === 'button').map((e) => [window.__steady.api.elementFor(e.id)!.id, e.protection])), map);
+  expect(got).toEqual({
+    a: 'none', // trying a discount code can be undone and costs nothing
+    b: 'none',
+    c: 'pay', // "Subscribe" is treated as paying until proved otherwise
+    d: 'submit', // gift card codes are a favourite of scammers: keep the real press
+    e: 'delete',
+    f: 'submit', // "Apply" with no code box beside it could be applying for anything
+  });
+});

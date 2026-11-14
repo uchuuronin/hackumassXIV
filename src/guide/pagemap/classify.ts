@@ -225,7 +225,7 @@ const PAY_WORDS =
 const NOT_PAY = /pay ?later options|payment (methods|options|history)|purchase history|how to pay|ways to pay|subscribe to (our )?newsletter/;
 
 const SUBMIT_WORDS =
-  /\b(submit|send|book|confirm|apply|register|sign ?up|create (an |my |your )?account|schedule|request|reserve|post|publish|save|sign ?in|log ?in|log ?on|verify|agree|accept (and|&) continue|finish)\b/;
+  /\b(submit|send|book|confirm|apply|register|sign ?up|create (an |my |your )?account|schedule|request|reserve|redeem|post|publish|save|sign ?in|log ?in|log ?on|verify|agree|accept (and|&) continue|finish)\b/;
 
 const LINK_SUBMIT_WORDS = /\b(submit|send|confirm|apply|register|sign ?up|create (an |my |your )?account|book now|post|publish)\b/;
 
@@ -259,6 +259,9 @@ export function protectionOf(
   if (isSubmitButton && form?.takesPayment) return { protection: 'pay', reason: 'it sends your card details' };
   if (PAY_WORDS.test(text) && !NOT_PAY.test(text)) return { protection: 'pay', reason: `it says "${quote(label)}"` };
 
+  // Trying a discount code costs nothing and can be undone, so it is an ordinary button.
+  if (appliesPromoCode(el, text)) return { protection: 'none' };
+
   if (isSubmitButton && !form?.isSearch) return { protection: 'submit', reason: 'it sends this form' };
 
   // Buttons that send something without a <form> around them.
@@ -273,6 +276,19 @@ export function protectionOf(
     if (goesNowhere && LINK_SUBMIT_WORDS.test(text)) return { protection: 'submit', reason: `it says "${quote(label)}"` };
   }
   return { protection: 'none' };
+}
+
+const PROMO_BOX = /promo|coupon|discount|voucher/;
+
+/** "Apply" right beside a box for a promo, coupon or discount code. Never a gift card: those stay protected. */
+function appliesPromoCode(el: Element, text: string): boolean {
+  if (!/^(apply|add|use|ok|go|redeem)( (code|coupon|promo|discount))?$/.test(text)) return false;
+  const holder = el.closest('form') ?? el.parentElement;
+  if (!holder) return false;
+  const boxes = holder.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]), textarea, select');
+  if (boxes.length !== 1) return false;
+  const about = haystack(boxes[0]!, '');
+  return PROMO_BOX.test(about) && !/gift/.test(about);
 }
 
 /** A search box only looks things up. It is not counted as "submit". */

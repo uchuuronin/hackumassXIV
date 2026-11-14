@@ -167,3 +167,26 @@ test('a "choose yours" step is found again by its question, not by the answer th
   }, task.steps[0]);
   expect(found).toEqual({ group: 'Who would you like to see?', confident: true });
 });
+
+test("a click that A's click steadying steered onto a button is recorded, once", async ({ page }) => {
+  await page.goto('/shop/basket.html?reset=1');
+  await begin(page, 'Steered');
+  // What click steadying does: the real click lands just beside a button, is cancelled, and is fired again on the button.
+  await page.evaluate(() => {
+    const button = document.querySelector<HTMLElement>('#keep')!;
+    button.addEventListener('click', (e) => e.preventDefault()); // stay on this page for the test
+    window.addEventListener(
+      'click',
+      (e) => {
+        if (!e.isTrusted) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        button.click();
+      },
+      true,
+    );
+  });
+  await page.mouse.click(600, 600); // empty space
+  const { task } = await finish(page);
+  expect(task.steps.map((s) => s.say)).toEqual(['Click "Continue shopping".']);
+});

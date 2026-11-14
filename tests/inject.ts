@@ -4,6 +4,7 @@
 import * as choices from '@/guide/choices';
 import { modelVia } from '@/guide/choices/prompt';
 import { adaptOverlay } from '@/guide/adapters';
+import { createClickSource } from '@/guide/clicks';
 import * as details from '@/guide/details';
 import * as recorder from '@/guide/recorder';
 import * as spotlight from '@/guide/spotlight';
@@ -59,15 +60,8 @@ provide('store', {
     disk.remove(`steady-test:${key}`);
   },
 });
-// Stands in for A's click events: one passive listener, handed on to whoever subscribed.
-const clickListeners = new Set<(target: Element) => void>();
-document.addEventListener('click', (e) => e.isTrusted && e.target instanceof Element && clickListeners.forEach((l) => l(e.target as Element)), true);
-provide('clicks', {
-  onClick(listener) {
-    clickListeners.add(listener);
-    return () => clickListeners.delete(listener);
-  },
-});
+// The same click source the extension uses.
+provide('clicks', createClickSource());
 
 const steady = {
   api: pageMap,
