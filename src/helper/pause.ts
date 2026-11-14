@@ -16,6 +16,8 @@ function closePause() {
 }
 
 function describeRisk(el: PageElement): { title: string; lines: string[]; go: string } {
+  const fake = el.marks.find((m) => m.kind === 'fake');
+  if (fake) return { title: 'Careful. This is an advert.', lines: [fake.reason], go: 'Open it anyway' };
   const pay = el.protection === 'pay';
   const map = pageMap.get();
   const total = map.amounts.find((a) => a.kind === 'total' && !a.struck);
@@ -98,7 +100,7 @@ export function startPause(ctx: LaneContext): void {
     const target = e.target as Element | null;
     if (!target || target.closest(`[${STEADY_UI_ATTR}]`)) return;
     const el = pageMap.describe(target);
-    if (!el || (el.protection !== 'pay' && el.protection !== 'delete')) return;
+    if (!el || (!el.marks.some((m) => m.kind === 'fake') && el.protection !== 'pay' && el.protection !== 'delete')) return;
     e.preventDefault();
     e.stopImmediatePropagation();
     showPause(el, target);
