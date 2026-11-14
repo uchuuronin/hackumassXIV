@@ -19,7 +19,7 @@ import {
 } from '@/shared/pagemap';
 import { findAmounts, toPageAmounts, type AmountHit } from './amounts';
 import { fillOf, isField, isSearchForm, kindOf, looksLikeCardField, protectionOf, secretOf, type FormFacts } from './classify';
-import { actionableFor, clip, collect, inViewport, isCovered, isSteadyUi, isVisible, rectOf, sameSite, textOf, type Candidate } from './dom';
+import { actionableFor, clip, collect, inViewport, isCovered, isSteadyUi, isVisible, rectOf, sameSite, seenRectOf, textOf, type Candidate } from './dom';
 import { groupOf, hintOf, nameOf } from './label';
 import { addMark, clearAllMarks, markNear, marksOf, removeMark } from './marks';
 import { stageOf } from './stage';
@@ -461,7 +461,7 @@ export function createPageMap(doc: Document = document): PageMapApi & { stop(): 
         frame = frame.ownerDocument.defaultView?.frameElement ?? null;
       }
     }
-    return rectOf(source, x, y);
+    return source === el ? seenRectOf(source, x, y) : rectOf(source, x, y);
   };
 
   const resolve = (target: string | Element): Element | null => (typeof target === 'string' ? elementFor(target) : target);

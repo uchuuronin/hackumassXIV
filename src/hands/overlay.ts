@@ -56,7 +56,7 @@ interface Live {
 
 const SPOT_PAD = 6;
 
-export function createOverlay(doc: Document = document, options: OverlayOptions = {}): Overlay & { destroy(): void } {
+export function createOverlay(doc: Document = document, options: OverlayOptions = {}): Overlay & { destroy(): void; setVisible(visible: boolean): void } {
   const host = doc.createElement('div');
   host.setAttribute(STEADY_UI_ATTR, '');
   const root = host.attachShadow({ mode: 'closed' });
@@ -221,6 +221,10 @@ export function createOverlay(doc: Document = document, options: OverlayOptions 
       dwell.style.display = '';
       dwell.style.transform = `translate(${at.x}px, ${at.y}px)`;
       bar.setAttribute('stroke-dashoffset', String(CIRCUMFERENCE * (1 - Math.min(1, Math.max(0, progress)))));
+    },
+    /** Hide everything the overlay draws without forgetting it (the fitting uses this so nothing shows through). */
+    setVisible(visible) {
+      host.style.display = visible ? '' : 'none';
     },
     setSpotlight(where) {
       spotWhere = where;

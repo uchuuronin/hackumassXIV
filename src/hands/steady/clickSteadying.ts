@@ -27,7 +27,13 @@ export interface ClickSteadyingDeps {
   bus?: ClickBus;
 }
 
-export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracker, bus }: ClickSteadyingDeps, reach = DEFAULT_REACH): void {
+export interface ClickSteadying {
+  /** How far from a button a click can land and still be meant for it. The fitting sets this. */
+  setReach(px: number): void;
+}
+
+export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracker, bus }: ClickSteadyingDeps, startReach = DEFAULT_REACH): ClickSteadying {
+  let reach = startReach;
   const { intended: intendedAt, liveSeen } = createTargeting(pageMap);
   const intended = (p: Point): string | null => intendedAt(p, reach);
 
@@ -98,4 +104,11 @@ export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracke
     window.removeEventListener('click', onClick, true);
     overlay.hide(HIGHLIGHT_ID);
   });
+
+  return {
+    setReach(px) {
+      reach = px;
+      shown = null; // the highlight is judged again with the new reach
+    },
+  };
 }
