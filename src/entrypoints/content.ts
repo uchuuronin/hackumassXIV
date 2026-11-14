@@ -5,12 +5,12 @@
 
 import { startGuide } from '@/guide';
 import type { LaneContext, StartLane } from '@/shared/lanes';
-// A: import { startHands } from '@/hands';
+import { startHands } from '@/hands';
 import { startHelper } from '@/helper';
 
 const lanes: Array<[name: string, start: StartLane]> = [
   ['guide', startGuide],
-  // A: ['hands', startHands],
+  ['hands', startHands],
   ['helper', startHelper],
 ];
 
