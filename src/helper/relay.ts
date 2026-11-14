@@ -9,7 +9,7 @@ export async function askRelay(prompt: string): Promise<GeminiAnswer> {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ prompt }),
-      signal: AbortSignal.timeout(25000),
+      signal: AbortSignal.timeout(35000),
     });
     if (!r.ok) {
       console.error('[Steady] relay said', r.status, await r.text().catch(() => ''));

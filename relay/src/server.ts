@@ -18,7 +18,7 @@ const withTimeout = <T>(p: Promise<T>, ms: number) =>
 
 // 20 s limit per try: main model, one retry, then the lighter fallback model
 async function ask(prompt: string) {
-  const tries = [MODEL, MODEL, FALLBACK].filter(Boolean);
+  const tries = [MODEL, FALLBACK].filter(Boolean);
   let lastErr: unknown;
   for (const model of tries) {
     try {
