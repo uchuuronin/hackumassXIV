@@ -1,0 +1,7 @@
+/* Shared by both demo sites. */
+[hidden] { display: none !important; }
+.demo-note { font-size: 11px; color: #8a8a8a; text-align: center; padding: 14px 10px 22px; }
+.demo-note a { color: inherit; }
+.session-bar { background: #fff6d6; border-bottom: 1px solid #e6cf7a; color: #5c4a00; font-size: 12px; padding: 6px 14px; text-align: center; }
+.session-bar a { color: #5c4a00; font-size: 11px; margin-left: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

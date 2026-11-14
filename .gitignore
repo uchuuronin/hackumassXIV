@@ -23,3 +23,8 @@ relay/.env
 # Private folder: kept in the repo, contents never committed
 private/*
 !private/.gitkeep
+
+# Tests
+tests/.tmp
+test-results
+playwright-report

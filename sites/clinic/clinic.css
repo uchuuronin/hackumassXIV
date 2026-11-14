@@ -1,0 +1,70 @@
+/* Fernbrook Family Clinic: a made-up clinic. Built like an ordinary patient website. */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 14px; color: #23303a; background: #f3f7f8; }
+a { color: #0f6a7a; }
+.util { font-size: 11px; text-align: right; padding: 3px 20px; background: #dfeaec; color: #6f858b; }
+.util a { color: #6f858b; text-decoration: none; margin-left: 10px; }
+header.top { background: #fff; border-bottom: 1px solid #d4e1e4; padding: 13px 20px; display: flex; align-items: center; gap: 14px; }
+.logo { font-size: 20px; font-weight: 600; color: #0f6a7a; text-decoration: none; }
+.logo small { display: block; font-size: 11px; font-weight: 400; color: #6f858b; }
+header.top .phone { margin-left: auto; font-size: 12px; color: #6f858b; }
+main { max-width: 860px; margin: 0 auto; padding: 20px; }
+h1 { font-size: 25px; font-weight: 600; margin: 4px 0 12px; }
+h2 { font-size: 18px; font-weight: 600; margin: 0 0 12px; }
+.notice { background: #fff8e1; border: 1px solid #ecd9a0; font-size: 12px; padding: 7px 12px; border-radius: 4px; margin-bottom: 16px; }
+.hero { background: #fff; border: 1px solid #d4e1e4; border-radius: 6px; padding: 22px; }
+.hero p { color: #51666d; margin: 0 0 14px; }
+.btn { display: inline-block; border: 1px solid #9fb6bc; background: #eef4f5; color: #23303a; padding: 7px 14px; font-size: 13px; border-radius: 4px; cursor: pointer; text-decoration: none; font-family: inherit; }
+.btn.primary { background: #0f6a7a; border-color: #0f6a7a; color: #fff; }
+.btn.link { border: 0; background: none; color: #0f6a7a; text-decoration: underline; padding: 7px 4px; font-size: 12px; }
+.tiny { font-size: 11px; color: #6f858b; }
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; }
+.cards > div { background: #fff; border: 1px solid #d4e1e4; border-radius: 6px; padding: 14px; font-size: 13px; }
+.cards h3 { margin: 0 0 6px; font-size: 14px; }
+.panel { background: #fff; border: 1px solid #d4e1e4; border-radius: 6px; padding: 20px; }
+.steps { list-style: none; display: flex; gap: 6px; padding: 0; margin: 0 0 16px; font-size: 11px; color: #8aa0a6; }
+.steps li { flex: 1; border-top: 3px solid #d4e1e4; padding-top: 5px; }
+.steps li.on { border-color: #0f6a7a; color: #0f6a7a; font-weight: 600; }
+.f { margin-bottom: 12px; }
+.f > label, fieldset.f > legend { display: block; font-size: 12px; color: #51666d; margin-bottom: 4px; padding: 0; }
+.f input:not([type="radio"]):not([type="checkbox"]), .f select { padding: 6px 7px; font-size: 13px; border: 1px solid #b5c7cc; border-radius: 4px; background: #fff; font-family: inherit; }
+.f input.wide { width: 100%; max-width: 340px; }
+.f select.small { font-size: 11px; padding: 2px 3px; }
+fieldset.f { border: 0; padding: 0; margin: 0 0 12px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.doctors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.doctor { border: 1px solid #b5c7cc; border-radius: 6px; padding: 10px; font-size: 13px; cursor: pointer; display: block; }
+.doctor input { float: right; }
+.doctor small { display: block; color: #6f858b; font-size: 11px; margin-top: 2px; }
+.doctor:has(input:checked) { border-color: #0f6a7a; background: #eef7f8; }
+.nav { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; }
+.error { color: #a12a2a; font-size: 12px; min-height: 16px; margin: 6px 0 0; }
+dl.review { display: grid; grid-template-columns: 150px 1fr; gap: 7px 10px; margin: 0 0 14px; font-size: 13px; }
+dl.review dt { color: #6f858b; }
+dl.review dd { margin: 0; }
+.small-print { font-size: 10.5px; color: #8aa0a6; line-height: 1.4; margin-top: 12px; }
+.demo-phone { float: right; width: 190px; border: 2px solid #23303a; border-radius: 16px; padding: 12px; font-size: 12px; background: #fff; }
+.demo-phone b { display: block; font-size: 10px; color: #6f858b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+/* look 2: the site's own little calendar in place of the browser's date box */
+.cal { width: 232px; border: 1px solid #b5c7cc; border-radius: 6px; padding: 8px; background: #fff; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.cal-head button { border: 0; background: none; cursor: pointer; font-size: 14px; color: #0f6a7a; padding: 0 6px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 28px); gap: 3px; }
+.cal-grid span { font-size: 10px; color: #8aa0a6; text-align: center; }
+.cal-grid button { width: 28px; height: 26px; font-size: 11px; border: 1px solid transparent; background: #eef4f5; border-radius: 4px; cursor: pointer; padding: 0; font-family: inherit; }
+.cal-grid button:disabled { background: none; color: #c3d0d4; cursor: default; }
+.cal-grid button.picked, .slots button.picked { background: #0f6a7a; color: #fff; }
+.slots { display: flex; flex-wrap: wrap; gap: 5px; max-width: 320px; }
+.slots button { font-size: 11px; padding: 3px 7px; border: 1px solid #b5c7cc; background: #fff; border-radius: 4px; cursor: pointer; font-family: inherit; }
+footer.foot { margin-top: 26px; border-top: 1px solid #d4e1e4; padding: 12px 20px 0; font-size: 11px; color: #6f858b; text-align: center; }
+footer.foot a { color: inherit; margin: 0 6px; }
+@media (max-width: 720px) { .cards, .doctors { grid-template-columns: 1fr; } }
+
+.look-2 body { font-family: Georgia, "Times New Roman", serif; background: #f6f3ee; }
+.look-2 header.top { background: #20464f; }
+.look-2 .logo, .look-2 .logo small, .look-2 header.top .phone { color: #fff; }
+.look-2 .btn { border-radius: 20px; }
+.look-2 .btn.primary { background: #c2552d; border-color: #c2552d; }
+.look-2 .panel, .look-2 .hero { border-radius: 14px; }
+.look-2 .nav { flex-direction: row-reverse; }
+.look-2 .steps li.on { border-color: #c2552d; color: #c2552d; }

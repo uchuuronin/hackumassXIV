@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book an appointment · Fernbrook Family Clinic</title>
+<link rel="stylesheet" href="../shared/demo.css">
+<link rel="stylesheet" href="clinic.css">
+</head>
+<body data-page="book">
+<div id="site-header"></div>
+<main>
+  <div class="panel">
+    <ol class="steps"><li>1. Who</li><li>2. When</li><li>3. You</li><li>4. Confirm</li></ol>
+    <h1>Who would you like to see?</h1>
+    <form id="booking" novalidate>
+      <section data-step="who">
+        <div class="f">
+          <label for="reason">Reason for your visit</label>
+          <select class="small" id="reason" name="reason">
+            <option value="">Select</option>
+            <option>Annual check-up</option>
+            <option>Follow-up visit</option>
+            <option>A new concern</option>
+            <option>Flu shot</option>
+            <option>Medication review</option>
+          </select>
+        </div>
+        <fieldset class="f">
+          <legend>Who would you like to see?</legend>
+          <div class="doctors">
+            <label class="doctor"><input type="radio" name="doctor" value="okafor"> Dr. Amara Okafor <small>Family medicine · next free Tuesday</small></label>
+            <label class="doctor"><input type="radio" name="doctor" value="herrera"> Dr. Luis Herrera <small>Internal medicine · next free Thursday</small></label>
+            <label class="doctor"><input type="radio" name="doctor" value="whitfield"> Dana Whitfield <small>Nurse practitioner · next free tomorrow</small></label>
+          </div>
+        </fieldset>
+      </section>
+
+      <section data-step="when" hidden>
+        <div id="when-native">
+          <div class="row">
+            <div class="f"><label for="day">Day</label><input id="day" name="day" type="date"></div>
+            <div class="f"><label for="time">Time</label><select class="small" id="time" name="time"></select></div>
+          </div>
+          <p class="tiny">Weekdays only. Appointments last about 20 minutes.</p>
+        </div>
+        <div id="when-custom" hidden>
+          <div class="row">
+            <div class="cal"></div>
+            <div><p class="tiny" style="margin-top:0">Times</p><div class="slots"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section data-step="you" hidden>
+        <div class="row">
+          <div class="f"><label for="first">First name</label><input id="first" name="first" autocomplete="given-name"></div>
+          <div class="f"><label for="last">Last name</label><input id="last" name="last" autocomplete="family-name"></div>
+        </div>
+        <fieldset class="f">
+          <legend>Date of birth</legend>
+          <select class="small" name="dob_month" aria-label="Month"></select>
+          <select class="small" name="dob_day" aria-label="Day"></select>
+          <select class="small" name="dob_year" aria-label="Year"></select>
+        </fieldset>
+        <div class="row">
+          <div class="f"><label for="phone">Mobile phone</label><input id="phone" name="phone" type="tel"></div>
+          <div class="f"><label for="email">Email (optional)</label><input id="email" name="email" type="email"></div>
+        </div>
+        <div class="f"><label for="member">Insurance member ID (optional)</label><input id="member" name="member_id"></div>
+        <label class="tiny"><input type="checkbox" name="remind" checked> Text me a reminder the day before</label>
+      </section>
+
+      <section data-step="check" hidden>
+        <dl class="review" id="review"></dl>
+        <p class="small-print">If you can't come, please cancel at least 24 hours ahead. A missed visit may be charged a $25.00 fee.</p>
+      </section>
+
+      <p class="error" id="error" role="alert"></p>
+      <div class="nav">
+        <button class="btn link" id="back" type="button" hidden>Go back</button>
+        <span>
+          <button class="btn primary" id="next" type="button">Next</button>
+          <button class="btn primary" id="confirm" type="submit" hidden>Confirm appointment</button>
+        </span>
+      </div>
+    </form>
+  </div>
+</main>
+<div id="site-footer"></div>
+<script src="../shared/demo.js"></script>
+<script src="clinic.js"></script>
+</body>
+</html>

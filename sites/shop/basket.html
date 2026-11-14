@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your basket · Pennywhistle Home</title>
+<link rel="stylesheet" href="../shared/demo.css">
+<link rel="stylesheet" href="shop.css">
+</head>
+<body data-page="basket">
+<div id="site-header"></div>
+<main>
+  <h1>Your basket</h1>
+  <div class="cols">
+    <ul class="lines" id="lines"></ul>
+    <aside>
+      <div class="summary">
+        <dl id="sum"></dl>
+        <div class="promo"><input name="promo" placeholder="Promo code"><button class="btn" type="button">Apply</button></div>
+        <div class="actions">
+          <a class="btn" id="keep" href="./">Continue shopping</a>
+          <div class="pic" id="pic-ad"></div>
+          <a class="btn primary" id="go-checkout" href="checkout.html">Checkout</a>
+        </div>
+      </div>
+      <div class="side-ad"><iframe id="side-ad" title="Advertisement" scrolling="no"></iframe></div>
+    </aside>
+  </div>
+</main>
+<div id="site-footer"></div>
+<script src="../shared/demo.js"></script>
+<script src="shop.js"></script>
+</body>
+</html>

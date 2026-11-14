@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout · Pennywhistle Home</title>
+<link rel="stylesheet" href="../shared/demo.css">
+<link rel="stylesheet" href="shop.css">
+</head>
+<body data-page="checkout">
+<div id="site-header"></div>
+<main>
+  <h1>Checkout</h1>
+  <form class="checkout cols" id="checkout" action="confirmation.html" method="post" novalidate>
+    <div>
+      <fieldset>
+        <legend>Contact</legend>
+        <div class="f"><label for="email">Email for your receipt</label><input id="email" name="email" type="email" autocomplete="email"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Delivery address</legend>
+        <div class="row">
+          <div class="f"><label for="fname">First name</label><input id="fname" name="fname" autocomplete="given-name"></div>
+          <div class="f"><label for="lname">Last name</label><input id="lname" name="lname" autocomplete="family-name"></div>
+        </div>
+        <!-- No autofill hints from here on, as on many real sites. Steady has to go by the labels. -->
+        <div class="f"><label for="addr1">Street address</label><input id="addr1" name="addr1"></div>
+        <div class="f"><label for="addr2">Apartment, suite, etc. (optional)</label><input id="addr2" name="addr2"></div>
+        <div class="row three">
+          <div class="f"><label for="city">City</label><input id="city" name="city"></div>
+          <div class="f"><label for="state">State</label><select id="state" name="state"></select></div>
+          <div class="f"><label class="sr-only" for="zip">ZIP</label><input id="zip" name="zip" inputmode="numeric" placeholder="ZIP code"></div>
+        </div>
+        <div class="f"><label for="phone">Phone, in case the driver needs you</label><input id="phone" name="phone" type="tel"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Delivery speed</legend>
+        <label class="opt"><input type="radio" name="speed" value="standard"> Standard <small>5 to 7 days · $5.95, or free over $60</small></label>
+        <label class="opt"><input type="radio" name="speed" value="express" checked> Express <small>2 days · adds $9.99</small></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Payment</legend>
+        <div class="f"><label for="ccname">Name on card</label><input id="ccname" name="ccname" autocomplete="cc-name"></div>
+        <div class="f"><label for="ccnum">Card number</label><input id="ccnum" name="ccnum" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000"></div>
+        <div class="row">
+          <div class="f"><label for="ccexp">Expires</label><input id="ccexp" name="ccexp" autocomplete="cc-exp" placeholder="MM / YY"></div>
+          <div class="f"><label for="cccode">Security code</label><input id="cccode" name="cccode" type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4"></div>
+        </div>
+        <div id="extra"></div>
+      </fieldset>
+    </div>
+
+    <aside>
+      <div class="summary">
+        <dl id="sum"></dl>
+        <label class="plus">
+          <input type="checkbox" name="plus" checked>
+          <span>Yes, start my free Pennywhistle Plus trial
+            <small>Free for 30 days, then $12.99 a month until cancelled.</small></span>
+        </label>
+        <button class="btn primary place" id="place-order" type="submit">Place order</button>
+        <p class="legal">By ordering you agree to our <a href="#">terms</a> and <a href="#">privacy notice</a>. <a href="basket.html">Back to basket</a></p>
+      </div>
+    </aside>
+  </form>
+</main>
+<div id="site-footer"></div>
+<script src="../shared/demo.js"></script>
+<script src="shop.js"></script>
+</body>
+</html>

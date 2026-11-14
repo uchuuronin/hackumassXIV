@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Fernbrook Family Clinic</title>
+<link rel="stylesheet" href="../shared/demo.css">
+<link rel="stylesheet" href="clinic.css">
+</head>
+<body data-page="signin">
+<div id="site-header"></div>
+<main>
+  <div class="panel">
+    <aside class="demo-phone" id="demo-phone" hidden><b>Demo phone</b>Fernbrook Clinic: your sign-in code is <strong id="phone-code"></strong>. It expires in 10 minutes.</aside>
+    <h1>Sign in</h1>
+    <form id="signin" novalidate>
+      <div class="f"><label for="email">Email address</label><input class="wide" id="email" name="email" type="email" autocomplete="username"></div>
+      <div class="f"><label for="password">Password</label><input class="wide" id="password" name="password" type="password" autocomplete="current-password"></div>
+      <p class="error" id="signin-error" role="alert"></p>
+      <button class="btn primary" type="submit">Sign in</button>
+      <a class="tiny" href="#" style="margin-left:10px">Forgot your password?</a>
+      <p class="small-print">Demo: any email and any password will do.</p>
+    </form>
+    <form id="code" hidden novalidate>
+      <p>We sent a 6-digit code by text message to the phone number ending in 42.</p>
+      <div class="f"><label for="otp">6-digit code</label><input id="otp" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" size="8"></div>
+      <p class="error" id="code-error" role="alert"></p>
+      <button class="btn primary" type="submit">Verify</button>
+      <a class="tiny" href="#" style="margin-left:10px">Send a new code</a>
+    </form>
+  </div>
+</main>
+<div id="site-footer"></div>
+<script src="../shared/demo.js"></script>
+<script src="clinic.js"></script>
+</body>
+</html>
