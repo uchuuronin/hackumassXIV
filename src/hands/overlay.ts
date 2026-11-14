@@ -4,7 +4,7 @@
 // Boxes, labels (placed in empty space, with a thin line back to the target when they sit further out),
 // the steadied cursor, the dwell ring and the spotlight (dims everything except one box).
 
-import { gentleCss, theme } from '@/shared/theme';
+import { gentleCss, theme, wash } from '@/shared/theme';
 import { STEADY_UI_ATTR, type Rect } from '@/shared/pagemap';
 import type { CursorPoints, Overlay, OverlayItem, OverlayTone } from '@/shared/overlay';
 import { layoutLabels, leaderLine, type LabelRequest } from './layout';
@@ -15,28 +15,31 @@ export interface OverlayOptions {
   obstacles?: () => Obstacles;
 }
 
-// The calm look, shared by all three lanes (src/shared/theme.ts): a pale note with dark words,
-// and the tone shown as a quiet edge and ring instead of a bright filled box.
-const COLOURS: Record<OverlayTone, { line: string; fill: string; text: string }> = {
-  info: { line: theme.tones.info.line, fill: theme.tones.info.soft, text: theme.ink },
-  step: { line: theme.tones.go.line, fill: theme.tones.go.soft, text: theme.ink },
-  warning: { line: theme.tones.careful.line, fill: theme.tones.careful.soft, text: theme.ink },
+// The shared look (src/shared/theme.ts): a pastel note with navy words and a navy edge, and a
+// see-through wash of the same pastel over the thing itself, instead of a box around the general area.
+const COLOURS: Record<OverlayTone, { line: string; fill: string; deep: string; text: string }> = {
+  info: { line: theme.tones.info.line, fill: theme.tones.info.soft, deep: theme.tones.info.deep, text: theme.ink },
+  step: { line: theme.tones.go.line, fill: theme.tones.go.soft, deep: theme.tones.go.deep, text: theme.ink },
+  warning: { line: theme.tones.careful.line, fill: theme.tones.careful.soft, deep: theme.tones.careful.deep, text: theme.ink },
 };
 
 const CSS = `
   :host { all: initial; }
   .layer { position: fixed; inset: 0; pointer-events: none; z-index: 2147483647; }
-  .box { position: fixed; left: 0; top: 0; box-sizing: border-box; border: 3px solid; border-radius: ${theme.radius}px; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8); }
+  .box { position: fixed; left: 0; top: 0; box-sizing: border-box; border: 2px solid; border-radius: 8px; }
+  /* Words that wrap over several lines: one wash per line, and no box around the lot. */
+  .box.split { border-color: transparent !important; background: none !important; }
+  .piece { position: absolute; box-sizing: border-box; border: 2px solid; border-radius: 6px; }
   .raw { position: fixed; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: ${theme.tones.careful.line}; }
-  .ring { position: fixed; left: 0; top: 0; width: 36px; height: 36px; margin: -18px 0 0 -18px; box-sizing: border-box; border-radius: 50%; border: 4px solid ${theme.main}; background: rgba(44, 100, 85, 0.12); }
+  .ring { position: fixed; left: 0; top: 0; width: 36px; height: 36px; margin: -18px 0 0 -18px; box-sizing: border-box; border-radius: 50%; border: 4px solid ${theme.teal}; background: rgba(22, 128, 143, 0.14); }
   .dwell { position: fixed; left: 0; top: 0; width: 56px; height: 56px; margin: -28px 0 0 -28px; }
   .spot { position: fixed; left: 0; top: 0; border-radius: 12px; box-shadow: 0 0 0 200vmax ${theme.veil}; }
   .lines { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; overflow: visible; }
   .label {
     position: fixed; left: 0; top: 0; max-width: 320px; padding: 10px 14px; border-radius: ${theme.radius}px;
-    border: 1px solid ${theme.hairline}; border-left: 6px solid;
-    font: 500 18px/1.4 ${theme.font};
-    box-shadow: ${theme.shadow};
+    border: 2px solid ${theme.ink};
+    font: 600 18px/1.4 ${theme.font};
+    box-shadow: 0 ${theme.depth}px 0 ${theme.ink};
   }
   ${gentleCss}
 `;
@@ -52,6 +55,8 @@ interface Live {
   /** Where the target is now. */
   rect?: Rect;
   last?: string;
+  /** The see-through wash, for the pieces of a wrapped link. */
+  tint?: string;
 }
 
 const SPOT_PAD = 6;
@@ -101,13 +106,24 @@ export function createOverlay(doc: Document = document, options: OverlayOptions 
       }
       live.rect = rect;
       // Write only when something moved, so a still page costs almost nothing.
-      const key = `${rect.x}|${rect.y}|${rect.width}|${rect.height}|${window.innerWidth}|${window.innerHeight}`;
+      const key = `${rect.x}|${rect.y}|${rect.width}|${rect.height}|${window.innerWidth}|${window.innerHeight}|${rect.parts?.map((p) => `${p.x},${p.y},${p.width}`).join(';') ?? ''}`;
       if (key !== live.last) {
         live.last = key;
         changed = true;
         live.box.style.transform = `translate(${rect.x - 4}px, ${rect.y - 4}px)`;
         live.box.style.width = `${rect.width + 8}px`;
         live.box.style.height = `${rect.height + 8}px`;
+        // A long link that wraps: wash each line of it, not the whole area around it.
+        const parts = rect.parts && rect.parts.length > 1 ? rect.parts : [];
+        live.box.classList.toggle('split', parts.length > 0);
+        live.box.replaceChildren(
+          ...parts.map((p) => {
+            const piece = doc.createElement('div');
+            piece.className = 'piece';
+            piece.style.cssText = `left:${p.x - rect.x}px;top:${p.y - rect.y + 2}px;width:${p.width + 4}px;height:${p.height}px;border-color:${live.box.style.borderColor};background:${live.tint ?? ''}`;
+            return piece;
+          }),
+        );
       }
       if (live.label) {
         // Measure now, not only when it was made: the first measure can be too early (styles, fonts, display).
@@ -200,7 +216,7 @@ export function createOverlay(doc: Document = document, options: OverlayOptions 
     return c;
   };
   const track = ringPart('rgba(255,255,255,0.9)', 9);
-  const bar = ringPart(theme.main, 6);
+  const bar = ringPart(theme.teal, 6);
   bar.setAttribute('stroke-dasharray', String(CIRCUMFERENCE));
   bar.setAttribute('transform', 'rotate(-90 28 28)');
   dwell.append(track, bar);
@@ -245,25 +261,25 @@ export function createOverlay(doc: Document = document, options: OverlayOptions 
       const box = doc.createElement('div');
       box.className = 'box';
       box.style.borderColor = tone.line;
+      box.style.background = wash(tone.deep, 0.38);
       layer.append(box);
-      const live: Live = { item, box };
+      const live: Live = { item, box, tint: wash(tone.deep, 0.38) };
       if (item.label) {
         const label = doc.createElement('div');
         label.className = 'label steady-appear';
         label.style.background = tone.fill;
         label.style.color = tone.text;
-        label.style.borderLeftColor = tone.line;
         label.textContent = item.label;
         layer.append(label);
         const size = label.getBoundingClientRect();
         const leader = doc.createElementNS(SVG, 'g');
         const stem = doc.createElementNS(SVG, 'line');
-        stem.setAttribute('stroke', tone.line);
+        stem.setAttribute('stroke', theme.ink);
         stem.setAttribute('stroke-width', '2');
         stem.setAttribute('stroke-linecap', 'round');
         const dot = doc.createElementNS(SVG, 'circle');
         dot.setAttribute('r', '4');
-        dot.setAttribute('fill', tone.line);
+        dot.setAttribute('fill', theme.ink);
         leader.append(stem, dot);
         leader.style.display = 'none';
         lines.append(leader);

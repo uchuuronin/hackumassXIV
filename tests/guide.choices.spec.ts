@@ -145,6 +145,10 @@ test('when a pop-up is open, only its buttons are labelled', async ({ page }) =>
     'Accept all': 'info: Click this to allow cookies and close this box.',
     Close: 'info: Click this to close this box.',
   });
+  // It also says what cookies are, in one plain breath, before pointing at buttons.
+  expect(result.said).toBe(
+    'This box is asking about cookies. Cookies are small notes a website keeps on your computer so that it remembers you. Saying no is safe, and the website will still work. I will show you the 2 main buttons, one at a time. Afterwards, rest the pointer on any button and I will tell you again what it does.',
+  );
 });
 
 test('at most six labels, so the page stays calm', async ({ page }) => {

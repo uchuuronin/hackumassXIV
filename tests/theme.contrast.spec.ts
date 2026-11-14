@@ -33,7 +33,10 @@ test('button words and the coloured edges are clear too', () => {
     // A ring or an edge is a shape, not words: 3 to 1 against the page and against its own note.
     expect(contrast(tone.line, theme.paper)).toBeGreaterThanOrEqual(3);
     expect(contrast(tone.line, tone.soft)).toBeGreaterThanOrEqual(3);
+    // The deeper pastel is for big bold button words and pressed states, never small print.
+    expect(contrast(theme.ink, tone.deep), 'ink on the deeper pastel').toBeGreaterThanOrEqual(6);
   }
+  expect(contrast(theme.ink, theme.sun), 'ink on yellow').toBeGreaterThanOrEqual(7);
   expect(contrast(theme.focus, theme.paper), 'focus ring').toBeGreaterThanOrEqual(3);
   expect(contrast(theme.edge, theme.card), 'box edges').toBeGreaterThanOrEqual(3);
 });

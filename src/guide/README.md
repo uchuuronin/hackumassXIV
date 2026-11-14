@@ -63,20 +63,25 @@ Useful fields: `stage.kind === 'payment'`, `amounts` (with `recurring` for renew
 | Spotlight | `spotlight.on(id, text, { dim })`, `spotlight.off()` | Brings a step into view gently and asks A's overlay to dim the rest (`setSpotlight`). `{ dim: false }` gives a ring only, used for boxes in a form so the other boxes stay readable. Says so when the step is hidden or gone. |
 | Fill in my details | `details.start(level)` (B's `HelpLevel`), `keep()`, `undo()`, `repeat()`, `remember()`, `stop()`, `setPace()` | Asks first, fills name, address, phone and email in one go, and asks once whether it looks right. Then points at each box that is the person's own and moves on by itself when they finish it. Checks in gently after a long pause. Before the button, points out anything empty or misspelt, and offers to remember what they typed. Never fills secrets, never writes over what is there, never presses the button. |
 | Recorder | `recorder.start(name)`, `stop()`, `resume()`, `locate(step)` | Keeps the steps of a task (click, choose, type), never the answers. Finds a step again by several clues, and marks a weak match as a guess. |
+| Player | `player.start(taskId)`, `resume()`, `next()`, `repeat()`, `goThere()`, `stop()`, `where()` | Walks the person through a recorded task one step at a time. She does every step herself; Steady lights it, says it, and moves on when it is done. Keeps its place from page to page and remembers it if she stops. Offers to take her to the right page, says plainly when a step can't be found, and offers help after a long pause or three missed clicks. Never clicks anything. |
+| "I'm stuck" | `family.offer()`, `send()`, `decline()`, `saveHelper()` | Asks first, then sends one short note to the person who helps. The note has the task name and step number only (`StuckNote` in `src/shared/family.ts`). Will not send twice within three minutes. |
+| One place for buttons | `answer(words)` | Takes the words on any button Steady offered and passes them to whichever conversation is open. |
+| A hint for the panel | `suggest()` | One quiet line about the page that is open, and the buttons that fit it. Never spoken, never acts. |
 
 | "My details" card | `import { MyDetailsCard } from '@/guide/panel/MyDetailsCard'` | The screen where the details are typed in. A React component for B's panel: `<MyDetailsCard />`. |
 
-**Tools.** When the lane starts it registers eight tools in B's tool list (`registerTool`), each with `owner: 'guide'`. The panel can run any of them with a `tool/run` message.
+**Tools.** When the lane starts it registers its tools in B's tool list (`registerTool`), each with `owner: 'guide'`. The panel needs only two of them:
 
-| Tool | When to run it |
+| Tool | What it is for |
 | --- | --- |
-| `label_choices`, `hide_choice_labels` | "What do I click?" |
-| `fill_my_details` | "Help me fill this in." |
-| `fill_next` | Yes, "it looks right", "go on". |
-| `fill_take_out` | No. Before filling: leave every box to them. After filling: take it all out. |
-| `fill_repeat` | "What was that?", "Carry on". |
-| `fill_remember` | Yes to "Shall I remember them for next time?" |
-| `fill_stop` | "Stop for now." |
+| `guide_answer { words }` | Every button. Pass the exact words on the button: a starter ("What do I click?", "Help me fill this in", "I'm stuck"), the name of a saved task, or an answer Steady offered. The reply's `data.options` are the next buttons. |
+| `guide_suggest` | One quiet line about the page, with `data.options`, for when a page opens. |
+
+The rest are there for the helper's own tool calling: `label_choices`, `hide_choice_labels`, `fill_my_details`, `fill_next`, `fill_take_out`, `fill_repeat`, `fill_remember`, `fill_stop`, `list_tasks`, `play_task`, `play_next`, `play_repeat`, `play_stop`, `im_stuck`, `stuck_send`, `stuck_cancel`, `record_start`, `record_stop`.
+
+**The panel.** `src/guide/panel/` holds what the helper panel uses from this lane: `useGuide` (presses buttons on the open page, receives what Steady says, fetches the hint), `Buddy` (Steady's face), `MyDetailsCard`, `HelperCard` and `TeachCard`.
+
+**"I'm stuck", end to end.** Page → `family` port → background worker (`stuck/send`) → relay `POST /stuck` (`relay/src/stuck.ts`) → one fixed email. The relay needs `EMAIL_USER` and `EMAIL_APP_PASSWORD` in its `.env`; `STUCK_DRY_RUN=1` builds the email without sending it.
 
 **Answers as buttons.** A fill result carries `data.options`, short answers such as `['It looks right', 'Take them out']`. Show them as buttons so nobody has to type or remember a word.
 
@@ -106,7 +111,7 @@ Until a piece is provided, a quiet stand-in is used, so nothing crashes. In `npm
 
 ## The look
 
-`src/shared/theme.ts` holds the one calm look for everything Steady draws: warm paper, dark ink, and colour only as a quiet edge (green for the way forward, blue for "just so you know", clay for anything that pays, sends or removes). A's notes and rings, B's Pay Pause and helper panel, and the "My details" card all read from it. `tests/theme.contrast.spec.ts` checks every pair that carries words.
+`src/shared/theme.ts` holds the one look for everything Steady draws: navy words on soft pastel shapes with a navy edge (green for the way forward, blue for "just so you know", pink for anything that pays, sends or removes). On the page, the thing itself gets a see-through wash of the same pastel that follows the words line by line (`Rect.parts`), instead of a box around the area. A's notes and rings, B's Pay Pause and helper panel, and the "My details" card all read from it. `tests/theme.contrast.spec.ts` checks every pair that carries words.
 
 ## Trying it without the helper panel
 
@@ -114,22 +119,17 @@ Until a piece is provided, a quiet stand-in is used, so nothing crashes. In `npm
 npm run build:try
 ```
 
-Load `.output/chrome-mv3-dev` in `chrome://extensions` (Load unpacked) and start the demo sites with `npm run sites`. A small black panel appears in the bottom right corner of every page. It stands in for the helper panel:
+Load `.output/chrome-mv3-dev` in `chrome://extensions` (Load unpacked), start the demo sites with `npm run sites`, and open the Steady side panel. Everything is on buttons there. The old on-page try-it panel has gone.
 
-- **What do I click?** and **Help me fill this in** are always there.
-- The answers Steady offers ("Yes, fill them in", "It looks right", "Take them out") appear as yellow buttons.
-- Rose's sample details are saved for you the first time, so there is something to fill in.
-
-No keys are needed. These still work if you prefer them:
+These keys also work in the try-it build:
 
 | Keys | What it does |
 | --- | --- |
-| Alt+Shift+L | "What do I click?" |
-| Alt+Shift+F | "Help me fill this in." |
-| Alt+Shift+Y / N / X | Yes or go on / no or take them out / stop. |
-| Alt+Shift+S | Save Rose's sample details again. |
-| Alt+Shift+R | Start recording a task. Press again to stop; the steps print in the DevTools console. |
-| Alt+Shift+M | Print the page map in the DevTools console. |
+| Alt+Shift+L / F / K | "What do I click?" / "Help me fill this in" / "I'm stuck" |
+| Alt+Shift+Y / N | The first / second answer Steady offered |
+| Alt+Shift+S | Save Rose's sample details, and Maya as the person who helps |
+| Alt+Shift+R | Start recording a task. Press again to stop. |
+| Alt+Shift+M | Print the page map in the DevTools console |
 
 ## Checking a real site
 
