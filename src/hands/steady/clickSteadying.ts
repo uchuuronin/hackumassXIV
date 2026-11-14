@@ -12,6 +12,7 @@ import type { PageMapApi } from '@/shared/pagemap';
 import type { Point } from '../filter/pointerFilter';
 import type { PointerTracker } from '../pointer';
 import { DEFAULT_REACH, distanceToRect } from './target';
+import type { ClickBus } from '../clicks';
 import { createTargeting } from './targeting';
 
 const HIGHLIGHT_ID = 'steady-click-target';
@@ -22,9 +23,11 @@ export interface ClickSteadyingDeps {
   pageMap: PageMapApi;
   overlay: Overlay;
   tracker: PointerTracker;
+  /** Where clicks are reported. A steered click reports the button; a click on nothing reports a miss. */
+  bus?: ClickBus;
 }
 
-export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracker }: ClickSteadyingDeps, reach = DEFAULT_REACH): void {
+export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracker, bus }: ClickSteadyingDeps, reach = DEFAULT_REACH): void {
   const { intended: intendedAt, liveSeen } = createTargeting(pageMap);
   const intended = (p: Point): string | null => intendedAt(p, reach);
 
@@ -53,23 +56,36 @@ export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracke
   const onDown = (event: PointerEvent) => {
     downAt = { x: event.clientX, y: event.clientY };
   };
-  const onClick = (event: MouseEvent) => {
-    if (!event.isTrusted || event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (!(event.target instanceof Element)) return;
-    const at = { x: event.clientX, y: event.clientY };
-    if (downAt && Math.hypot(at.x - downAt.x, at.y - downAt.y) > DRAG_PX) return;
-    // It landed on a button, link or field: leave it alone.
-    if (pageMap.describe(event.target)) return;
+  /** Send a click that missed everything to the button that was meant. Returns that button, or null if it didn't. */
+  const steer = (event: MouseEvent, at: Point): HTMLElement | null => {
     const steady = tracker.steady();
     const id = steady && intended(steady);
-    if (!id) return;
+    if (!id) return null;
     const rect = liveSeen(id);
-    if (!rect || distanceToRect(at, rect) > reach * 1.5) return; // the click itself must also be close
+    if (!rect || distanceToRect(at, rect) > reach * 1.5) return null; // the click itself must also be close
     const target = pageMap.elementFor(id);
-    if (!(target instanceof HTMLElement)) return;
+    if (!(target instanceof HTMLElement)) return null;
     event.preventDefault();
     event.stopImmediatePropagation();
     target.click();
+    return target;
+  };
+
+  const onClick = (event: MouseEvent) => {
+    if (!event.isTrusted || !(event.target instanceof Element)) return;
+    const landed = event.target;
+    const at = { x: event.clientX, y: event.clientY };
+    const plain = event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+    const dragged = !!downAt && Math.hypot(at.x - downAt.x, at.y - downAt.y) > DRAG_PX;
+    // Landed on a button, link or field: leave it alone. Only a click that hit nothing can be steered or counted as a miss.
+    const onNothing = plain && !dragged && !pageMap.describe(landed);
+    const steeredTo = onNothing ? steer(event, at) : null;
+    if (steeredTo) {
+      bus?.emitClick(steeredTo);
+      return;
+    }
+    bus?.emitClick(landed);
+    if (onNothing) bus?.emitMiss(at);
   };
 
   window.addEventListener('pointerdown', onDown, true);

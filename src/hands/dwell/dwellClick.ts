@@ -10,6 +10,7 @@
 import type { LaneContext } from '@/shared/lanes';
 import type { Overlay } from '@/shared/overlay';
 import type { PageMapApi } from '@/shared/pagemap';
+import type { ClickBus } from '../clicks';
 import type { PointerTracker } from '../pointer';
 import { createTargeting } from '../steady/targeting';
 import { DEFAULT_DWELL, DwellTimer } from './dwellTimer';
@@ -28,9 +29,10 @@ export interface DwellDeps {
   pageMap: PageMapApi;
   overlay: Overlay;
   tracker: PointerTracker;
+  bus?: ClickBus;
 }
 
-export function startDwellClick(ctx: LaneContext, { pageMap, overlay, tracker }: DwellDeps): DwellClick {
+export function startDwellClick(ctx: LaneContext, { pageMap, overlay, tracker, bus }: DwellDeps): DwellClick {
   const { intended } = createTargeting(pageMap);
   const timer = new DwellTimer({ ...DEFAULT_DWELL });
   let on = false;
@@ -52,7 +54,10 @@ export function startDwellClick(ctx: LaneContext, { pageMap, overlay, tracker }:
     if (state.fire && id) {
       // Check again at the last moment: the page may have changed under the pointer.
       const el = pageMap.elementFor(id);
-      if (el instanceof HTMLElement && pageMap.mayAutoClick(el).allowed) el.click();
+      if (el instanceof HTMLElement && pageMap.mayAutoClick(el).allowed) {
+        el.click();
+        bus?.emitClick(el); // a dwell click is a click the person meant
+      }
     }
     // Keep going while there is a button under the pointer. A new move starts the loop again.
     if (id && !state.fire) frame = requestAnimationFrame(tick);

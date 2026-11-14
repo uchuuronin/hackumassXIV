@@ -8,8 +8,11 @@ import type { LaneContext } from '@/shared/lanes';
 import type { Overlay } from '@/shared/overlay';
 import { pageMap } from '@/guide';
 import { getProfile, setProfile } from '@/helper/profile';
+import { provide } from '@/shared/ports';
 import { browser } from 'wxt/browser';
+import { createClickBus } from './clicks';
 import { startDwellClick, type DwellClick } from './dwell/dwellClick';
+import { pageObstacles } from './obstacles';
 import { createOverlay } from './overlay';
 import { startPointer } from './pointer';
 import { startClickSteadying } from './steady/clickSteadying';
@@ -32,17 +35,20 @@ export function getDwell(): DwellClick | undefined {
 
 /** The one overlay for this page. Made on first use. */
 export function getOverlay(): Overlay {
-  overlay ??= createOverlay();
+  overlay ??= createOverlay(document, { obstacles: pageObstacles(pageMap) });
   return overlay;
 }
 
 export function startHands(ctx: LaneContext): void {
   getOverlay();
   const tracker = startPointer(ctx);
-  startClickSteadying(ctx, { pageMap, overlay: getOverlay(), tracker });
+  // The one feed of clicks for every lane. Click steadying reports into it, and so does dwell click.
+  const bus = createClickBus();
+  provide('clicks', bus.port);
+  startClickSteadying(ctx, { pageMap, overlay: getOverlay(), tracker, bus });
 
   // Dwell click is off until the fitting (or the dev hotkey) turns it on. The setting lives in the profile.
-  const dwellNow = startDwellClick(ctx, { pageMap, overlay: getOverlay(), tracker });
+  const dwellNow = startDwellClick(ctx, { pageMap, overlay: getOverlay(), tracker, bus });
   dwell = dwellNow;
   const applyDwell = (setting: DwellSetting) => {
     dwellNow.setDwellMs(setting.ms);
