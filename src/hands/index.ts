@@ -10,7 +10,9 @@ import { pageMap } from '@/guide';
 import { getProfile, setProfile } from '@/helper/profile';
 import { provide } from '@/shared/ports';
 import { browser } from 'wxt/browser';
+import { registerTool } from '@/helper/registry';
 import { createClickBus } from './clicks';
+import { createHandsTools } from './tools';
 import { startDwellClick, type DwellClick } from './dwell/dwellClick';
 import { pageObstacles } from './obstacles';
 import { createOverlay } from './overlay';
@@ -64,6 +66,8 @@ export function startHands(ctx: LaneContext): void {
   // The one feed of clicks for every lane. Click steadying reports into it, and so does dwell click.
   const bus = createClickBus();
   provide('clicks', bus.port);
+  // The helper's click and fill tools. They go through the same safety limit as steadied clicks.
+  for (const tool of createHandsTools(pageMap, bus)) registerTool(tool);
   const steadying = startClickSteadying(ctx, { pageMap, overlay: getOverlay(), tracker, bus });
 
   // Dwell click is off until the fitting (or the dev hotkey) turns it on. The setting lives in the profile.
