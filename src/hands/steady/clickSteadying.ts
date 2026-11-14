@@ -18,6 +18,8 @@ import { createTargeting } from './targeting';
 const HIGHLIGHT_ID = 'steady-click-target';
 /** A press that moves further than this between down and up is a drag, not a click. */
 const DRAG_PX = 8;
+/** Drift between press and release that still counts as a click on the button pressed. */
+export const DEFAULT_SLIP_PX = 14;
 
 export interface ClickSteadyingDeps {
   pageMap: PageMapApi;
@@ -30,10 +32,13 @@ export interface ClickSteadyingDeps {
 export interface ClickSteadying {
   /** How far from a button a click can land and still be meant for it. The fitting sets this. */
   setReach(px: number): void;
+  /** How far the hand may drift between pressing and letting go and still count as a click on the button pressed. 0 is off. */
+  setSlip(px: number): void;
 }
 
 export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracker, bus }: ClickSteadyingDeps, startReach = DEFAULT_REACH): ClickSteadying {
   let reach = startReach;
+  let slipPx = DEFAULT_SLIP_PX;
   const { intended: intendedAt, liveSeen } = createTargeting(pageMap);
   const intended = (p: Point): string | null => intendedAt(p, reach);
 
@@ -59,8 +64,19 @@ export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracke
 
   // ---- 2. Send a missed click to the button that was meant ----
   let downAt: Point | null = null;
+  /** The button the press started on, if it started on one. */
+  let downButton: HTMLElement | null = null;
   const onDown = (event: PointerEvent) => {
     downAt = { x: event.clientX, y: event.clientY };
+    const t = event.target;
+    downButton = t instanceof HTMLElement && !t.closest(`[${STEADY_UI_ATTR}]`) && pageMap.describe(t) ? t : null;
+  };
+  // A press that starts on a link and drifts a few pixels begins a drag of the link, and the click is lost. Nobody
+  // means to drag a link they were trying to press, so while slip protection is on, that drag does not start.
+  const onDragStart = (event: DragEvent) => {
+    const pressed = downButton;
+    if (slipPx <= 0 || !pressed || !(event.target instanceof Node) || !pressed.contains(event.target)) return;
+    if (pageMap.mayAutoClick(pressed).allowed) event.preventDefault();
   };
   /** Send a click that missed everything to the button that was meant. Returns that button, or null if it didn't. */
   const steer = (event: MouseEvent, at: Point): HTMLElement | null => {
@@ -84,6 +100,21 @@ export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracke
     if (landed.closest(`[${STEADY_UI_ATTR}]`)) return;
     const at = { x: event.clientX, y: event.clientY };
     const plain = event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+
+    // Slip protection: the press began on a button and the hand drifted a little before letting go. The browser
+    // sends that click to whatever is above both spots, so the button is lost. Finish the click on the button.
+    const pressed = downButton;
+    downButton = null;
+    if (plain && pressed && pressed.isConnected && downAt && slipPx > 0 && landed !== pressed && landed.contains(pressed)) {
+      const moved = Math.hypot(at.x - downAt.x, at.y - downAt.y);
+      if (moved <= slipPx && pageMap.mayAutoClick(pressed).allowed) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        pressed.click();
+        bus?.emitClick(pressed);
+        return;
+      }
+    }
     const dragged = !!downAt && Math.hypot(at.x - downAt.x, at.y - downAt.y) > DRAG_PX;
     // Landed on a button, link or field: leave it alone. Only a click that hit nothing can be steered or counted as a miss.
     const onNothing = plain && !dragged && !pageMap.describe(landed);
@@ -97,15 +128,20 @@ export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracke
   };
 
   window.addEventListener('pointerdown', onDown, true);
+  window.addEventListener('dragstart', onDragStart, true);
   window.addEventListener('click', onClick, true);
   ctx.onStop(() => {
     stopListening();
     window.removeEventListener('pointerdown', onDown, true);
+    window.removeEventListener('dragstart', onDragStart, true);
     window.removeEventListener('click', onClick, true);
     overlay.hide(HIGHLIGHT_ID);
   });
 
   return {
+    setSlip(px) {
+      slipPx = Math.max(0, px);
+    },
     setReach(px) {
       reach = px;
       shown = null; // the highlight is judged again with the new reach
