@@ -23,10 +23,21 @@ export interface OverlayItem {
   /** Plain words shown beside the box. Placed in empty space, never on top of the target. */
   label?: string;
   tone?: OverlayTone;
+  /** Set false for a label with no box around anything: a status line. Default true. */
+  box?: boolean;
+}
+
+export interface CursorPoints {
+  /** Where the real pointer is. Drawn as a small dot. Null removes it. */
+  raw?: { x: number; y: number } | null;
+  /** Where the steadied pointer is. Drawn as a large ring. Null removes it. */
+  steady?: { x: number; y: number } | null;
 }
 
 export interface Overlay {
   show(item: OverlayItem): void;
   hide(id: string): void;
   clear(): void;
+  /** Draw the real and steadied pointer, in viewport pixels. */
+  setCursor(points: CursorPoints): void;
 }

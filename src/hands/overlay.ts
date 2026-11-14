@@ -4,7 +4,7 @@
 // Step 1 is a plain box and label. Pointer, spotlight, cards and arrows are added to this file.
 
 import { STEADY_UI_ATTR, type Rect } from '@/shared/pagemap';
-import type { Overlay, OverlayItem, OverlayTone } from '@/shared/overlay';
+import type { CursorPoints, Overlay, OverlayItem, OverlayTone } from '@/shared/overlay';
 
 const COLOURS: Record<OverlayTone, { line: string; fill: string; text: string }> = {
   info: { line: '#1d4ed8', fill: '#1d4ed8', text: '#ffffff' },
@@ -16,6 +16,8 @@ const CSS = `
   :host { all: initial; }
   .layer { position: fixed; inset: 0; pointer-events: none; z-index: 2147483647; }
   .box { position: fixed; left: 0; top: 0; box-sizing: border-box; border: 4px solid; border-radius: 10px; }
+  .raw { position: fixed; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #dc2626; }
+  .ring { position: fixed; left: 0; top: 0; width: 36px; height: 36px; margin: -18px 0 0 -18px; box-sizing: border-box; border-radius: 50%; border: 5px solid #1d4ed8; background: rgba(29, 78, 216, 0.15); }
   .label {
     position: fixed; left: 0; top: 0; max-width: 320px; padding: 8px 12px; border-radius: 8px;
     font: 600 18px/1.35 system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
@@ -78,7 +80,7 @@ export function createOverlay(doc: Document = document): Overlay & { destroy(): 
     for (const live of items.values()) {
       const rect = rectOf(live.item);
       const hidden = !rect || rect.width <= 0 || rect.height <= 0;
-      live.box.style.display = hidden ? 'none' : '';
+      live.box.style.display = hidden || live.item.box === false ? 'none' : '';
       if (live.label) live.label.style.display = hidden ? 'none' : '';
       if (hidden || !rect) continue;
       // Write only when something moved, so a still page costs almost nothing.
@@ -107,7 +109,24 @@ export function createOverlay(doc: Document = document): Overlay & { destroy(): 
     live.label?.remove();
   }
 
+  const rawDot = doc.createElement('div');
+  rawDot.className = 'raw';
+  rawDot.style.display = 'none';
+  const ring = doc.createElement('div');
+  ring.className = 'ring';
+  ring.style.display = 'none';
+  layer.append(rawDot, ring);
+  const place = (el: HTMLElement, p: { x: number; y: number } | null | undefined) => {
+    if (p === undefined) return;
+    el.style.display = p ? '' : 'none';
+    if (p) el.style.transform = `translate(${p.x}px, ${p.y}px)`;
+  };
+
   return {
+    setCursor(points: CursorPoints) {
+      place(rawDot, points.raw);
+      place(ring, points.steady);
+    },
     show(item) {
       const old = items.get(item.id);
       if (old) drop(old);
