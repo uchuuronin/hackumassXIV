@@ -7,8 +7,9 @@
 import type { LaneContext } from '@/shared/lanes';
 import type { Overlay } from '@/shared/overlay';
 import { pageMap } from '@/guide';
-import { PointerFilter } from './filter/pointerFilter';
 import { createOverlay } from './overlay';
+import { startPointer } from './pointer';
+import { startClickSteadying } from './steady/clickSteadying';
 import { startTuning } from './tuning';
 
 let overlay: (Overlay & { destroy(): void }) | undefined;
@@ -21,13 +22,15 @@ export function getOverlay(): Overlay {
 
 export function startHands(ctx: LaneContext): void {
   getOverlay();
+  const tracker = startPointer(ctx);
+  startClickSteadying(ctx, { pageMap, overlay: getOverlay(), tracker });
   ctx.onStop(() => {
     overlay?.destroy();
     overlay = undefined;
   });
 
   if (ctx.dev) {
-    startTuning(ctx, getOverlay(), new PointerFilter());
+    startTuning(ctx, getOverlay(), tracker);
 
     // While building: Alt+Shift+O labels the first few buttons on the page. Press again to clear.
     let on = false;
