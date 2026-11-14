@@ -9,8 +9,8 @@
 // It never presses the button. At the "show" level it fills nothing and only points.
 
 import { DETAILS_KEY as KEY, type MyDetails } from '@/shared/details';
-import type { FillKey, PageElement, PageForm, PageMap } from '@/shared/pagemap';
-import { need } from '@/shared/ports';
+import type { FillKey, PageElement, PageForm, PageMap, SecretKind } from '@/shared/pagemap';
+import { need, type FollowUp } from '@/shared/ports';
 import { HELPER_KEYS, type HelpLevel, type Tool } from '@/shared/tools';
 import { pageMap } from '../map';
 import * as spotlight from '../spotlight';
@@ -57,6 +57,8 @@ export interface FillState {
   said: string;
   /** Short answers to offer as buttons. */
   options?: string[];
+  /** A second, separate message to show after this one ("One more thing…"). */
+  then?: FollowUp;
   step?: { id: string; kind: StepKind; label: string };
 }
 
@@ -68,6 +70,7 @@ interface Step {
   kind: StepKind;
   label: string;
   text: string;
+  secret?: SecretKind;
 }
 
 interface Fill {
@@ -164,7 +167,7 @@ function plan(fields: PageElement[], details: MyDetails, fill: boolean): { fills
       if (done.has(key)) continue;
       done.add(key);
       if (mates.every((m) => live(m.id) !== '')) continue;
-      steps.push({ id: el.id, ids: mates.map((m) => m.id), kind: 'secret', label: el.group!, text: `${quoted(el.group!)}. ${typeItYourself(el.secret)}` });
+      steps.push({ id: el.id, ids: mates.map((m) => m.id), kind: 'secret', secret: el.secret, label: el.group!, text: `${quoted(el.group!)}. ${typeItYourself(el.secret)}` });
       continue;
     }
 
@@ -172,7 +175,7 @@ function plan(fields: PageElement[], details: MyDetails, fill: boolean): { fills
     if (live(el.id) !== '') continue;
 
     if (el.secret) {
-      steps.push({ id: el.id, ids: [el.id], kind: 'secret', label: el.label, text: `${name}. ${typeItYourself(el.secret)}` });
+      steps.push({ id: el.id, ids: [el.id], kind: 'secret', secret: el.secret, label: el.label, text: `${name}. ${typeItYourself(el.secret)}` });
       continue;
     }
     if (el.fillAs) {
@@ -242,7 +245,14 @@ async function present(): Promise<FillState> {
     if (!stillHere()) return;
     // A box only counts as finished when she leaves it. If she has typed and is waiting, say how to move on.
     const typedAndWaiting = mine.kind !== 'choice' && mine.ids.every((id) => live(id) !== '');
-    need('speech').say(typedAndWaiting ? 'There is no rush. When you have finished this box, tell me to go on and I will show you the next one.' : `There is no rush. ${mine.text}`, GO_ON);
+    // The password nobody remembers: say what to do about it, instead of repeating "type your password".
+    const forgot = mine.secret === 'password' && !typedAndWaiting ? pageMap.get().elements.find((e) => e.visible && /forgot|reset (your |my )?password|can.?t sign in|trouble signing/i.test(e.label)) : undefined;
+    const again = forgot
+      ? `There is no rush. If you can't remember your password, that happens to everyone. Click ${quoted(forgot.label)} and the website will help you make a new one.`
+      : typedAndWaiting
+        ? 'There is no rush. When you have finished this box, tell me to go on and I will show you the next one.'
+        : `There is no rush. ${mine.text}`;
+    need('speech').say(again, GO_ON);
   }, pace.nudgeMs);
   helpTimer = window.setTimeout(
     () =>
@@ -273,7 +283,7 @@ function onChange(event: Event): void {
   advanceTimer = window.setTimeout(async () => {
     if (session !== s) return;
     const next = await keep();
-    need('speech').say(next.said, next.options);
+    need('speech').say(next.said, next.options, next.then);
   }, pace.advanceMs);
 }
 
@@ -293,7 +303,13 @@ function walk(s: Session, lead: string, fill: boolean): Promise<FillState> {
 }
 
 /** `level` is B's help level. At 'show' nothing is filled. At 'with-me' and 'do-it' Steady offers to fill. */
-export async function start(level: HelpLevel = 'with-me'): Promise<FillState> {
+export async function start(level: HelpLevel = 'with-me', options: { lead?: string } = {}): Promise<FillState> {
+  const state = await begun(level, options.lead !== undefined);
+  // A lead from the caller ("This page wants to know it is you…") comes before whatever is said first.
+  return options.lead && state.status !== 'no-form' ? { ...state, said: `${options.lead} ${state.said}` } : state;
+}
+
+async function begun(level: HelpLevel, hasOwnLead: boolean): Promise<FillState> {
   stopQuietly();
   pendingRemember = null;
   const map = pageMap.get();
@@ -306,7 +322,7 @@ export async function start(level: HelpLevel = 'with-me'): Promise<FillState> {
 
   if (level === 'show') return walk(s, '', false);
   if (!Object.keys(details).length) {
-    return walk(s, 'I do not have your details saved yet, so we will go through the boxes together this time.', false);
+    return walk(s, hasOwnLead ? '' : 'I do not have your details saved yet, so we will go through the boxes together this time.', false);
   }
   const planned = plan(s.fields, details, true);
   if (!planned.fills.length) return walk(s, '', false);
@@ -481,15 +497,19 @@ async function finish(): Promise<FillState> {
     spotlight.off();
   }
 
-  let options: string[] | undefined;
+  // Remembering is Steady's own housekeeping: a second, separate message, so the first one stays short.
   const words = groupWords(learnKeys);
-  if (words.length) {
-    pendingRemember = learn;
-    const many = Object.keys(learn).length > 1;
-    said += ` You typed your ${list(words)}, which I did not have saved. Shall I remember ${many ? 'them' : 'it'} for next time? ${many ? 'They stay' : 'It stays'} on this computer.`;
-    options = many ? ['Yes, remember them', 'No, thank you'] : ['Yes, remember it', 'No, thank you'];
-  }
-  return { status: 'done', said, options };
+  if (!words.length) return { status: 'done', said };
+  pendingRemember = learn;
+  const many = Object.keys(learn).length > 1;
+  return {
+    status: 'done',
+    said,
+    then: {
+      said: `One more thing. You typed your ${list(words)}, which I did not have saved. Shall I remember ${many ? 'them' : 'it'} for next time? ${many ? 'They stay' : 'It stays'} on this computer.`,
+      options: many ? ['Yes, remember them', 'No, thank you'] : ['Yes, remember it', 'No, thank you'],
+    },
+  };
 }
 
 /** "Yes, remember them." Adds what she typed to "My details". Never a card, a password or a date of birth. */
@@ -522,7 +542,7 @@ export function stop(): FillState {
 
 // ---- tools, for B's tool list ----
 
-const result = (state: FillState) => ({ ok: state.status !== 'no-form' && state.status !== 'stopped', said: state.said, data: { status: state.status, options: state.options, step: state.step } });
+const result = (state: FillState) => ({ ok: state.status !== 'no-form' && state.status !== 'stopped', said: state.said, data: { status: state.status, options: state.options, then: state.then, step: state.step } });
 
 export const fillDetailsTool: Tool = {
   name: 'fill_my_details',

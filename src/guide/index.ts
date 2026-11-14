@@ -24,6 +24,8 @@ import * as recorder from './recorder';
 import { recordStartTool, recordStopTool } from './recorder';
 import * as spotlight from './spotlight';
 import { suggestTool } from './suggest';
+import * as timeout from './timeout';
+import { timeoutTool } from './timeout';
 import type { StuckSend, StuckSent } from '@/shared/family';
 
 export type { AmountHit } from './pagemap/amounts';
@@ -56,6 +58,7 @@ export const guideTools: Tool[] = [
   stuckCancelTool,
   recordStartTool,
   recordStopTool,
+  timeoutTool,
 ];
 
 export async function startGuide(ctx: LaneContext): Promise<void> {
@@ -66,8 +69,9 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
   // go to the panel as B's 'helper/answer' message. B's voice can replace this with provide('speech', …).
   if (!has('speech')) {
     provide('speech', {
-      say(said, options) {
-        const note: HelperAnswer = { type: 'helper/answer', said, options };
+      say(said, options, then) {
+        // `then` is a second, separate message ("One more thing…"). The panel shows it under the first.
+        const note: HelperAnswer & { then?: typeof then } = { type: 'helper/answer', said, options, then };
         browser.runtime.sendMessage(note).catch(() => undefined);
       },
     });
@@ -130,6 +134,9 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
     const note: PageMapChanged = { type: 'pagemap/changed', why, url: location.href };
     browser.runtime.sendMessage(note).catch(() => undefined);
   });
+
+  // A page that quietly counts down and then clears itself: notice it, and say so calmly.
+  cleanups.push(timeout.watch());
 
   // A recording under way carries on across page loads. So does a saved task she is in the middle of.
   await recorder.resume();

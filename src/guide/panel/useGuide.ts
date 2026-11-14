@@ -12,6 +12,8 @@ import type { HelperAnswer, ToolResult, ToolResultMsg, ToolRun } from '@/shared/
 export interface Said {
   said: string;
   options?: string[];
+  /** A second, separate message shown under the first ("One more thing…"). */
+  then?: { said: string; options?: string[] };
 }
 
 const TASKS_KEY = 'guide:tasks';
@@ -42,6 +44,10 @@ const optionsOf = (result: ToolResult): string[] | undefined => {
   const options = (result.data as { options?: unknown } | undefined)?.options;
   return Array.isArray(options) ? options.filter((o): o is string => typeof o === 'string') : undefined;
 };
+const thenOf = (from: unknown): Said['then'] => {
+  const then = (from as { then?: { said?: unknown; options?: unknown } } | undefined)?.then;
+  return then && typeof then.said === 'string' ? { said: then.said, options: Array.isArray(then.options) ? then.options.filter((o): o is string => typeof o === 'string') : undefined } : undefined;
+};
 
 /** Plain words that mean one of the buttons, so typing or saying them works too. */
 export function intent(text: string, tasks: RecordedTask[]): string | null {
@@ -49,6 +55,7 @@ export function intent(text: string, tasks: RecordedTask[]): string | null {
   if (!said) return null;
   const task = tasks.find((t) => said === t.name.toLowerCase() || said.includes(t.name.toLowerCase()));
   if (task) return task.name;
+  if (/\b(sign|log) ?(me )?in\b|\bmy password\b/.test(said)) return 'Help me sign in';
   if (/\b(i'?m|i am|im) stuck\b|\bask (my |someone|for help)|\bcall my\b|\bneed (some )?help from\b/.test(said)) return "I'm stuck";
   if (/\b(fill|type) (this|it|that|them|these|the form|my (name|address|details))\b|\bfill (this |it )?in\b/.test(said)) return 'Help me fill this in';
   if (/\bwhat (do|should|can) i (click|press)\b|\bwhich button\b|\bwhat do (these|the) buttons do\b/.test(said)) return 'What do I click?';
@@ -76,7 +83,7 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
       setWorking(true);
       try {
         const result = await runOnPage('guide_answer', { words });
-        say.current(result ? { said: result.said, options: optionsOf(result) } : CANT);
+        say.current(result ? { said: result.said, options: optionsOf(result), then: thenOf(result.data) } : CANT);
       } finally {
         setWorking(false);
         void refreshHint();
@@ -90,7 +97,7 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
     const onMessage = (message: unknown, sender: { tab?: unknown }) => {
       const note = message as Partial<HelperAnswer> | null;
       if (note?.type !== 'helper/answer' || !sender.tab || typeof note.said !== 'string') return undefined;
-      say.current({ said: note.said, options: note.options });
+      say.current({ said: note.said, options: note.options, then: thenOf(note) });
       return undefined;
     };
     browser.runtime.onMessage.addListener(onMessage);

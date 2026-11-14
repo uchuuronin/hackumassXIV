@@ -183,9 +183,14 @@ test('getting to know her: with nothing saved, it walks her through, then offers
   let state = await yes(page);
   while (state.status === 'step') state = await yes(page);
   expect(state.said).toBe(
-    'That is every box. Before you go on, one thing to check. "Date of birth" is not finished yet. When you are happy, click "Next" yourself. You typed your name and phone, which I did not have saved. Shall I remember them for next time? They stay on this computer.',
+    'That is every box. Before you go on, one thing to check. "Date of birth" is not finished yet. When you are happy, click "Next" yourself.',
   );
-  expect(state.options).toEqual(['Yes, remember them', 'No, thank you']);
+  // The question about remembering is a second, separate message, so the first one stays short.
+  expect(state.then).toEqual({
+    said: 'One more thing. You typed your name and phone, which I did not have saved. Shall I remember them for next time? They stay on this computer.',
+    options: ['Yes, remember them', 'No, thank you'],
+  });
+  expect(state.options).toBeUndefined();
   const kept = await page.evaluate(() => window.__steady.details.remember());
   expect(kept.said).toBe('I will remember them for next time.');
   // Name and phone are kept. The date of birth and the insurance number never are.

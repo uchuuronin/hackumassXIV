@@ -59,7 +59,7 @@ test('starts a saved task: says the first step with its number, and lights it', 
   const state = await page.evaluate((i) => window.__steady.player.start(i), id);
   expect(state).toMatchObject({
     status: 'step',
-    said: `Let us do "${TASK}" together. There are 3 steps, and there is no rush. Step 1. Choose your own: "Reason for your visit".`,
+    said: `Let us do "${TASK}" together. There are 3 steps, and there is no rush. Step 1. Choose your own: "Reason for your visit". Pick what fits you today.`,
     options: ['Go on', 'Stop for now'],
     step: { number: 1, of: 3 },
   });
@@ -71,7 +71,7 @@ test('moves on by itself as she does each step, and says so when the task is fin
   const id = await recordClinic(page);
   await page.evaluate((i) => window.__steady.player.start(i), id);
   await page.selectOption('#reason', 'Annual check-up'); // her own answer, not the recorded one
-  await expect.poll(() => lastSaid(page)).toBe('Step 2 of 3. Choose your own: "Who would you like to see?".');
+  await expect.poll(() => lastSaid(page)).toBe('Step 2 of 3. Choose your own: "Who would you like to see?". Pick what fits you today.');
   await page.check('[value="okafor"]');
   await expect.poll(() => lastSaid(page)).toBe('Step 3 of 3. Click "Next".');
   expect(await litIs(page, '#next')).toBe(true);
@@ -84,7 +84,7 @@ test('"Go on" skips a step she does not need, and nothing is ever clicked for he
   const id = await recordClinic(page);
   await page.evaluate((i) => window.__steady.player.start(i), id);
   const second = await page.evaluate(() => window.__steady.player.next());
-  expect(second.said).toBe('Step 2 of 3. Choose your own: "Who would you like to see?".');
+  expect(second.said).toBe('Step 2 of 3. Choose your own: "Who would you like to see?". Pick what fits you today.');
   await page.evaluate(() => window.__steady.player.next());
   await page.waitForTimeout(150);
   expect(await page.locator('[data-step="who"]').isVisible()).toBe(true); // "Next" was not pressed for her
@@ -146,8 +146,8 @@ test("can't find a step: says so plainly, lights nothing, and offers a way on", 
   const state = await page.evaluate((i) => window.__steady.player.start(i), id);
   expect(state).toMatchObject({
     status: 'missing',
-    said: `Let us do "${TASK}" together. There are 3 steps, and there is no rush. I can't find step 1 on this page: "Reason for your visit". The page may have changed since this was recorded. You have not done anything wrong.`,
-    options: ['Skip this step', "I'm stuck", 'Stop for now'],
+    said: `Let us do "${TASK}" together. There are 3 steps, and there is no rush. I can't find step 1 on this page: "Reason for your visit". The page may have changed since this was recorded. You have not done anything wrong. I can still explain the buttons on this page.`,
+    options: ['What do I click?', 'Skip this step', "I'm stuck", 'Stop for now'],
   });
   expect(await lit(page)).toBeUndefined();
 });
@@ -191,7 +191,7 @@ test('stopping remembers the place, and starting again offers to carry on from t
     options: ['Carry on from step 2', 'Start again'],
   });
   const carried = await page.evaluate(() => window.__steady.player.carryOn());
-  expect(carried.said).toBe('Step 2 of 3. Choose your own: "Who would you like to see?".');
+  expect(carried.said).toBe('Step 2 of 3. Choose your own: "Who would you like to see?". Pick what fits you today.');
 });
 
 test('a task that is not saved: says so', async ({ page }) => {
