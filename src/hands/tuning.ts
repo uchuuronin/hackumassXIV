@@ -9,12 +9,14 @@
 
 import type { LaneContext } from '@/shared/lanes';
 import type { Overlay } from '@/shared/overlay';
-import { PointerFilter } from './filter/pointerFilter';
+import type { PointerTracker } from './pointer';
 
 const round = (n: number, places = 2) => Number(n.toFixed(places));
 
-export function startTuning(ctx: LaneContext, overlay: Overlay, filter: PointerFilter): void {
+export function startTuning(ctx: LaneContext, overlay: Overlay, tracker: PointerTracker): void {
+  const filter = tracker.filter;
   let on = false;
+  let stop: (() => void) | undefined;
 
   const status = () => {
     const o = filter.options;
@@ -25,13 +27,6 @@ export function startTuning(ctx: LaneContext, overlay: Overlay, filter: PointerF
       label: `Tuning: tremor ${o.tremorHz} Hz, notch ${o.notch ? 'on' : 'off'}, cutoff ${o.minCutoff}, beta ${o.beta}`,
       tone: 'step',
     });
-  };
-
-  const onMove = (event: PointerEvent) => {
-    const samples = event.getCoalescedEvents?.() ?? [];
-    let steady = { x: event.clientX, y: event.clientY };
-    for (const s of samples.length ? samples : [event]) steady = filter.filter(s.clientX, s.clientY, s.timeStamp);
-    overlay.setCursor({ raw: { x: event.clientX, y: event.clientY }, steady });
   };
 
   const change = (event: KeyboardEvent) => {
@@ -51,12 +46,11 @@ export function startTuning(ctx: LaneContext, overlay: Overlay, filter: PointerF
     if (!(event.altKey && event.shiftKey)) return;
     if (event.code === 'KeyT') {
       on = !on;
-      filter.reset();
       if (on) {
-        window.addEventListener('pointermove', onMove, true);
+        stop = tracker.onMove(({ raw, steady }) => overlay.setCursor({ raw, steady }));
         status();
       } else {
-        window.removeEventListener('pointermove', onMove, true);
+        stop?.();
         overlay.setCursor({ raw: null, steady: null });
         overlay.hide('tuning-status');
       }
@@ -70,6 +64,6 @@ export function startTuning(ctx: LaneContext, overlay: Overlay, filter: PointerF
   window.addEventListener('keydown', onKey, true);
   ctx.onStop(() => {
     window.removeEventListener('keydown', onKey, true);
-    window.removeEventListener('pointermove', onMove, true);
+    stop?.();
   });
 }
