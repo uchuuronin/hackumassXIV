@@ -13,6 +13,7 @@ import { browser } from 'wxt/browser';
 import { registerTool } from '@/helper/registry';
 import { createClickBus } from './clicks';
 import { createHandsTools } from './tools';
+import { startKeyGuard } from './keys/startKeyGuard';
 import { startDwellClick, type DwellClick } from './dwell/dwellClick';
 import { pageObstacles } from './obstacles';
 import { createOverlay } from './overlay';
@@ -41,6 +42,8 @@ export function startFitting(): Promise<FittingOutcome> {
 const TREMOR_HZ_KEY = 'hands:tremorHz' as const;
 const REACH_KEY = 'hands:reach' as const;
 const FITTING_KEY = 'hands:fitting' as const;
+const SLIP_KEY = 'hands:slipPx' as const;
+const KEY_GUARD_KEY = 'hands:keyGuardMs' as const;
 
 const DWELL_KEY = 'hands:dwell' as const;
 interface DwellSetting {
@@ -83,14 +86,21 @@ export function startHands(ctx: LaneContext): void {
     if (area === 'local' && change) applyDwell((change.newValue as DwellSetting | undefined) ?? DWELL_OFF);
   };
   // The fitting's results: how fast the hand shakes and how far a click can stray. Read at start and when they change.
+  const keyGuard = startKeyGuard(ctx);
   const applyPointer = (hz: unknown, reach: unknown) => {
     if (typeof hz === 'number') tracker.filter.setOptions({ tremorHz: hz });
     if (typeof reach === 'number') steadying.setReach(reach);
   };
+  const applyGuards = (slip: unknown, keyMs: unknown) => {
+    if (typeof slip === 'number') steadying.setSlip(slip);
+    if (typeof keyMs === 'number') keyGuard.setMs(keyMs);
+  };
   Promise.all([getProfile<number | null>(TREMOR_HZ_KEY, null), getProfile<number | null>(REACH_KEY, null)]).then(([hz, reach]) => applyPointer(hz, reach), () => undefined);
+  Promise.all([getProfile<number | null>(SLIP_KEY, null), getProfile<number | null>(KEY_GUARD_KEY, null)]).then(([slip, keyMs]) => applyGuards(slip, keyMs), () => undefined);
   const onPointerStorage = (changes: Record<string, { newValue?: unknown }>, area: string) => {
     if (area !== 'local') return;
     if (changes[TREMOR_HZ_KEY] || changes[REACH_KEY]) applyPointer(changes[TREMOR_HZ_KEY]?.newValue, changes[REACH_KEY]?.newValue);
+    if (changes[SLIP_KEY] || changes[KEY_GUARD_KEY]) applyGuards(changes[SLIP_KEY]?.newValue, changes[KEY_GUARD_KEY]?.newValue);
   };
   browser.storage.onChanged.addListener(onPointerStorage);
   browser.storage.onChanged.addListener(onStorage);
@@ -139,6 +149,19 @@ export function startHands(ctx: LaneContext): void {
     };
     window.addEventListener('keydown', onDwellKey, true);
     ctx.onStop(() => window.removeEventListener('keydown', onDwellKey, true));
+
+    // While building: Alt+Shift+K turns the double-key guard on (120 ms) or off. Remembered in the profile.
+    const onGuardKey = (event: KeyboardEvent) => {
+      if (!(event.altKey && event.shiftKey && event.code === 'KeyK')) return;
+      const next = keyGuard.ms() > 0 ? 0 : 120;
+      keyGuard.setMs(next);
+      setProfile(KEY_GUARD_KEY, next).catch(() => undefined);
+      const o = getOverlay();
+      o.show({ id: 'keyguard-status', box: false, where: { x: 16, y: 16, width: 1, height: 1 }, label: next ? `Double-key guard on: a key hit twice within ${next} ms is typed once` : 'Double-key guard off', tone: 'step' });
+      setTimeout(() => o.hide('keyguard-status'), 2500);
+    };
+    window.addEventListener('keydown', onGuardKey, true);
+    ctx.onStop(() => window.removeEventListener('keydown', onGuardKey, true));
 
     // While building: Alt+Shift+G runs the fitting and shows what it found.
     const onFitKey = (event: KeyboardEvent) => {
