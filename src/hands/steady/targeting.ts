@@ -1,7 +1,7 @@
 // Which button is the pointer on, or near? Shared by click steadying and dwell click. Owner: A.
 // The page map says what is clickable and what is protected. This only does the pointing.
 
-import type { PageMapApi, Rect } from '@/shared/pagemap';
+import { STEADY_UI_ATTR, type PageMapApi, type Rect } from '@/shared/pagemap';
 import type { Point } from '../filter/pointerFilter';
 import { pickNearest, type Candidate } from './target';
 
@@ -39,6 +39,12 @@ export interface Targeting {
   liveSeen(id: string): Rect | null;
 }
 
+/** True if the topmost thing under this point is Steady's own panel or pop-up. The overlay itself is click-through, so it is skipped. */
+function underSteadyUi(p: Point): boolean {
+  const top = document.elementFromPoint(p.x, p.y);
+  return !!top && !!top.closest(`[${STEADY_UI_ATTR}]`);
+}
+
 export function createTargeting(pageMap: PageMapApi): Targeting {
   const candidates = (): Candidate[] => {
     const map = pageMap.get({ visibleOnly: true });
@@ -53,6 +59,8 @@ export function createTargeting(pageMap: PageMapApi): Targeting {
 
   return {
     intended(p, reach) {
+      // The pointer is on one of Steady's own pop-ups (Pay Pause, the panel): never point through it to a page button.
+      if (underSteadyUi(p)) return null;
       const hit = pickNearest(p, candidates(), reach);
       if (!hit) return null;
       const el = pageMap.elementFor(hit.id);
