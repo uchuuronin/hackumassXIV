@@ -20,7 +20,7 @@ async function readPage(tabId: number): Promise<string> {
   try {
     const res = (await browser.tabs.sendMessage(tabId, { type: 'pagemap/get' })) as PageMapResponse;
     // The relay accepts 4000 characters for now, so keep the map small.
-    return JSON.stringify(toModelSafe(res.map)).slice(0, 2800);
+    return JSON.stringify(toModelSafe(res.map)).slice(0, 15000);
   } catch {
     return '';
   }
