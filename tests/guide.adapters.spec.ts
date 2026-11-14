@@ -13,6 +13,7 @@ test("labels and the spotlight are passed to A's overlay, follow their button, a
       hide: (itemId) => (shown.delete(itemId), calls.push(`hide ${itemId}`)),
       clear: () => calls.push('clear'),
       setCursor: () => undefined,
+      setDwell: () => undefined,
     }));
     port.labels('choices', [{ targetId: id, text: 'Click this to go ahead and pay.', tone: 'go' }]);
     const where = shown.get(`guide:choices:${id}`)!.where as () => { width: number } | null;
