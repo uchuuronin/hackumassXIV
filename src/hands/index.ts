@@ -17,9 +17,28 @@ import { createOverlay } from './overlay';
 import { startPointer } from './pointer';
 import { startClickSteadying } from './steady/clickSteadying';
 import { startTuning } from './tuning';
+import { runFollowTheDot } from './fitting/follow';
+import { settingsFromReading, type TremorReading } from './fitting/analysis';
 
-let overlay: (Overlay & { destroy(): void }) | undefined;
+let overlay: (Overlay & { destroy(): void; setVisible(visible: boolean): void }) | undefined;
 let dwell: DwellClick | undefined;
+let fitting: (() => Promise<FittingOutcome>) | undefined;
+
+export interface FittingOutcome {
+  ran: boolean;
+  reading?: TremorReading | null;
+  /** Plain words for the person. */
+  said: string;
+}
+
+/** Start the fitting on this page. The helper and the panel call this. Undefined until the hands lane has started. */
+export function startFitting(): Promise<FittingOutcome> {
+  return fitting ? fitting() : Promise.resolve({ ran: false, said: 'The fitting is not ready on this page yet.' });
+}
+
+const TREMOR_HZ_KEY = 'hands:tremorHz' as const;
+const REACH_KEY = 'hands:reach' as const;
+const FITTING_KEY = 'hands:fitting' as const;
 
 const DWELL_KEY = 'hands:dwell' as const;
 interface DwellSetting {
@@ -45,7 +64,7 @@ export function startHands(ctx: LaneContext): void {
   // The one feed of clicks for every lane. Click steadying reports into it, and so does dwell click.
   const bus = createClickBus();
   provide('clicks', bus.port);
-  startClickSteadying(ctx, { pageMap, overlay: getOverlay(), tracker, bus });
+  const steadying = startClickSteadying(ctx, { pageMap, overlay: getOverlay(), tracker, bus });
 
   // Dwell click is off until the fitting (or the dev hotkey) turns it on. The setting lives in the profile.
   const dwellNow = startDwellClick(ctx, { pageMap, overlay: getOverlay(), tracker, bus });
@@ -59,10 +78,43 @@ export function startHands(ctx: LaneContext): void {
     const change = changes[DWELL_KEY];
     if (area === 'local' && change) applyDwell((change.newValue as DwellSetting | undefined) ?? DWELL_OFF);
   };
+  // The fitting's results: how fast the hand shakes and how far a click can stray. Read at start and when they change.
+  const applyPointer = (hz: unknown, reach: unknown) => {
+    if (typeof hz === 'number') tracker.filter.setOptions({ tremorHz: hz });
+    if (typeof reach === 'number') steadying.setReach(reach);
+  };
+  Promise.all([getProfile<number | null>(TREMOR_HZ_KEY, null), getProfile<number | null>(REACH_KEY, null)]).then(([hz, reach]) => applyPointer(hz, reach), () => undefined);
+  const onPointerStorage = (changes: Record<string, { newValue?: unknown }>, area: string) => {
+    if (area !== 'local') return;
+    if (changes[TREMOR_HZ_KEY] || changes[REACH_KEY]) applyPointer(changes[TREMOR_HZ_KEY]?.newValue, changes[REACH_KEY]?.newValue);
+  };
+  browser.storage.onChanged.addListener(onPointerStorage);
   browser.storage.onChanged.addListener(onStorage);
+
+  fitting = async () => {
+    // Nothing else may show through: hide every label and box while the test runs, then bring them back.
+    getOverlay().clear();
+    overlay?.setVisible(false);
+    const result = await runFollowTheDot(document, tracker).finally(() => overlay?.setVisible(true));
+    if (!result.done) return { ran: false, said: 'No problem, the fitting was skipped.' };
+    if (!result.reading) return { ran: true, reading: null, said: 'That was too short to measure. Please try again and follow the dot the whole time.' };
+    const settings = settingsFromReading(result.reading);
+    await setProfile(REACH_KEY, settings.reach);
+    if (settings.tremorHz !== undefined) await setProfile(TREMOR_HZ_KEY, settings.tremorHz);
+    await setProfile(FITTING_KEY, { at: Date.now(), hz: result.reading.hz, amplitudePx: result.reading.amplitudePx, clarity: result.reading.clarity });
+    applyPointer(settings.tremorHz, settings.reach);
+    const said =
+      settings.tremorHz !== undefined
+        ? `Your hand shakes about ${result.reading.hz} times a second. I've tuned the pointer to calm that, and clicks near a button now go to it.`
+        : 'I could not find a clear shake, so I left the pointer smoothing as it was. Clicks near a button still go to it.';
+    return { ran: true, reading: result.reading, said };
+  };
+
 
   ctx.onStop(() => {
     browser.storage.onChanged.removeListener(onStorage);
+    browser.storage.onChanged.removeListener(onPointerStorage);
+    fitting = undefined;
     dwell = undefined;
     overlay?.destroy();
     overlay = undefined;
@@ -83,6 +135,18 @@ export function startHands(ctx: LaneContext): void {
     };
     window.addEventListener('keydown', onDwellKey, true);
     ctx.onStop(() => window.removeEventListener('keydown', onDwellKey, true));
+
+    // While building: Alt+Shift+G runs the fitting and shows what it found.
+    const onFitKey = (event: KeyboardEvent) => {
+      if (!(event.altKey && event.shiftKey && event.code === 'KeyG')) return;
+      startFitting().then((outcome) => {
+        const o = getOverlay();
+        o.show({ id: 'fitting-result', box: false, where: { x: 16, y: 16, width: 1, height: 1 }, label: outcome.said, tone: 'step' });
+        setTimeout(() => o.hide('fitting-result'), 8000);
+      }, () => undefined);
+    };
+    window.addEventListener('keydown', onFitKey, true);
+    ctx.onStop(() => window.removeEventListener('keydown', onFitKey, true));
 
     // While building: Alt+Shift+O labels the first few buttons on the page. Press again to clear.
     let on = false;

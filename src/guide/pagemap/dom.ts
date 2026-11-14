@@ -206,6 +206,35 @@ export function rectOf(el: Element, offsetX = 0, offsetY = 0): Rect {
   };
 }
 
+/** Things a link or button can wrap whose size the wrapper's own box doesn't show (a picture on a line with no height). */
+const PICTURE = 'img, svg, picture, video, canvas, [role="img"]';
+const WRAPPER = 'a, button, [role="button"], [role="link"]';
+
+/**
+ * What the person sees as the control. A link around a picture can have a box a few pixels tall while the
+ * picture is much bigger, so for links and buttons the pictures inside count too. Used for drawing boxes
+ * and labels; the map's own numbers (rectOf) are left as they are.
+ */
+export function seenRectOf(el: Element, offsetX = 0, offsetY = 0): Rect {
+  const base = rectOf(el, offsetX, offsetY);
+  if (!el.matches(WRAPPER)) return base;
+  let x1 = base.x;
+  let y1 = base.y;
+  let x2 = base.x + base.width;
+  let y2 = base.y + base.height;
+  let count = 0;
+  for (const pic of el.querySelectorAll(PICTURE)) {
+    if (++count > 8) break;
+    const r = pic.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) continue;
+    x1 = Math.min(x1, Math.round(r.left + offsetX));
+    y1 = Math.min(y1, Math.round(r.top + offsetY));
+    x2 = Math.max(x2, Math.round(r.right + offsetX));
+    y2 = Math.max(y2, Math.round(r.bottom + offsetY));
+  }
+  return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+}
+
 export function isVisible(el: Element): boolean {
   const r = el.getBoundingClientRect();
   // 1px boxes are the usual "for screen readers only" trick.

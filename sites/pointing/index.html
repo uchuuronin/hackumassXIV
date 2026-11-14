@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pointing test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Owner: A. The standard pointing test (ISO 9241-9): a ring of targets, clicked in a criss-cross order.
+     It counts missed clicks and time per target, so Steady can be measured with and without. -->
+<style>
+  :root { --target: 56px; --ring: 380px; }
+  body { margin: 0; font: 18px/1.4 system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; background: #f7f5ef; color: #222; }
+  header { padding: 14px 24px; background: #fff; border-bottom: 1px solid #e4dfd4; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 20px; margin: 0; }
+  #status { margin-left: auto; color: #555; }
+  #stage { position: relative; height: 560px; margin: 0 auto; max-width: 900px; }
+  #stage .t { position: absolute; width: var(--target); height: var(--target); margin: calc(var(--target) / -2) 0 0 calc(var(--target) / -2);
+    border-radius: 50%; border: 3px solid #b9b3a4; background: #e8e3d6; font-size: 0; padding: 0; cursor: pointer; }
+  #stage .t.now { background: #15803d; border-color: #0f5c2b; }
+  #begin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 20px; padding: 14px 28px; border-radius: 8px;
+    border: 2px solid #0f5c2b; background: #15803d; color: #fff; cursor: pointer; }
+  #results { max-width: 900px; margin: 0 auto 40px; padding: 0 24px; display: none; }
+  #results table { border-collapse: collapse; width: 100%; background: #fff; }
+  #results td, #results th { border: 1px solid #e4dfd4; padding: 8px 12px; text-align: left; }
+  #results textarea { width: 100%; height: 120px; font: 13px/1.4 ui-monospace, Menlo, monospace; }
+  #results button { font-size: 16px; padding: 8px 16px; margin-top: 8px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pointing test</h1>
+  <span id="cond"></span>
+  <span id="status">Click Begin, then click each green circle as fast and as carefully as you can.</span>
+</header>
+<div id="stage"><button id="begin" type="button">Begin</button></div>
+<section id="results">
+  <h2>Results</h2>
+  <table>
+    <tr><th>Condition</th><td id="r-label"></td></tr>
+    <tr><th>Targets hit</th><td id="r-hits"></td></tr>
+    <tr><th>Missed clicks</th><td id="r-miss"></td></tr>
+    <tr><th>Missed clicks per 100 clicks</th><td id="r-err"></td></tr>
+    <tr><th>Average time per target</th><td id="r-time"></td></tr>
+  </table>
+  <p>Copy these numbers into the tracker's Proof table, with and without Steady.</p>
+  <textarea id="r-json" readonly aria-label="Results as text"></textarea><br>
+  <button id="again" type="button">Run again</button>
+</section>
+<script>
+(() => {
+  // ?n=9 targets (odd), ?w=56 target size, ?d=380 ring size, ?rounds=3, ?label=steady-off
+  const q = new URLSearchParams(location.search);
+  const N = Math.max(3, (Number(q.get('n')) || 9) | 1);
+  const W = Number(q.get('w')) || 56;
+  const D = Number(q.get('d')) || 380;
+  const ROUNDS = Number(q.get('rounds')) || 3;
+  const LABEL = q.get('label') || 'unnamed';
+  const STEP = (N + 1) / 2; // criss-cross: always to a target roughly opposite
+
+  const stage = document.getElementById('stage');
+  const status = document.getElementById('status');
+  document.getElementById('cond').textContent = `Condition: ${LABEL}`;
+  document.documentElement.style.setProperty('--target', W + 'px');
+
+  const targets = [];
+  const cx = () => stage.clientWidth / 2;
+  const cy = () => stage.clientHeight / 2;
+  for (let i = 0; i < N; i++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 't';
+    b.textContent = `Target ${i + 1}`;
+    b.setAttribute('aria-label', `Target ${i + 1}`);
+    b.dataset.i = String(i);
+    b.hidden = true;
+    stage.appendChild(b);
+    targets.push(b);
+  }
+  function layout() {
+    targets.forEach((b, i) => {
+      const a = (2 * Math.PI * i) / N - Math.PI / 2;
+      b.style.left = cx() + (D / 2) * Math.cos(a) + 'px';
+      b.style.top = cy() + (D / 2) * Math.sin(a) + 'px';
+    });
+  }
+  window.addEventListener('resize', layout);
+  layout();
+
+  let running = false, order = [], pos = 0, clicks = 0, misses = 0, startedAt = 0, lastHitAt = 0, times = [];
+
+  function show() {
+    targets.forEach((b) => b.classList.remove('now'));
+    targets[order[pos]].classList.add('now');
+    status.textContent = `Target ${pos + 1} of ${order.length}`;
+  }
+  function begin() {
+    order = [];
+    let at = 0;
+    for (let k = 0; k < N * ROUNDS; k++) { order.push(at); at = (at + STEP) % N; }
+    pos = 0; clicks = 0; misses = 0; times = [];
+    running = true;
+    document.getElementById('begin').hidden = true;
+    document.getElementById('results').style.display = 'none';
+    targets.forEach((b) => (b.hidden = false));
+    show();
+    startedAt = lastHitAt = performance.now();
+  }
+  function finish() {
+    running = false;
+    targets.forEach((b) => { b.hidden = true; b.classList.remove('now'); });
+    const hits = times.length;
+    const avg = times.reduce((a, b) => a + b, 0) / hits;
+    const per100 = (100 * misses) / (hits + misses);
+    const result = { label: LABEL, targets: N, size: W, ring: D, rounds: ROUNDS, hits, misses, missesPer100Clicks: +per100.toFixed(1), avgMsPerTarget: Math.round(avg) };
+    window.__pointing = result;
+    document.getElementById('r-label').textContent = LABEL;
+    document.getElementById('r-hits').textContent = hits;
+    document.getElementById('r-miss').textContent = misses;
+    document.getElementById('r-err').textContent = per100.toFixed(1);
+    document.getElementById('r-time').textContent = Math.round(avg) + ' ms';
+    document.getElementById('r-json').value = JSON.stringify(result);
+    document.getElementById('results').style.display = 'block';
+    status.textContent = 'Done.';
+  }
+
+  // Capture phase and the click event, so a click that Steady steers or a dwell click is counted too.
+  document.addEventListener('click', (e) => {
+    if (!running) return;
+    const el = e.target instanceof Element ? e.target.closest('.t') : null;
+    clicks++;
+    if (el && Number(el.dataset.i) === order[pos]) {
+      const now = performance.now();
+      times.push(now - lastHitAt);
+      lastHitAt = now;
+      pos++;
+      if (pos >= order.length) finish(); else show();
+    } else {
+      misses++;
+    }
+  }, true);
+
+  document.getElementById('begin').addEventListener('click', begin);
+  document.getElementById('again').addEventListener('click', begin);
+})();
+</script>
+</body>
+</html>
