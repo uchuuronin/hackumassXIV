@@ -9,3 +9,4 @@ button:focus-visible, input:focus-visible { outline: 4px solid #0a58ca; outline-
 .reply { margin-top: 16px; }
 .said { background: #fff; border: 3px solid #1b1b1b; border-radius: 12px; padding: 16px; }
 .choice { background: #fff; }
+.small { min-height: 48px; font-size: 18px; margin-top: 24px; }
