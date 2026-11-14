@@ -7,7 +7,9 @@
 import type { LaneContext } from '@/shared/lanes';
 import type { Overlay } from '@/shared/overlay';
 import { pageMap } from '@/guide';
+import { PointerFilter } from './filter/pointerFilter';
 import { createOverlay } from './overlay';
+import { startTuning } from './tuning';
 
 let overlay: (Overlay & { destroy(): void }) | undefined;
 
@@ -25,6 +27,8 @@ export function startHands(ctx: LaneContext): void {
   });
 
   if (ctx.dev) {
+    startTuning(ctx, getOverlay(), new PointerFilter());
+
     // While building: Alt+Shift+O labels the first few buttons on the page. Press again to clear.
     let on = false;
     const onKey = (event: KeyboardEvent) => {
