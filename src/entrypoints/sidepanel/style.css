@@ -1,10 +1,11 @@
-:root {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-size: 18px;
-  line-height: 1.5;
-  color: #1f2328;
-  background: #fffdf8;
-}
-body { margin: 0; }
-.panel { padding: 20px; }
-h1 { font-size: 1.6rem; margin: 0 0 8px; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #fffdf7; color: #1b1b1b; }
+.panel { padding: 20px; font-size: 22px; line-height: 1.4; }
+h1 { font-size: 30px; margin: 0 0 16px; }
+label { display: block; margin-bottom: 8px; }
+input { width: 100%; box-sizing: border-box; font-size: 22px; padding: 14px; border: 3px solid #1b1b1b; border-radius: 12px; margin-bottom: 12px; }
+button { width: 100%; min-height: 60px; font-size: 22px; font-weight: 600; border: 3px solid #1b1b1b; border-radius: 12px; background: #ffd84d; cursor: pointer; margin-bottom: 12px; }
+button:disabled { opacity: 0.6; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 4px solid #0a58ca; outline-offset: 2px; }
+.reply { margin-top: 16px; }
+.said { background: #fff; border: 3px solid #1b1b1b; border-radius: 12px; padding: 16px; }
+.choice { background: #fff; }
