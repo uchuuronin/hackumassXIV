@@ -44,3 +44,7 @@ export interface ToolRun { type: 'tool/run'; name: string; args: Record<string, 
 export interface ToolResultMsg { type: 'tool/result'; result: ToolResult }
 
 export type Msg = HelperAsk | HelperAnswer | ToolRun | ToolResultMsg;
+
+/** Ask Gemini through the relay. Sent to the background worker, which holds the relay URL. */
+export interface GeminiAsk { type: 'gemini/ask'; prompt: string }
+export interface GeminiAnswer { type: 'gemini/answer'; ok: boolean; text: string }
