@@ -6,6 +6,7 @@ import { STEADY_UI_ATTR, fullLabel, type PageElement } from '@/shared/pagemap';
 import type { LaneContext } from '@/shared/lanes';
 import { HELPER_KEYS } from '@/shared/tools';
 import { getProfile } from './profile';
+import { siteLines } from './sites';
 
 let bypass = false;
 let open: HTMLElement | null = null;
@@ -22,7 +23,7 @@ function describeRisk(el: PageElement): { title: string; lines: string[]; go: st
   const pay = el.protection === 'pay';
   const map = pageMap.get();
   const total = map.amounts.find((a) => a.kind === 'total' && !a.struck);
-  const lines: string[] = [];
+  const lines: string[] = pay ? siteLines() : [];
   if (el.labelConfident) lines.push(`You are about to press "${fullLabel(el)}".`);
   lines.push(pay
     ? total ? `This will take ${total.text} from you.` : 'This will take money from you.'
