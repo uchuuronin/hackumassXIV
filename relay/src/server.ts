@@ -48,7 +48,7 @@ app.get('/health', async () => ({ ok: true }));
 
 app.post<{ Body: { prompt: string } }>('/gemini', async (req, reply) => {
   const prompt = req.body?.prompt;
-  if (typeof prompt !== 'string' || !prompt || prompt.length > 4000) {
+  if (typeof prompt !== 'string' || !prompt || prompt.length > 20000) {
     return reply.code(400).send({ error: 'bad prompt' });
   }
   try {
