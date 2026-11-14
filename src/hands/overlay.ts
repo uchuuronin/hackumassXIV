@@ -18,6 +18,7 @@ const CSS = `
   .box { position: fixed; left: 0; top: 0; box-sizing: border-box; border: 4px solid; border-radius: 10px; }
   .raw { position: fixed; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #dc2626; }
   .ring { position: fixed; left: 0; top: 0; width: 36px; height: 36px; margin: -18px 0 0 -18px; box-sizing: border-box; border-radius: 50%; border: 5px solid #1d4ed8; background: rgba(29, 78, 216, 0.15); }
+  .dwell { position: fixed; left: 0; top: 0; width: 56px; height: 56px; margin: -28px 0 0 -28px; }
   .label {
     position: fixed; left: 0; top: 0; max-width: 320px; padding: 8px 12px; border-radius: 8px;
     font: 600 18px/1.35 system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
@@ -116,6 +117,30 @@ export function createOverlay(doc: Document = document): Overlay & { destroy(): 
   ring.className = 'ring';
   ring.style.display = 'none';
   layer.append(rawDot, ring);
+  const SVG = 'http://www.w3.org/2000/svg';
+  const RADIUS = 22;
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+  const dwell = doc.createElementNS(SVG, 'svg');
+  dwell.setAttribute('class', 'dwell');
+  dwell.setAttribute('viewBox', '0 0 56 56');
+  dwell.style.display = 'none';
+  const ringPart = (stroke: string, width: number) => {
+    const c = doc.createElementNS(SVG, 'circle');
+    c.setAttribute('cx', '28');
+    c.setAttribute('cy', '28');
+    c.setAttribute('r', String(RADIUS));
+    c.setAttribute('fill', 'none');
+    c.setAttribute('stroke', stroke);
+    c.setAttribute('stroke-width', String(width));
+    return c;
+  };
+  const track = ringPart('rgba(255,255,255,0.9)', 9);
+  const bar = ringPart('#15803d', 6);
+  bar.setAttribute('stroke-dasharray', String(CIRCUMFERENCE));
+  bar.setAttribute('transform', 'rotate(-90 28 28)');
+  dwell.append(track, bar);
+  layer.append(dwell);
+
   const place = (el: HTMLElement, p: { x: number; y: number } | null | undefined) => {
     if (p === undefined) return;
     el.style.display = p ? '' : 'none';
@@ -123,6 +148,15 @@ export function createOverlay(doc: Document = document): Overlay & { destroy(): 
   };
 
   return {
+    setDwell(progress, at) {
+      if (progress === null || !at) {
+        dwell.style.display = 'none';
+        return;
+      }
+      dwell.style.display = '';
+      dwell.style.transform = `translate(${at.x}px, ${at.y}px)`;
+      bar.setAttribute('stroke-dashoffset', String(CIRCUMFERENCE * (1 - Math.min(1, Math.max(0, progress)))));
+    },
     setCursor(points: CursorPoints) {
       place(rawDot, points.raw);
       place(ring, points.steady);

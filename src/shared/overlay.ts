@@ -40,4 +40,6 @@ export interface Overlay {
   clear(): void;
   /** Draw the real and steadied pointer, in viewport pixels. */
   setCursor(points: CursorPoints): void;
+  /** A ring that fills around a point, for dwell click. `progress` is 0 to 1. Null removes it. */
+  setDwell(progress: number | null, at?: { x: number; y: number }): void;
 }
