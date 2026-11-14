@@ -4,7 +4,11 @@ import { pageMap } from '@/guide';
 import { getOverlay } from '@/hands';
 import type { LaneContext } from '@/shared/lanes';
 
-const AD_WORDS = /(^|[\s_-])(ads?|advert|advertisement|adslot|sponsored)([\s_-]|$)/i;
+// Words that clearly mean an advert (any case). "ad" counts only inside a compound like "top-ad" or
+// "ad-slot", in lower case, so Gmail's one-word class "AD" for its compose window is not caught.
+const AD_WORDS = /(^|[\s_-])(advert|advertisement|adslot|sponsored)([\s_-]|$)/i;
+const AD_COMPOUND = /(^|\s)(ads?)[-_][a-z]|[a-z0-9][-_](ads?)(\s|$)/;
+const AD_SRC = /doubleclick|googlesyndication|adservice|adsystem|\/ads?\/|banner/i;
 const AD_TAG = /^(ad|ads|advert|advertisement|sponsored)$/i;
 const BAIT = /download|install|update|speed|scan|virus|clean|claim|prize|winner|free gift|your pc/i;
 
@@ -27,7 +31,7 @@ function inAdvert(node: Element): boolean {
     if (n.tagName === 'BODY' || n.tagName === 'HTML') continue;
     const className = typeof n.className === 'string' ? n.className : '';
     const words = `${n.id} ${className} ${n.getAttribute('aria-label') ?? ''} ${n.getAttribute('title') ?? ''}`;
-    if (AD_WORDS.test(words) || n.hasAttribute('data-ad') || n.hasAttribute('data-ad-slot')) return true;
+    if (AD_WORDS.test(words) || AD_COMPOUND.test(words) || n.hasAttribute('data-ad') || n.hasAttribute('data-ad-slot')) return true;
   }
   return false;
 }
@@ -78,7 +82,7 @@ export function startFakeCheck(ctx: LaneContext): void {
     map.frames.forEach((f, i) => {
       if (f.sameSite || !f.visible) return;
       const iframe = Array.from(document.querySelectorAll('iframe')).find((x) => x.src === f.src);
-      if (!iframe) return;
+      if (!iframe || (!inAdvert(iframe) && !AD_SRC.test(f.src))) return;
       const id = `fake-frame-${i}`;
       frameIds.add(id);
       getOverlay().show({
