@@ -6,12 +6,12 @@
 import { startGuide } from '@/guide';
 import type { LaneContext, StartLane } from '@/shared/lanes';
 // A: import { startHands } from '@/hands';
-// B: import { startHelper } from '@/helper';
+import { startHelper } from '@/helper';
 
 const lanes: Array<[name: string, start: StartLane]> = [
   ['guide', startGuide],
   // A: ['hands', startHands],
-  // B: ['helper', startHelper],
+  ['helper', startHelper],
 ];
 
 export default defineContentScript({
