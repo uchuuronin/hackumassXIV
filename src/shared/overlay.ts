@@ -42,4 +42,6 @@ export interface Overlay {
   setCursor(points: CursorPoints): void;
   /** A ring that fills around a point, for dwell click. `progress` is 0 to 1. Null removes it. */
   setDwell(progress: number | null, at?: { x: number; y: number }): void;
+  /** Dim everything on the page except one box. A function follows the page. Null turns it off. Optional so older stand-ins still fit. */
+  setSpotlight?(where: Rect | (() => Rect | null) | null): void;
 }

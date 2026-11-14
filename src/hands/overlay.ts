@@ -1,10 +1,18 @@
 // The overlay (foundation piece). Owner: A.
 // Draws boxes and labels in a shadow DOM on top of the page. Never changes the page itself.
 // Clicks pass straight through. Nothing animates, so nothing needs a reduced-motion rule yet.
-// Step 1 is a plain box and label. Pointer, spotlight, cards and arrows are added to this file.
+// Boxes, labels (placed in empty space, with a thin line back to the target when they sit further out),
+// the steadied cursor, the dwell ring and the spotlight (dims everything except one box).
 
 import { STEADY_UI_ATTR, type Rect } from '@/shared/pagemap';
 import type { CursorPoints, Overlay, OverlayItem, OverlayTone } from '@/shared/overlay';
+import { layoutLabels, leaderLine, type LabelRequest } from './layout';
+import type { Obstacles } from './obstacles';
+
+export interface OverlayOptions {
+  /** What labels must keep clear of. Left out, labels only avoid each other and the targets. */
+  obstacles?: () => Obstacles;
+}
 
 const COLOURS: Record<OverlayTone, { line: string; fill: string; text: string }> = {
   info: { line: '#1d4ed8', fill: '#1d4ed8', text: '#ffffff' },
@@ -19,6 +27,8 @@ const CSS = `
   .raw { position: fixed; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #dc2626; }
   .ring { position: fixed; left: 0; top: 0; width: 36px; height: 36px; margin: -18px 0 0 -18px; box-sizing: border-box; border-radius: 50%; border: 5px solid #1d4ed8; background: rgba(29, 78, 216, 0.15); }
   .dwell { position: fixed; left: 0; top: 0; width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+  .spot { position: fixed; left: 0; top: 0; border-radius: 12px; box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.6); }
+  .lines { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; overflow: visible; }
   .label {
     position: fixed; left: 0; top: 0; max-width: 320px; padding: 8px 12px; border-radius: 8px;
     font: 600 18px/1.35 system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
@@ -30,36 +40,18 @@ interface Live {
   item: OverlayItem;
   box: HTMLDivElement;
   label?: HTMLDivElement;
+  leader?: SVGGElement;
   labelSize?: { w: number; h: number };
-  /** Where the label was last placed, so later labels keep clear of it. */
+  /** Where the label sits now. */
   at?: Rect;
+  /** Where the target is now. */
+  rect?: Rect;
   last?: string;
 }
 
-const GAP = 8;
+const SPOT_PAD = 6;
 
-function overlaps(a: Rect, b: Rect): boolean {
-  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-}
-
-/** Try below, above, right, left. Take the first spot that is on screen and clear of other labels. */
-function placeLabel(target: Rect, size: { w: number; h: number }, taken: Rect[]): Rect {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const cx = Math.min(Math.max(target.x + target.width / 2 - size.w / 2, GAP), Math.max(vw - size.w - GAP, GAP));
-  const cy = Math.min(Math.max(target.y + target.height / 2 - size.h / 2, GAP), Math.max(vh - size.h - GAP, GAP));
-  const below: Rect = { x: cx, y: target.y + target.height + GAP, width: size.w, height: size.h };
-  const spots: Rect[] = [
-    below,
-    { x: cx, y: target.y - size.h - GAP, width: size.w, height: size.h },
-    { x: target.x + target.width + GAP, y: cy, width: size.w, height: size.h },
-    { x: target.x - size.w - GAP, y: cy, width: size.w, height: size.h },
-  ];
-  const fits = (r: Rect) => r.x >= 0 && r.y >= 0 && r.x + r.width <= vw && r.y + r.height <= vh;
-  return spots.find((r) => fits(r) && !taken.some((t) => overlaps(r, t))) ?? spots.find(fits) ?? below;
-}
-
-export function createOverlay(doc: Document = document): Overlay & { destroy(): void } {
+export function createOverlay(doc: Document = document, options: OverlayOptions = {}): Overlay & { destroy(): void } {
   const host = doc.createElement('div');
   host.setAttribute(STEADY_UI_ATTR, '');
   const root = host.attachShadow({ mode: 'closed' });
@@ -70,6 +62,18 @@ export function createOverlay(doc: Document = document): Overlay & { destroy(): 
   root.append(style, layer);
   doc.documentElement.append(host);
 
+  // Bottom to top: the dimming, the lines from far-off labels to their targets, then boxes and labels.
+  const spot = doc.createElement('div');
+  spot.className = 'spot';
+  spot.style.display = 'none';
+  const SVG = 'http://www.w3.org/2000/svg';
+  const lines = doc.createElementNS(SVG, 'svg');
+  lines.setAttribute('class', 'lines');
+  layer.append(spot, lines);
+  let spotWhere: Rect | (() => Rect | null) | null = null;
+  let obstacleVersion = -1;
+  let dirty = false;
+
   const items = new Map<string, Live>();
   let frame = 0;
 
@@ -77,37 +81,94 @@ export function createOverlay(doc: Document = document): Overlay & { destroy(): 
 
   function tick() {
     frame = 0;
-    const taken: Rect[] = [];
+    let changed = dirty;
+    dirty = false;
+    const requests: LabelRequest[] = [];
     for (const live of items.values()) {
       const rect = rectOf(live.item);
       const hidden = !rect || rect.width <= 0 || rect.height <= 0;
       live.box.style.display = hidden || live.item.box === false ? 'none' : '';
       if (live.label) live.label.style.display = hidden ? 'none' : '';
-      if (hidden || !rect) continue;
+      if (live.leader) live.leader.style.display = hidden ? 'none' : '';
+      if (hidden || !rect) {
+        live.rect = undefined;
+        continue;
+      }
+      live.rect = rect;
       // Write only when something moved, so a still page costs almost nothing.
       const key = `${rect.x}|${rect.y}|${rect.width}|${rect.height}|${window.innerWidth}|${window.innerHeight}`;
       if (key !== live.last) {
         live.last = key;
+        changed = true;
         live.box.style.transform = `translate(${rect.x - 4}px, ${rect.y - 4}px)`;
         live.box.style.width = `${rect.width + 8}px`;
         live.box.style.height = `${rect.height + 8}px`;
-        if (live.label && live.labelSize) {
-          live.at = placeLabel(rect, live.labelSize, taken);
-          live.label.style.transform = `translate(${live.at.x}px, ${live.at.y}px)`;
+      }
+      if (live.label) {
+        // Measure now, not only when it was made: the first measure can be too early (styles, fonts, display).
+        const size = live.label.getBoundingClientRect();
+        if (size.width > 0 && size.height > 0) {
+          const next = { w: Math.ceil(size.width), h: Math.ceil(size.height) };
+          if (!live.labelSize || live.labelSize.w !== next.w || live.labelSize.h !== next.h) changed = true;
+          live.labelSize = next;
         }
       }
-      // Remember where this label sits so the next one keeps clear of it.
-      if (live.at) taken.push(live.at);
+      if (live.label && live.labelSize) {
+        requests.push({ id: live.item.id, target: rect, width: live.labelSize.w, height: live.labelSize.h, previous: live.at });
+      }
     }
-    if (items.size > 0) frame = requestAnimationFrame(tick);
+
+    const obstacles = options.obstacles?.();
+    if (obstacles && obstacles.version !== obstacleVersion) {
+      obstacleVersion = obstacles.version;
+      changed = true;
+    }
+    if (changed && requests.length) {
+      const places = layoutLabels(requests, obstacles?.rects ?? [], { width: window.innerWidth, height: window.innerHeight });
+      for (const live of items.values()) {
+        const at = places.get(live.item.id);
+        if (!at || !live.label || !live.rect) continue;
+        live.at = at;
+        live.label.style.transform = `translate(${at.x}px, ${at.y}px)`;
+        if (live.leader) {
+          const line = leaderLine(live.rect, at);
+          const [stem, dot] = [live.leader.firstElementChild, live.leader.lastElementChild];
+          live.leader.style.display = line ? '' : 'none';
+          if (line && stem && dot) {
+            stem.setAttribute('x1', String(line.from.x));
+            stem.setAttribute('y1', String(line.from.y));
+            stem.setAttribute('x2', String(line.to.x));
+            stem.setAttribute('y2', String(line.to.y));
+            dot.setAttribute('cx', String(line.to.x));
+            dot.setAttribute('cy', String(line.to.y));
+          }
+        }
+      }
+    }
+
+    if (spotWhere) {
+      const r = typeof spotWhere === 'function' ? spotWhere() : spotWhere;
+      if (r && r.width > 0 && r.height > 0) {
+        spot.style.display = '';
+        spot.style.transform = `translate(${r.x - SPOT_PAD}px, ${r.y - SPOT_PAD}px)`;
+        spot.style.width = `${r.width + SPOT_PAD * 2}px`;
+        spot.style.height = `${r.height + SPOT_PAD * 2}px`;
+      } else {
+        spot.style.display = 'none';
+      }
+    }
+    if (items.size > 0 || spotWhere) frame = requestAnimationFrame(tick);
   }
   const wake = () => {
-    if (!frame && items.size > 0) frame = requestAnimationFrame(tick);
+    dirty = true;
+    if (!frame && (items.size > 0 || spotWhere)) frame = requestAnimationFrame(tick);
   };
 
   function drop(live: Live) {
     live.box.remove();
     live.label?.remove();
+    live.leader?.remove();
+    dirty = true;
   }
 
   const rawDot = doc.createElement('div');
@@ -117,7 +178,6 @@ export function createOverlay(doc: Document = document): Overlay & { destroy(): 
   ring.className = 'ring';
   ring.style.display = 'none';
   layer.append(rawDot, ring);
-  const SVG = 'http://www.w3.org/2000/svg';
   const RADIUS = 22;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
   const dwell = doc.createElementNS(SVG, 'svg');
@@ -157,6 +217,14 @@ export function createOverlay(doc: Document = document): Overlay & { destroy(): 
       dwell.style.transform = `translate(${at.x}px, ${at.y}px)`;
       bar.setAttribute('stroke-dashoffset', String(CIRCUMFERENCE * (1 - Math.min(1, Math.max(0, progress)))));
     },
+    setSpotlight(where) {
+      spotWhere = where;
+      if (!where) {
+        spot.style.display = 'none';
+        return;
+      }
+      wake();
+    },
     setCursor(points: CursorPoints) {
       place(rawDot, points.raw);
       place(ring, points.steady);
@@ -178,6 +246,18 @@ export function createOverlay(doc: Document = document): Overlay & { destroy(): 
         label.textContent = item.label;
         layer.append(label);
         const size = label.getBoundingClientRect();
+        const leader = doc.createElementNS(SVG, 'g');
+        const stem = doc.createElementNS(SVG, 'line');
+        stem.setAttribute('stroke', tone.line);
+        stem.setAttribute('stroke-width', '3');
+        stem.setAttribute('stroke-linecap', 'round');
+        const dot = doc.createElementNS(SVG, 'circle');
+        dot.setAttribute('r', '5');
+        dot.setAttribute('fill', tone.line);
+        leader.append(stem, dot);
+        leader.style.display = 'none';
+        lines.append(leader);
+        live.leader = leader;
         live.label = label;
         live.labelSize = { w: Math.ceil(size.width), h: Math.ceil(size.height) };
       }

@@ -71,6 +71,8 @@ export interface StorePort {
 export interface ClickPort {
   /** Called once for each click the person really made, with what it landed on. */
   onClick(listener: (target: Element) => void): () => void;
+  /** Called when a click landed on nothing and was not steered to a button (for "I'm stuck" after three misses). Added by A. */
+  onMiss?(listener: (at: { x: number; y: number }) => void): () => void;
 }
 
 // Tools are B's: see Tool and ToolResult in ./tools, and registerTool in src/helper/registry.
