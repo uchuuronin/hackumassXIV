@@ -5,6 +5,7 @@ import { html, inject } from './helpers';
 async function show(page: Page) {
   await inject(page);
   return page.evaluate(async () => {
+    window.__steady.choices.setPace({ noteMs: 40, perCharMs: 0, hoverMs: 60, lingerMs: 80 }); // quick, for the tests
     const result = await window.__steady.choices.show();
     const map = window.__steady.api.get();
     const name = (id: string) => {
@@ -15,7 +16,6 @@ async function show(page: Page) {
       said: result.said,
       unsure: result.unsure,
       labels: Object.fromEntries(result.labels.map((l) => [name(l.targetId), `${l.tone}: ${l.text}`])),
-      drawn: window.__steady.calls.filter((c) => c.port === 'overlay' && c.method === 'labels').length,
     };
   });
 }
@@ -26,13 +26,13 @@ test('the basket: says plainly what each main button does, and which item each "
   expect(result.labels).toEqual({
     Checkout: 'go: Click this to go ahead and pay.',
     'Continue shopping': 'info: Click this to go back and look at more things.',
-    // The remove buttons are only icons, so their names are guesses. The label says so.
-    'Remove (Brass reading lamp)': 'careful: I think this takes the Brass reading lamp out of your basket.',
-    'Remove (Two-cup teapot)': 'careful: I think this takes the Two-cup teapot out of your basket.',
-    'Remove (Large-number kitchen timer)': 'careful: I think this takes the Large-number kitchen timer out of your basket.',
+    'Remove (Brass reading lamp)': 'careful: Click this to take the Brass reading lamp out of your basket.',
+    'Remove (Two-cup teapot)': 'careful: Click this to take the Two-cup teapot out of your basket.',
+    'Remove (Large-number kitchen timer)': 'careful: Click this to take the Large-number kitchen timer out of your basket.',
   });
-  expect(result.drawn).toBe(1);
-  expect(result.said).toBe('I have put a note beside the 5 main buttons.');
+  expect(result.said).toBe(
+    'I will show you the 5 main buttons, one at a time. Afterwards, rest the pointer on any button and I will tell you again what it does.',
+  );
 });
 
 test('the labels can be taken away again', async ({ page }) => {
@@ -42,7 +42,7 @@ test('the labels can be taken away again', async ({ page }) => {
     window.__steady.choices.hide();
     return window.__steady.calls.filter((c) => c.method === 'clear').map((c) => c.args[0]);
   });
-  expect(cleared).toEqual(['choices']);
+  expect(cleared).toEqual(['choices', 'hover']);
 });
 
 test('a button marked as an advert gets no choice label: the advert warning is the only thing said about it', async ({ page }) => {
@@ -91,7 +91,9 @@ test('buttons Steady has no words for go to Gemini, by name only', async ({ page
   });
   // Gemini was not sure about one, so it gets no label, and the helper says so.
   expect(result.unsure).toEqual(['Reactivate']);
-  expect(result.said).toBe('I have put a note beside the 2 main buttons. I am not sure about "Reactivate", so I left it alone.');
+  expect(result.said).toBe(
+    'I will show you the 2 main buttons, one at a time. Afterwards, rest the pointer on any button and I will tell you again what it does. I am not sure about "Reactivate", so I left it alone.',
+  );
   const sent = await page.evaluate(() => JSON.stringify(window.__steady.calls.find((c) => c.port === 'model')!.args));
   expect(sent).toContain('Compare plans');
   expect(sent).not.toContain('4111');
@@ -141,7 +143,7 @@ test('when a pop-up is open, only its buttons are labelled', async ({ page }) =>
   const result = await show(page);
   expect(result.labels).toEqual({
     'Accept all': 'info: Click this to allow cookies and close this box.',
-    Close: 'info: I think this closes this box.',
+    Close: 'info: Click this to close this box.',
   });
 });
 
@@ -180,4 +182,68 @@ test.describe("through B's relay: a prompt goes out, plain text comes back", () 
     expect(result.labels).toEqual({});
     expect(result.unsure).toHaveLength(3);
   });
+});
+
+test('the notes come one at a time, never on top of each other, and then clear away', async ({ page }) => {
+  await page.goto('/shop/basket.html?reset=1');
+  await show(page);
+  await expect
+    .poll(() => page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'overlay' && c.args[0] === 'choices').map((c) => (c.method === 'labels' ? (c.args[1] as unknown[]).length : 'clear'))))
+    .toEqual([1, 1, 1, 1, 1, 'clear']);
+});
+
+test('afterwards, resting the pointer on a button brings its note back, and moving away clears it', async ({ page }) => {
+  await page.goto('/shop/basket.html?reset=1');
+  await show(page);
+  const hoverNotes = () =>
+    page.evaluate(() =>
+      window.__steady.calls
+        .filter((c) => c.port === 'overlay' && c.args[0] === 'hover')
+        .map((c) => (c.method === 'labels' ? (c.args[1] as Array<{ text: string }>)[0]!.text : 'clear')),
+    );
+  await page.waitForTimeout(400); // the one-at-a-time showing has finished
+  await page.hover('[data-remove="teapot"]');
+  await expect.poll(hoverNotes).toEqual(['Click this to take the Two-cup teapot out of your basket.']);
+  await page.hover('h1');
+  await expect.poll(hoverNotes).toEqual(['Click this to take the Two-cup teapot out of your basket.', 'clear']);
+  // A button that was not one of the main six still explains itself, if Steady has sure words for it.
+  await page.goto('/shop/checkout.html');
+  await show(page);
+  await page.waitForTimeout(300);
+  await page.hover('text=Back to basket');
+  await expect.poll(hoverNotes).toEqual(['Click this to go back to your basket.']);
+});
+
+test('a shaky pointer that slips off the button for a moment does not lose the note', async ({ page }) => {
+  await page.goto('/shop/basket.html?reset=1');
+  await show(page);
+  await page.waitForTimeout(400);
+  await page.evaluate(() => window.__steady.choices.setPace({ hoverMs: 150, lingerMs: 400 }));
+  const box = (await page.locator('#go-checkout').boundingBox())!;
+  await page.mouse.move(box.x + 5, box.y + 5);
+  await page.waitForTimeout(60);
+  await page.mouse.move(box.x - 6, box.y + 5); // slips off…
+  await page.waitForTimeout(40);
+  await page.mouse.move(box.x + 6, box.y + 6); // …and back on
+  await page.waitForTimeout(350);
+  const notes = await page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'overlay' && c.args[0] === 'hover').map((c) => c.method));
+  expect(notes).toEqual(['labels']);
+});
+
+test('the way forward is shown first, and the buttons that take things away come last', async ({ page }) => {
+  await page.goto('/shop/basket.html?reset=1');
+  await show(page);
+  const shown = () =>
+    page.evaluate(() =>
+      window.__steady.calls.filter((c) => c.port === 'overlay' && c.args[0] === 'choices' && c.method === 'labels').map((c) => (c.args[1] as Array<{ text: string }>)[0]!.text),
+    );
+  await expect
+    .poll(shown)
+    .toEqual([
+      'Click this to go ahead and pay.',
+      'Click this to go back and look at more things.',
+      'Click this to take the Brass reading lamp out of your basket.',
+      'Click this to take the Two-cup teapot out of your basket.',
+      'Click this to take the Large-number kitchen timer out of your basket.',
+    ]);
 });

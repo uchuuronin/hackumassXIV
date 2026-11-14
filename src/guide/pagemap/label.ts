@@ -124,7 +124,7 @@ function nameOfPressable(el: Element): Name {
   const text = clip(textOf(el));
   if (text) {
     for (const [glyph, word] of GLYPHS) {
-      if (glyph.test(text)) return { label: word, source: 'icon', confident: false };
+      if (glyph.test(text)) return { label: word, source: 'icon', confident: secondClue(el, word, '') };
     }
     if (/\p{L}/u.test(text)) return { label: text, source: 'text', confident: true };
   }
@@ -189,9 +189,22 @@ const LEADS_TO: Record<string, RegExp> = {
  * An icon's name alone is a guess. It is trusted when a second, separate clue says the same thing:
  *   - the link's own address agrees ("/cart" behind a basket icon), or
  *   - a basket icon carries a count, which is what basket icons do.
- * A count never vouches for anything else, and nothing vouches for a button that removes things.
+ *   - a bin icon sits on a line of the basket, or a cross sits in the corner of a pop-up.
+ * A count never vouches for anything but a basket. A button that removes things stays protected
+ * (it needs a real press) however sure its name is.
  */
 function secondClue(el: Element, name: string, numbersOnly: string): boolean {
+  // A bin icon on a line of the basket, beside a price or a quantity: that is the remove button.
+  if (name === 'Remove') {
+    const doc = el.ownerDocument;
+    const onBasketPage = /\b(cart|basket|bag)\b/i.test(`${doc.location?.pathname ?? ''} ${doc.title}`);
+    const row = el.closest('li,tr,article,[role="listitem"],[role="row"],[class*="item" i],[class*="line" i],[class*="product" i]');
+    return onBasketPage && !!row && (!!row.querySelector('select,input[type="number"]') || /[$£€]\s?\d/.test(row.textContent ?? ''));
+  }
+  // A cross in the corner of a pop-up closes the pop-up.
+  if (name === 'Close') {
+    return !!el.closest('dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"],[class*="modal" i],[class*="popup" i],[class*="banner" i],[class*="toast" i]');
+  }
   const leadsTo = LEADS_TO[name];
   if (!leadsTo) return false;
   const href = el.getAttribute('href') ?? el.closest('a')?.getAttribute('href') ?? '';

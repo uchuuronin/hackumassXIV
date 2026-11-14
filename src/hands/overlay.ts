@@ -4,6 +4,7 @@
 // Boxes, labels (placed in empty space, with a thin line back to the target when they sit further out),
 // the steadied cursor, the dwell ring and the spotlight (dims everything except one box).
 
+import { gentleCss, theme } from '@/shared/theme';
 import { STEADY_UI_ATTR, type Rect } from '@/shared/pagemap';
 import type { CursorPoints, Overlay, OverlayItem, OverlayTone } from '@/shared/overlay';
 import { layoutLabels, leaderLine, type LabelRequest } from './layout';
@@ -14,26 +15,30 @@ export interface OverlayOptions {
   obstacles?: () => Obstacles;
 }
 
+// The calm look, shared by all three lanes (src/shared/theme.ts): a pale note with dark words,
+// and the tone shown as a quiet edge and ring instead of a bright filled box.
 const COLOURS: Record<OverlayTone, { line: string; fill: string; text: string }> = {
-  info: { line: '#1d4ed8', fill: '#1d4ed8', text: '#ffffff' },
-  step: { line: '#15803d', fill: '#15803d', text: '#ffffff' },
-  warning: { line: '#b45309', fill: '#b45309', text: '#ffffff' },
+  info: { line: theme.tones.info.line, fill: theme.tones.info.soft, text: theme.ink },
+  step: { line: theme.tones.go.line, fill: theme.tones.go.soft, text: theme.ink },
+  warning: { line: theme.tones.careful.line, fill: theme.tones.careful.soft, text: theme.ink },
 };
 
 const CSS = `
   :host { all: initial; }
   .layer { position: fixed; inset: 0; pointer-events: none; z-index: 2147483647; }
-  .box { position: fixed; left: 0; top: 0; box-sizing: border-box; border: 4px solid; border-radius: 10px; }
-  .raw { position: fixed; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #dc2626; }
-  .ring { position: fixed; left: 0; top: 0; width: 36px; height: 36px; margin: -18px 0 0 -18px; box-sizing: border-box; border-radius: 50%; border: 5px solid #1d4ed8; background: rgba(29, 78, 216, 0.15); }
+  .box { position: fixed; left: 0; top: 0; box-sizing: border-box; border: 3px solid; border-radius: ${theme.radius}px; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8); }
+  .raw { position: fixed; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: ${theme.tones.careful.line}; }
+  .ring { position: fixed; left: 0; top: 0; width: 36px; height: 36px; margin: -18px 0 0 -18px; box-sizing: border-box; border-radius: 50%; border: 4px solid ${theme.main}; background: rgba(44, 100, 85, 0.12); }
   .dwell { position: fixed; left: 0; top: 0; width: 56px; height: 56px; margin: -28px 0 0 -28px; }
-  .spot { position: fixed; left: 0; top: 0; border-radius: 12px; box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.6); }
+  .spot { position: fixed; left: 0; top: 0; border-radius: 12px; box-shadow: 0 0 0 200vmax ${theme.veil}; }
   .lines { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; overflow: visible; }
   .label {
-    position: fixed; left: 0; top: 0; max-width: 320px; padding: 8px 12px; border-radius: 8px;
-    font: 600 18px/1.35 system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    position: fixed; left: 0; top: 0; max-width: 320px; padding: 10px 14px; border-radius: ${theme.radius}px;
+    border: 1px solid ${theme.hairline}; border-left: 6px solid;
+    font: 500 18px/1.4 ${theme.font};
+    box-shadow: ${theme.shadow};
   }
+  ${gentleCss}
 `;
 
 interface Live {
@@ -195,7 +200,7 @@ export function createOverlay(doc: Document = document, options: OverlayOptions 
     return c;
   };
   const track = ringPart('rgba(255,255,255,0.9)', 9);
-  const bar = ringPart('#15803d', 6);
+  const bar = ringPart(theme.main, 6);
   bar.setAttribute('stroke-dasharray', String(CIRCUMFERENCE));
   bar.setAttribute('transform', 'rotate(-90 28 28)');
   dwell.append(track, bar);
@@ -240,19 +245,20 @@ export function createOverlay(doc: Document = document, options: OverlayOptions 
       const live: Live = { item, box };
       if (item.label) {
         const label = doc.createElement('div');
-        label.className = 'label';
+        label.className = 'label steady-appear';
         label.style.background = tone.fill;
         label.style.color = tone.text;
+        label.style.borderLeftColor = tone.line;
         label.textContent = item.label;
         layer.append(label);
         const size = label.getBoundingClientRect();
         const leader = doc.createElementNS(SVG, 'g');
         const stem = doc.createElementNS(SVG, 'line');
         stem.setAttribute('stroke', tone.line);
-        stem.setAttribute('stroke-width', '3');
+        stem.setAttribute('stroke-width', '2');
         stem.setAttribute('stroke-linecap', 'round');
         const dot = doc.createElementNS(SVG, 'circle');
-        dot.setAttribute('r', '5');
+        dot.setAttribute('r', '4');
         dot.setAttribute('fill', tone.line);
         leader.append(stem, dot);
         leader.style.display = 'none';

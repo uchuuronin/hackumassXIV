@@ -29,7 +29,7 @@ test('an open pop-up: named, and what is underneath is marked covered', async ({
   expect(map.dialog).toEqual({ label: 'We value your privacy' });
   expect(one(map, 'Underneath')).toMatchObject({ covered: true, inDialog: false });
   expect(one(map, 'Accept all')).toMatchObject({ covered: false, inDialog: true });
-  expect(one(map, 'Close')).toMatchObject({ labelSource: 'icon', labelConfident: false });
+  expect(one(map, 'Close')).toMatchObject({ labelSource: 'icon', labelConfident: true }); // a cross inside a pop-up
 });
 
 test('clickable things that are not real buttons are found by their hand cursor', async ({ page }) => {

@@ -11,7 +11,7 @@ const GONE = 'I can\'t find that on this page any more. The page may have change
 let current: { id: string; stopWatching: () => void } | null = null;
 
 /** Light one element. Brings it into view first, gently. Says so, in plain words, when it can't. */
-export async function on(id: string, text?: string): Promise<SpotlightResult> {
+export async function on(id: string, text?: string, options: { dim?: boolean } = {}): Promise<SpotlightResult> {
   off();
   const el = pageMap.elementFor(id);
   if (!el || !pageMap.liveRect(id)) return { ok: false, said: GONE };
@@ -26,7 +26,7 @@ export async function on(id: string, text?: string): Promise<SpotlightResult> {
     return { ok: false, said: `${blocker} in the way of "${data.label}". Close that box first, then ask me again.` };
   }
 
-  need('overlay').spotlight({ targetId: id, text });
+  need('overlay').spotlight(options.dim === false ? { targetId: id, text, dim: false } : { targetId: id, text });
   pageMap.mark(el, 'current-step', 'This is the step you are on.');
   // If the page changes and the step is no longer there, don't leave a light on nothing.
   const stopWatching = pageMap.onChange(() => {

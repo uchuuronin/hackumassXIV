@@ -28,7 +28,8 @@ export interface OverlayPort {
   /** Show a set of labels. A new call with the same layer replaces the old set. */
   labels(layer: string, labels: OverlayLabel[]): void;
   /** Dim everything except one element, with an optional sentence beside it. Null turns it off. */
-  spotlight(target: { targetId: string; text?: string } | null): void;
+  /** `dim: false` asks for a ring only, with the rest of the page left readable (a box in a form). */
+  spotlight(target: { targetId: string; text?: string; dim?: boolean } | null): void;
   /** Remove one layer of labels, or everything this lane drew. */
   clear(layer?: string): void;
 }
@@ -36,8 +37,11 @@ export interface OverlayPort {
 // ---- Speech (owner: B). One voice, one speed, one on/off switch. ----
 
 export interface SpeechPort {
-  /** Shows the sentence in the panel, and speaks it if the voice is on. */
-  say(text: string): void;
+  /**
+   * For things Steady says without being asked: moving on to the next box, or checking in after a long pause.
+   * Shows the sentence in the panel, and speaks it if the voice is on. `options` are short answers to offer as buttons.
+   */
+  say(text: string, options?: string[]): void;
 }
 
 // ---- Model (owner: B). Gemini, through the relay. ----

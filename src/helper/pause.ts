@@ -1,4 +1,5 @@
 // Pay Pause: stops a click on a pay or delete button and asks first, in plain words. Owner: B.
+import { gentleCss, theme } from '@/shared/theme';
 import { browser } from 'wxt/browser';
 import { pageMap } from '@/guide';
 import { STEADY_UI_ATTR, fullLabel, type PageElement } from '@/shared/pagemap';
@@ -46,20 +47,24 @@ function showPause(el: PageElement, target: Element) {
   const root = host.attachShadow({ mode: 'open' });
 
   const style = document.createElement('style');
+  // The calm look, shared by all three lanes (src/shared/theme.ts). "Not yet" is the safe choice, so it is the main button.
   style.textContent = `
-    .back { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; font-family: system-ui, sans-serif; }
-    .box { background: #fffdf7; color: #1b1b1b; border: 4px solid #1b1b1b; border-radius: 16px; padding: 28px; width: min(560px, 90vw); font-size: 24px; line-height: 1.4; }
-    h2 { margin: 0 0 12px; font-size: 32px; }
+    .back { position: fixed; inset: 0; background: ${theme.veil}; display: grid; place-items: center; font-family: ${theme.font}; }
+    .box { background: ${theme.paper}; color: ${theme.ink}; border: 1px solid ${theme.hairline}; border-top: 8px solid ${theme.tones.careful.line}; border-radius: 16px; padding: 28px; width: min(560px, 90vw); font-size: 24px; line-height: 1.45; box-shadow: ${theme.shadow}; }
+    h2 { margin: 0 0 12px; font-size: 30px; font-weight: 650; }
     p { margin: 0 0 12px; }
-    button { display: block; width: 100%; min-height: 64px; margin-top: 12px; font-size: 24px; font-weight: 700; border: 3px solid #1b1b1b; border-radius: 12px; cursor: pointer; background: #fff; }
-    .stop { background: #ffd84d; }
-    button:focus-visible { outline: 5px solid #0a58ca; outline-offset: 2px; }
+    button { display: block; width: 100%; min-height: 64px; margin-top: 14px; font: inherit; font-weight: 600; color: ${theme.ink}; border: 2px solid ${theme.edge}; border-radius: 12px; cursor: pointer; background: ${theme.card}; transition: background-color ${theme.motion.press}ms; }
+    button:hover { background: ${theme.tones.info.soft}; }
+    .stop { background: ${theme.main}; border-color: ${theme.main}; color: ${theme.onMain}; }
+    .stop:hover { background: ${theme.ink}; border-color: ${theme.ink}; }
+    button:focus-visible { outline: 4px solid ${theme.focus}; outline-offset: 3px; }
+    ${gentleCss}
   `;
 
   const back = document.createElement('div');
   back.className = 'back';
   const box = document.createElement('div');
-  box.className = 'box';
+  box.className = 'box steady-appear';
   box.setAttribute('role', 'alertdialog');
   box.setAttribute('aria-modal', 'true');
   const h = document.createElement('h2');

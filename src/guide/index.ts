@@ -8,11 +8,11 @@ import type { LaneContext } from '@/shared/lanes';
 import type { PageMapChanged, PageMapRequest, PageMapResponse, PageMapWatch } from '@/shared/pagemap';
 import { deviceStore } from '@/shared/device-store';
 import { has, provide } from '@/shared/ports';
-import type { GeminiAnswer, GeminiAsk, Tool } from '@/shared/tools';
+import type { GeminiAnswer, GeminiAsk, HelperAnswer, Tool } from '@/shared/tools';
 import { registerTool } from '@/helper/registry';
 import { hideChoicesTool, labelChoicesTool } from './choices';
 import { modelVia } from './choices/prompt';
-import { fillDetailsTool, fillNextTool, fillStopTool, fillTakeOutTool } from './details';
+import { fillDetailsTool, fillNextTool, fillRememberTool, fillRepeatTool, fillStopTool, fillTakeOutTool } from './details';
 import { createClickSource } from './clicks';
 import { pageMap } from './map';
 import * as recorder from './recorder';
@@ -25,12 +25,22 @@ export * as choices from './choices';
 export * as details from './details';
 
 /** The guide lane's tools. Registered in B's tool list when the lane starts. */
-export const guideTools: Tool[] = [labelChoicesTool, hideChoicesTool, fillDetailsTool, fillNextTool, fillTakeOutTool, fillStopTool];
+export const guideTools: Tool[] = [labelChoicesTool, hideChoicesTool, fillDetailsTool, fillNextTool, fillTakeOutTool, fillRepeatTool, fillRememberTool, fillStopTool];
 
 export async function startGuide(ctx: LaneContext): Promise<void> {
   const cleanups: Array<() => void> = [];
   if (!has('store')) provide('store', deviceStore);
   guideTools.forEach(registerTool);
+  // Things Steady says without being asked (moving to the next box, checking in after a long pause)
+  // go to the panel as B's 'helper/answer' message. B's voice can replace this with provide('speech', …).
+  if (!has('speech')) {
+    provide('speech', {
+      say(said, options) {
+        const note: HelperAnswer = { type: 'helper/answer', said, options };
+        browser.runtime.sendMessage(note).catch(() => undefined);
+      },
+    });
+  }
   // The recorder needs to hear clicks, including ones A's click steadying steered. See ./clicks.
   if (!has('clicks')) {
     const clicks = createClickSource();
@@ -54,10 +64,11 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
   // Written as import.meta.env.DEV so none of it is in the build that ships.
   if (import.meta.env.DEV && ctx.dev) {
     const { createStandIns } = await import('./dev/standin');
-    const { startTryIt } = await import('./dev/tryit');
-    const standIns = createStandIns();
-    if (!has('overlay')) provide('overlay', standIns.overlay);
-    if (!has('speech')) provide('speech', standIns.speech);
+    const { pressButton, startTryIt } = await import('./dev/tryit');
+    const standIns = createStandIns(pressButton);
+    // With nothing saved yet, start with Rose's sample details so there is something to fill in.
+    if (!(await deviceStore.get('guide:details'))) await deviceStore.set('guide:details', (await import('./dev/tryit')).SAMPLE_DETAILS);
+    provide('speech', standIns.speech);
     cleanups.push(standIns.stop, startTryIt());
   }
 

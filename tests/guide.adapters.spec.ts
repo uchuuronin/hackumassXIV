@@ -35,3 +35,26 @@ test("labels and the spotlight are passed to A's overlay, follow their button, a
     `hide guide:choices:${id}`,
   ]);
 });
+
+test("the spotlight dims the rest of the page through A's overlay, unless a step asks for a ring only", async ({ page }) => {
+  const map = await html(page, `<button style="margin:200px">Checkout</button>`);
+  const id = one(map, 'Checkout').id;
+  const log = await page.evaluate((id) => {
+    const calls: string[] = [];
+    const port = window.__steady.adaptOverlay(() => ({
+      show: (item) => calls.push(`show ${item.id}`),
+      hide: (itemId) => calls.push(`hide ${itemId}`),
+      clear: () => undefined,
+      setCursor: () => undefined,
+      setDwell: () => undefined,
+      setSpotlight: (where) => calls.push(where === null ? 'dim off' : `dim on, follows: ${(where as () => { width: number } | null)()!.width > 0}`),
+    }));
+    port.spotlight({ targetId: id, text: 'This one.' });
+    port.spotlight(null);
+    port.spotlight({ targetId: id, dim: false }); // a box in a form: she still needs to read the others
+    port.spotlight(null);
+    return calls;
+  }, id);
+  // A ring-only step also says "dim off", so an earlier dimmed step can never leave the page dark.
+  expect(log).toEqual(['show guide:spotlight', 'dim on, follows: true', 'hide guide:spotlight', 'dim off', 'show guide:spotlight', 'dim off', 'hide guide:spotlight', 'dim off']);
+});

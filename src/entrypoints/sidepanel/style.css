@@ -1,12 +1,18 @@
-body { margin: 0; font-family: system-ui, sans-serif; background: #fffdf7; color: #1b1b1b; }
-.panel { padding: 20px; font-size: 22px; line-height: 1.4; }
-h1 { font-size: 30px; margin: 0 0 16px; }
+/* The calm look, shared by all three lanes. The colours are the ones in src/shared/theme.ts: change them there too. */
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; background: #fbf7ef; color: #22303a; }
+.panel { padding: 20px; font-size: 22px; line-height: 1.45; }
+h1 { font-size: 28px; font-weight: 650; margin: 0 0 16px; }
 label { display: block; margin-bottom: 8px; }
-input { width: 100%; box-sizing: border-box; font-size: 22px; padding: 14px; border: 3px solid #1b1b1b; border-radius: 12px; margin-bottom: 12px; }
-button { width: 100%; min-height: 60px; font-size: 22px; font-weight: 600; border: 3px solid #1b1b1b; border-radius: 12px; background: #ffd84d; cursor: pointer; margin-bottom: 12px; }
-button:disabled { opacity: 0.6; cursor: default; }
-button:focus-visible, input:focus-visible { outline: 4px solid #0a58ca; outline-offset: 2px; }
+input { width: 100%; box-sizing: border-box; font: inherit; color: #22303a; background: #ffffff; padding: 14px; border: 2px solid #77828c; border-radius: 12px; margin-bottom: 12px; }
+/* The one main button is green. Everything else is a plain white button, so the screen stays quiet. */
+button { width: 100%; min-height: 60px; font: inherit; font-weight: 600; color: #ffffff; background: #2c6455; border: 2px solid #2c6455; border-radius: 12px; cursor: pointer; margin-bottom: 12px; transition: background-color 120ms; }
+button:hover { background: #22303a; border-color: #22303a; }
+button:disabled { opacity: 0.55; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 4px solid #1f4f8f; outline-offset: 3px; }
 .reply { margin-top: 16px; }
-.said { background: #fff; border: 3px solid #1b1b1b; border-radius: 12px; padding: 16px; }
-.choice { background: #fff; }
+.said { background: #ffffff; border: 1px solid #ddd5c6; border-left: 6px solid #2c6455; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(34, 48, 58, 0.12); animation: steady-appear 240ms cubic-bezier(.22, 1, .36, 1) both; }
+.choice { background: #ffffff; color: #22303a; border-color: #77828c; }
+.choice:hover { background: #e9eef5; border-color: #77828c; }
 .small { min-height: 48px; font-size: 18px; margin-top: 24px; }
+@keyframes steady-appear { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .said { animation: none; } button { transition: none; } }

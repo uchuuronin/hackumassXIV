@@ -57,8 +57,8 @@ test.describe('shop basket', () => {
     expect(removes).toHaveLength(3);
     expect(removes.map((r) => r.context)).toEqual(['Brass reading lamp', 'Two-cup teapot', 'Large-number kitchen timer']);
     for (const r of removes) {
-      expect(r.protection).toBe('delete');
-      expect(r.labelConfident).toBe(false);
+      expect(r.protection).toBe('delete'); // sure of the name or not, it still needs a real press
+      expect(r.labelConfident).toBe(true); // a bin icon on a basket line, beside a price
     }
   });
 

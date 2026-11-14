@@ -38,12 +38,15 @@ export function adaptOverlay(getOverlay: () => Overlay): OverlayPort {
       if (!target) {
         if (up.has(SPOTLIGHT)) {
           getOverlay().hide(SPOTLIGHT);
+          getOverlay().setSpotlight?.(null);
           up.delete(SPOTLIGHT);
         }
         return;
       }
-      // A's overlay draws a box and a label today. When it gains dimming, this is the call to change.
-      getOverlay().show({ id: SPOTLIGHT, where: () => pageMap.liveRect(target.targetId), label: target.text, tone: 'step' });
+      const where = () => pageMap.liveRect(target.targetId);
+      getOverlay().show({ id: SPOTLIGHT, where, label: target.text, tone: 'step' });
+      // Dim the rest of the page, unless the step asked for a ring only.
+      getOverlay().setSpotlight?.(target.dim === false ? null : where);
       up.set(SPOTLIGHT, [SPOTLIGHT]);
     },
     clear(layer) {

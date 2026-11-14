@@ -59,16 +59,32 @@ Useful fields: `stage.kind === 'payment'`, `amounts` (with `recurring` for renew
 
 | Feature | Import | What it does |
 | --- | --- | --- |
-| Choice labels | `choices.show()`, `choices.hide()` | A plain sentence beside each main button, six at most. Common buttons are worded on the device. The rest go to Gemini by name only, and its answers are checked before they are shown. |
-| Spotlight | `spotlight.on(id, text)`, `spotlight.off()` | Brings a step into view gently and asks the overlay to dim the rest. Says so when the step is hidden or gone. |
-| Fill in my details | `details.start(level)` (B's `HelpLevel`), `keep()`, `undo()`, `stop()` | Walks a form one box at a time. Fills name, address, phone and email at "Do it with me". Never fills secrets, never writes over what is there, never presses the button. |
+| Choice labels | `choices.show()`, `choices.hide()`, `choices.setPace()` | A plain sentence beside each main button, six at most, shown one at a time and then taken away. Afterwards, resting the pointer on a button for a moment brings its sentence back. Common buttons are worded on the device. The rest go to Gemini by name only, and its answers are checked before they are shown. |
+| Spotlight | `spotlight.on(id, text, { dim })`, `spotlight.off()` | Brings a step into view gently and asks A's overlay to dim the rest (`setSpotlight`). `{ dim: false }` gives a ring only, used for boxes in a form so the other boxes stay readable. Says so when the step is hidden or gone. |
+| Fill in my details | `details.start(level)` (B's `HelpLevel`), `keep()`, `undo()`, `repeat()`, `remember()`, `stop()`, `setPace()` | Asks first, fills name, address, phone and email in one go, and asks once whether it looks right. Then points at each box that is the person's own and moves on by itself when they finish it. Checks in gently after a long pause. Before the button, points out anything empty or misspelt, and offers to remember what they typed. Never fills secrets, never writes over what is there, never presses the button. |
 | Recorder | `recorder.start(name)`, `stop()`, `resume()`, `locate(step)` | Keeps the steps of a task (click, choose, type), never the answers. Finds a step again by several clues, and marks a weak match as a guess. |
 
 | "My details" card | `import { MyDetailsCard } from '@/guide/panel/MyDetailsCard'` | The screen where the details are typed in. A React component for B's panel: `<MyDetailsCard />`. |
 
-**Tools.** When the lane starts it registers six tools in B's tool list (`registerTool`), each with `owner: 'guide'`: `label_choices`, `hide_choice_labels`, `fill_my_details`, `fill_next` ("yes" or "I've done that one"), `fill_take_out` ("no, that's not right") and `fill_stop`. The panel can run any of them with a `tool/run` message.
+**Tools.** When the lane starts it registers eight tools in B's tool list (`registerTool`), each with `owner: 'guide'`. The panel can run any of them with a `tool/run` message.
 
-**Help level.** `fill_my_details` reads `helper:level` if no level is passed. At `'show'` it fills nothing and only points. At `'with-me'` and `'do-it'` it fills, and still shows every box before moving on.
+| Tool | When to run it |
+| --- | --- |
+| `label_choices`, `hide_choice_labels` | "What do I click?" |
+| `fill_my_details` | "Help me fill this in." |
+| `fill_next` | Yes, "it looks right", "go on". |
+| `fill_take_out` | No. Before filling: leave every box to them. After filling: take it all out. |
+| `fill_repeat` | "What was that?", "Carry on". |
+| `fill_remember` | Yes to "Shall I remember them for next time?" |
+| `fill_stop` | "Stop for now." |
+
+**Answers as buttons.** A fill result carries `data.options`, short answers such as `['It looks right', 'Take them out']`. Show them as buttons so nobody has to type or remember a word.
+
+**Things Steady says without being asked.** When a box is finished Steady moves to the next one by itself, and after a long pause it checks in. Those sentences go through the `speech` port as `say(text, options?)`. Until B provides a `speech` port, the lane sends them to the panel as a `helper/answer` message (`{ said, options }`), so the panel needs to listen for that message from a page as well as returning it as a reply.
+
+**Help level.** `fill_my_details` reads `helper:level` if no level is passed. At `'show'` it fills nothing and only points. At `'with-me'` and `'do-it'` it offers to fill, and fills only after a yes.
+
+**What it remembers.** Only name, address, phone and email, only after a yes, and only on this computer (`guide:details`). What is typed in a card, password, code, ID or date-of-birth box is never read.
 
 **Saved data.** Keys follow B's pattern: `guide:details`, `guide:tasks`, `guide:recording`, `guide:labels:…`.
 
@@ -88,20 +104,30 @@ provide('store', { get, set, remove });             // B: saved on this device
 
 Until a piece is provided, a quiet stand-in is used, so nothing crashes. In `npm run dev` only, `src/guide/dev/` draws a temporary overlay and shows what the voice would say. Delete that folder when A's overlay and B's voice have landed.
 
+## The look
+
+`src/shared/theme.ts` holds the one calm look for everything Steady draws: warm paper, dark ink, and colour only as a quiet edge (green for the way forward, blue for "just so you know", clay for anything that pays, sends or removes). A's notes and rings, B's Pay Pause and helper panel, and the "My details" card all read from it. `tests/theme.contrast.spec.ts` checks every pair that carries words.
+
 ## Trying it without the helper panel
 
 ```
 npm run build:try
 ```
 
-Load `.output/chrome-mv3-dev` in `chrome://extensions` (Load unpacked), start the demo sites with `npm run sites`, then use these keys on any page:
+Load `.output/chrome-mv3-dev` in `chrome://extensions` (Load unpacked) and start the demo sites with `npm run sites`. A small black panel appears in the bottom right corner of every page. It stands in for the helper panel:
+
+- **What do I click?** and **Help me fill this in** are always there.
+- The answers Steady offers ("Yes, fill them in", "It looks right", "Take them out") appear as yellow buttons.
+- Rose's sample details are saved for you the first time, so there is something to fill in.
+
+No keys are needed. These still work if you prefer them:
 
 | Keys | What it does |
 | --- | --- |
-| Alt+Shift+L | "What do I click?" Press again to take the notes away. |
-| Alt+Shift+D | Save Rose's sample details in "My details". |
-| Alt+Shift+F | "Help me fill this in" at "Do it with me". Alt+Shift+G is the same at "Show me". |
-| Alt+Shift+Y / N / X | "Yes, that's right" or "I've done that one" / "No, that's not right" / stop. |
+| Alt+Shift+L | "What do I click?" |
+| Alt+Shift+F | "Help me fill this in." |
+| Alt+Shift+Y / N / X | Yes or go on / no or take them out / stop. |
+| Alt+Shift+S | Save Rose's sample details again. |
 | Alt+Shift+R | Start recording a task. Press again to stop; the steps print in the DevTools console. |
 | Alt+Shift+M | Print the page map in the DevTools console. |
 

@@ -8,7 +8,7 @@
 
 import type { LaneContext } from '@/shared/lanes';
 import type { Overlay } from '@/shared/overlay';
-import type { PageMapApi } from '@/shared/pagemap';
+import { STEADY_UI_ATTR, type PageMapApi } from '@/shared/pagemap';
 import type { Point } from '../filter/pointerFilter';
 import type { PointerTracker } from '../pointer';
 import { DEFAULT_REACH, distanceToRect } from './target';
@@ -74,6 +74,8 @@ export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracke
   const onClick = (event: MouseEvent) => {
     if (!event.isTrusted || !(event.target instanceof Element)) return;
     const landed = event.target;
+    // A click on Steady's own panel or pop-up is never a miss: don't steer it to a page button behind it.
+    if (landed.closest(`[${STEADY_UI_ATTR}]`)) return;
     const at = { x: event.clientX, y: event.clientY };
     const plain = event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
     const dragged = !!downAt && Math.hypot(at.x - downAt.x, at.y - downAt.y) > DRAG_PX;
