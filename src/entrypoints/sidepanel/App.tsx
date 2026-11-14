@@ -9,11 +9,11 @@ import { HELPER_KEYS, type GeminiAnswer, type GeminiAsk, type ToolResultMsg } fr
 import { getProfile, setProfile } from '@/helper/profile';
 import { theme } from '@/shared/theme';
 import { Buddy, type Mood } from '@/guide/panel/Buddy';
-import { HelperCard, TeachCard } from '@/guide/panel/FamilyCard';
+import { HelperCard, TeachScreen } from '@/guide/panel/FamilyCard';
 import { MyDetailsCard } from '@/guide/panel/MyDetailsCard';
 import { intent, useGuide } from '@/guide/panel/useGuide';
 
-interface Reply { quiet?: boolean; said: string; point?: string; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean }
+interface Reply { quiet?: boolean; said: string; point?: string; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean; /** A second, separate message under the first. */ then?: { said: string; options?: string[] } }
 
 const RULES = `You are Steady, a patient helper for an older adult using a web page.
 Use plain, short, kind words. At most two sentences. No jargon.
@@ -64,12 +64,12 @@ export default function App() {
   const inFlight = useRef(false);
   const lastAsk = useRef(0);
   const voiceRef = useRef(true);
-  const [screen, setScreen] = useState<'home' | 'details'>('home');
+  const [screen, setScreen] = useState<'home' | 'details' | 'teach'>('home');
   const [glad, setGlad] = useState(false);
   // The guide lane: its sentences are shown and read aloud exactly like an answer.
   const guide = useGuide((r) => {
     setReply({ ...r, guide: true });
-    say(r.said);
+    say(r.then ? `${r.said} ${r.then.said}` : r.said);
     setGlad(true);
     window.setTimeout(() => setGlad(false), 1600);
   }, () => setReply(null));
@@ -163,7 +163,12 @@ export default function App() {
 
   const mood: Mood = listening ? 'listening' : busy || guide.working ? 'thinking' : glad ? 'glad' : 'idle';
   const words = busy || guide.working ? 'Let me look…' : reply?.said || guide.hint.said || 'Hello. I am Steady. What shall we do?';
-  const answers = busy || guide.working ? [] : (reply?.options ?? []);
+  // Buttons under the bubble: the answers Steady offered, or, before anything is said, what fits this page
+  // and is not already one of the big buttons below ("Help me sign in").
+  const tiles = ['What do I click?', 'Help me fill this in', "I'm stuck", ...guide.tasks.map((t) => t.name)];
+  const offered = reply ? (reply.options ?? []) : (guide.hint.options ?? []).filter((o) => !tiles.includes(o));
+  const answers = busy || guide.working ? [] : offered;
+  const then = busy || guide.working ? undefined : reply?.then;
   // Typed words that mean one of the buttons ("help me fill this in", the name of a saved task) press that
   // button. Anything else goes to B's ask(), which is unchanged. (B: spoken words still go straight to ask().
   // Call intent() there too if you want the same shortcut for the voice.)
@@ -173,7 +178,7 @@ export default function App() {
     setText('');
     return guide.press(button);
   };
-  const pressAnswer = (o: string) => (reply?.guide ? guide.press(o) : (setText(o), ask(o)));
+  const pressAnswer = (o: string) => (!reply || reply.guide ? guide.press(o) : (setText(o), ask(o)));
   const vars = {
     '--paper': theme.paper, '--card': theme.card, '--ink': theme.ink, '--ink-quiet': theme.inkQuiet, '--edge': theme.edge, '--hairline': theme.hairline,
     '--sun': theme.sun, '--teal': theme.teal, '--coral': theme.coral, '--focus': theme.focus,
@@ -191,7 +196,23 @@ export default function App() {
         <main className="sheet">
           <section className="card"><MyDetailsCard /></section>
           <HelperCard />
-          <TeachCard recording={guide.recording} />
+          <button type="button" className="btn quiet" onClick={() => setScreen('teach')}>
+            <Icon name="steps" /> For the person who helps
+          </button>
+        </main>
+      </div>
+    );
+  }
+
+  if (screen === 'teach') {
+    return (
+      <div className="app" style={vars}>
+        <header className="band small">
+          <Dots />
+          <button type="button" className="btn back" onClick={() => setScreen('details')}><Icon name="back" /> Back</button>
+        </header>
+        <main className="sheet">
+          <TeachScreen recording={guide.recording} tasks={guide.tasks} />
         </main>
       </div>
     );
@@ -214,8 +235,24 @@ export default function App() {
               ))}
             </div>
           )}
+          {then && (
+            <div className="then">
+              <p className="bubble" key={then.said}>{then.said}</p>
+              <div className="answers">
+                {(then.options ?? []).map((o) => (
+                  <button key={o} type="button" className="btn answer" onClick={() => guide.press(o)}>{o}</button>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       </header>
+      {guide.recording && (
+        <div className="watching" role="status">
+          <span>I am watching: "{guide.recording}". Do the task on the website, then press Finish.</span>
+          <button type="button" className="btn main" onClick={() => setScreen('teach')}>Finish</button>
+        </div>
+      )}
 
       <main className="sheet">
         <h2>I can help you with</h2>
@@ -228,7 +265,7 @@ export default function App() {
           </button>
           {guide.tasks.map((t) => (
             <button key={t.id} type="button" className="tile sun" onClick={() => guide.press(t.name)}>
-              <Icon name="steps" /><span>{t.name}<small>{t.steps.length} steps, one at a time</small></span>
+              <Icon name="steps" /><span>{t.name}<small>{t.steps.length === 1 ? '1 step' : `${t.steps.length} steps, one at a time`}</small></span>
             </button>
           ))}
         </div>

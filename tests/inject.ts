@@ -10,6 +10,8 @@ import * as recorder from '@/guide/recorder';
 import { answer } from '@/guide/answers';
 import * as family from '@/guide/family';
 import * as player from '@/guide/player';
+import { suggest } from '@/guide/suggest';
+import * as timeout from '@/guide/timeout';
 import * as spotlight from '@/guide/spotlight';
 import { pageMap } from '@/guide/map';
 import { toModelSafe } from '@/shared/pagemap';
@@ -84,6 +86,8 @@ const steady = {
   player,
   family,
   answer,
+  suggest,
+  timeout,
   /** Tests play the part of the relay: true = sent, false = could not send. */
   setFamily(reply: boolean) {
     provide('family', {

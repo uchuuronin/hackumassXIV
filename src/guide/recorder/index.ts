@@ -58,6 +58,15 @@ export async function stop(): Promise<{ task: RecordedTask; said: string }> {
   return { task, said: task.steps.length ? `Saved "${task.name}" with ${count}.` : 'Nothing was recorded, so I have not saved anything.' };
 }
 
+/** Take a saved task away. For the person who recorded it. */
+export async function remove(taskId: string): Promise<{ said: string }> {
+  const all = await tasks();
+  const gone = all.find((t) => t.id === taskId);
+  if (!gone) return { said: 'I can\'t find that task. It may already have been removed.' };
+  await need('store').set(TASKS, all.filter((t) => t.id !== taskId));
+  return { said: `Removed "${gone.name}".` };
+}
+
 export async function tasks(): Promise<RecordedTask[]> {
   return (await need('store').get<RecordedTask[]>(TASKS)) ?? [];
 }

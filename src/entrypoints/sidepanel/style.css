@@ -39,6 +39,14 @@ h1 { margin: 0; font-size: 30px; font-weight: 800; }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .answers { display: grid; gap: 12px; margin-top: 14px; padding-bottom: var(--depth); }
 
+/* A second, separate message under the first: "One more thing…" */
+.then { margin-top: 18px; padding-top: 18px; border-top: 2px dashed #46546a; }
+.then .bubble { font-size: 18px; font-weight: 500; }
+.then .bubble::before { display: none; }
+/* While the helper is recording a task: always in view, with the way to finish. */
+.watching { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; margin: -6px 18px 30px; padding: 12px 14px; background: var(--sun); color: var(--ink); border: 2px solid #0f1822; border-radius: 14px; font-weight: 600; font-size: 17px; }
+.watching .btn { width: auto; flex: none; min-height: 48px; }
+
 /* ---- the sheet: what she can press ---- */
 .sheet { flex: 1; margin-top: -18px; padding: 22px 18px 26px; background: var(--paper); border-radius: 22px 22px 0 0; position: relative; }
 h2 { margin: 0 0 12px; font-size: 20px; font-weight: 700; }
@@ -85,6 +93,13 @@ input::placeholder { color: var(--ink-quiet); }
 .foot { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 26px; padding-top: 20px; border-top: 2px solid var(--hairline); padding-bottom: var(--depth); }
 
 /* ---- the "My details" screen ---- */
+.how { margin: 0 0 12px; padding-left: 26px; font-size: 17px; }
+.how li { margin-bottom: 8px; padding-left: 4px; }
+.saved { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.saved li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #ffe89a; border: 2px solid var(--ink); border-radius: 14px; }
+.saved span { display: grid; flex: 1; }
+.saved small { font-size: 15px; }
+.saved .btn { width: auto; flex: none; margin: 0 0 var(--depth); }
 .card { margin: 0 0 18px; padding: 16px; background: var(--card); border: 2px solid var(--ink); border-radius: 16px; }
 .card p { margin: 0 0 12px; font-size: 17px; }
 .card label { margin-top: 12px; }

@@ -54,6 +54,8 @@ let nudgeTimer: number | undefined;
 let helpTimer: number | undefined;
 
 const STEP_OPTIONS = ['Go on', 'Stop for now'];
+/** When the page no longer matches what was recorded: she is never left alone on it. */
+const OFF_ROUTE = ['What do I click?', 'Skip this step', "I'm stuck", 'Stop for now'];
 const wait = (ms: number) => new Promise((done) => window.setTimeout(done, ms));
 const quoted = (text: string) => `"${text}"`;
 
@@ -116,8 +118,8 @@ async function present(): Promise<PlayState> {
     }
     return {
       status: 'missing',
-      said: `${lead}I can't find step ${number} on this page: ${quoted(step.locator.label)}. The page may have changed since this was recorded. You have not done anything wrong.`,
-      options: ['Skip this step', "I'm stuck", 'Stop for now'],
+      said: `${lead}I can't find step ${number} on this page: ${quoted(step.locator.label)}. The page may have changed since this was recorded. You have not done anything wrong. I can still explain the buttons on this page.`,
+      options: OFF_ROUTE,
       step: { number, of },
     };
   }
@@ -125,12 +127,14 @@ async function present(): Promise<PlayState> {
   const ids = idsFor(step, found.id);
   const lit = await spotlight.on(found.id, step.say, { group: ids });
   if (run !== r) return { status: 'stopped', said: 'I have stopped.' };
-  if (!lit.ok) return { status: 'missing', said: `${lead}${lit.said}`, options: ['Skip this step', "I'm stuck", 'Stop for now'], step: { number, of } };
+  if (!lit.ok) return { status: 'missing', said: `${lead}${lit.said}`, options: OFF_ROUTE, step: { number, of } };
   r.ids = ids;
 
   const unsure = found.confident ? '' : ' I think it is this one, but the page looks a little different. Please check before you go on.';
   const count = lead ? `Step ${number}.` : `Step ${number} of ${of}.`;
-  const said = `${lead}${count} ${step.say}${EXTRA[step.locator.protection] ?? ''}${unsure}`;
+  // A choice is hers to make afresh each time: a task keeps where to choose, never what was chosen.
+  const yours = step.type === 'choose' ? ' Pick what fits you today.' : '';
+  const said = `${lead}${count} ${step.say}${yours}${EXTRA[step.locator.protection] ?? ''}${unsure}`;
 
   const stillHere = () => run === r && r.task.steps[r.at] === step;
   nudgeTimer = window.setTimeout(() => stillHere() && need('speech').say(`There is no rush. ${step.say}`, STEP_OPTIONS), pace.nudgeMs);

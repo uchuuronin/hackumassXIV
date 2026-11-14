@@ -39,12 +39,18 @@ export interface OverlayPort {
 
 // ---- Speech (owner: B). One voice, one speed, one on/off switch. ----
 
+/** A second, separate thing to say after the first, with its own answers ("One more thing…"). Keeps each message short. */
+export interface FollowUp {
+  said: string;
+  options?: string[];
+}
+
 export interface SpeechPort {
   /**
    * For things Steady says without being asked: moving on to the next box, or checking in after a long pause.
    * Shows the sentence in the panel, and speaks it if the voice is on. `options` are short answers to offer as buttons.
    */
-  say(text: string, options?: string[]): void;
+  say(text: string, options?: string[], then?: FollowUp): void;
 }
 
 // ---- Model (owner: B). Gemini, through the relay. ----

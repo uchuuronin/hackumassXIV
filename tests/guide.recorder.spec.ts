@@ -190,3 +190,13 @@ test("a click that A's click steadying steered onto a button is recorded, once",
   const { task } = await finish(page);
   expect(task.steps.map((s) => s.say)).toEqual(['Click "Continue shopping".']);
 });
+
+test('a saved task can be removed, by the person who recorded it', async ({ page }) => {
+  await page.goto('/clinic/book.html?reset=1');
+  await begin(page, 'Book a check-up');
+  await page.selectOption('#reason', 'Flu shot');
+  const { task } = await finish(page);
+  expect((await page.evaluate(() => window.__steady.recorder.tasks())).length).toBe(1);
+  expect(await page.evaluate((id) => window.__steady.recorder.remove(id), task.id)).toEqual({ said: 'Removed "Book a check-up".' });
+  expect(await page.evaluate(() => window.__steady.recorder.tasks())).toEqual([]);
+});

@@ -65,6 +65,8 @@ Useful fields: `stage.kind === 'payment'`, `amounts` (with `recurring` for renew
 | Recorder | `recorder.start(name)`, `stop()`, `resume()`, `locate(step)` | Keeps the steps of a task (click, choose, type), never the answers. Finds a step again by several clues, and marks a weak match as a guess. |
 | Player | `player.start(taskId)`, `resume()`, `next()`, `repeat()`, `goThere()`, `stop()`, `where()` | Walks the person through a recorded task one step at a time. She does every step herself; Steady lights it, says it, and moves on when it is done. Keeps its place from page to page and remembers it if she stops. Offers to take her to the right page, says plainly when a step can't be found, and offers help after a long pause or three missed clicks. Never clicks anything. |
 | "I'm stuck" | `family.offer()`, `send()`, `decline()`, `saveHelper()` | Asks first, then sends one short note to the person who helps. The note has the task name and step number only (`StuckNote` in `src/shared/family.ts`). Will not send twice within three minutes. |
+| Timeout warning | `timeout.watch()`, `check()`, `keepPlace()` | Notices a page that says it will reset or sign her out, says so once in plain words with the time left, and lights the way to more time. Presses "stay" only after a yes, and only a button the safety limit allows. If the page has already reset, says it was the website, not her. |
+| Sign-in guidance | `signin.start()` | On a sign-in page: says why the page is asking, then goes box by box through "Fill in my details". Never touches the password. If she is a long time on the password, says what "Forgot your password?" does. For a code sent to her phone, says never to read it to anyone. |
 | One place for buttons | `answer(words)` | Takes the words on any button Steady offered and passes them to whichever conversation is open. |
 | A hint for the panel | `suggest()` | One quiet line about the page that is open, and the buttons that fit it. Never spoken, never acts. |
 
@@ -77,11 +79,13 @@ Useful fields: `stage.kind === 'payment'`, `amounts` (with `recurring` for renew
 | `guide_answer { words }` | Every button. Pass the exact words on the button: a starter ("What do I click?", "Help me fill this in", "I'm stuck"), the name of a saved task, or an answer Steady offered. The reply's `data.options` are the next buttons. |
 | `guide_suggest` | One quiet line about the page, with `data.options`, for when a page opens. |
 
-The rest are there for the helper's own tool calling: `label_choices`, `hide_choice_labels`, `fill_my_details`, `fill_next`, `fill_take_out`, `fill_repeat`, `fill_remember`, `fill_stop`, `list_tasks`, `play_task`, `play_next`, `play_repeat`, `play_stop`, `im_stuck`, `stuck_send`, `stuck_cancel`, `record_start`, `record_stop`.
+The rest are there for the helper's own tool calling: `label_choices`, `hide_choice_labels`, `fill_my_details`, `fill_next`, `fill_take_out`, `fill_repeat`, `fill_remember`, `fill_stop`, `list_tasks`, `play_task`, `play_next`, `play_repeat`, `play_stop`, `im_stuck`, `stuck_send`, `stuck_cancel`, `record_start`, `record_stop`, `check_timeout`.
 
-**The panel.** `src/guide/panel/` holds what the helper panel uses from this lane: `useGuide` (presses buttons on the open page, receives what Steady says, fetches the hint), `Buddy` (Steady's face), `MyDetailsCard`, `HelperCard` and `TeachCard`.
+**The panel.** `src/guide/panel/` holds what the helper panel uses from this lane: `useGuide` (presses buttons on the open page, receives what Steady says, fetches the hint), `Buddy` (Steady's face), `MyDetailsCard`, `HelperCard` and `TeachScreen` (the screen for the person who helps: numbered steps, a "watching" notice, and the list of saved tasks).
 
 **"I'm stuck", end to end.** Page → `family` port → background worker (`stuck/send`) → relay `POST /stuck` (`relay/src/stuck.ts`) → one fixed email. The relay needs `EMAIL_USER` and `EMAIL_APP_PASSWORD` in its `.env`; `STUCK_DRY_RUN=1` builds the email without sending it.
+
+**A second message.** A result can carry `data.then` (`{ said, options }`): a separate "One more thing…" shown under the first, so no single message gets long. The remember question after a form uses it.
 
 **Answers as buttons.** A fill result carries `data.options`, short answers such as `['It looks right', 'Take them out']`. Show them as buttons so nobody has to type or remember a word.
 

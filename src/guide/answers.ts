@@ -2,17 +2,22 @@
 // the person pressed, and they go to whichever conversation is open: the form, a saved task, or "I'm stuck".
 // So the panel never has to know which feature offered which answer.
 
-import { need } from '@/shared/ports';
+import { need, type FollowUp } from '@/shared/ports';
 import { HELPER_KEYS, type HelpLevel, type Tool } from '@/shared/tools';
 import * as choices from './choices';
 import * as details from './details';
 import * as family from './family';
 import * as player from './player';
 import { tasks } from './recorder';
+import * as signin from './signin';
+import { SIGN_IN } from './signin';
+import * as timeout from './timeout';
 
 export interface Answer {
   said: string;
   options?: string[];
+  /** A second, separate message to show after this one. */
+  then?: FollowUp;
 }
 
 /** The things she can ask for at any time. */
@@ -25,6 +30,11 @@ export async function answer(words: string): Promise<Answer> {
   if (said === STARTERS.click) return choices.show();
   if (said === STARTERS.fill) return details.start((await need('store').get<HelpLevel>(HELPER_KEYS.level)) ?? 'with-me');
   if (said === STARTERS.stuck || said === 'Ask for help') return family.offer();
+  if (said === SIGN_IN) return signin.start();
+
+  // A page that is counting down.
+  if (said === 'Yes, keep my place') return timeout.keepPlace();
+  if (said === 'I will click it') return timeout.leave();
 
   // "I'm stuck".
   if (/^Yes, tell /.test(said) || said === 'Try again') return family.send();
@@ -64,6 +74,6 @@ export const answerTool: Tool = {
   parameters: { words: { type: 'string', description: 'The exact words on the button', required: true } },
   async run(args) {
     const reply = await answer(String(args.words ?? ''));
-    return { ok: true, said: reply.said, data: { options: reply.options } };
+    return { ok: true, said: reply.said, data: { options: reply.options, then: reply.then } };
   },
 };

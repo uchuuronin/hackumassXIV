@@ -6,6 +6,7 @@ import { STARTERS } from './answers';
 import { pageMap } from './map';
 import { tasks } from './recorder';
 import * as player from './player';
+import { SIGN_IN } from './signin';
 
 export interface Suggestion {
   /** One short sentence, or '' when there is nothing worth saying. */
@@ -21,6 +22,9 @@ export async function suggest(): Promise<Suggestion> {
   const map = pageMap.get();
   if (/cookie|privacy|consent|tracking/i.test(map.dialog?.label ?? '')) {
     return { said: 'This page is asking about cookies. I can tell you what each button does.', options: [STARTERS.click] };
+  }
+  if (map.stage.kind === 'sign-in' || map.stage.kind === 'code') {
+    return { said: 'This page is asking you to sign in. I can take you through it.', options: [SIGN_IN, STARTERS.click] };
   }
   const here = (await tasks()).filter((t) => t.steps[0]?.page.origin === location.origin);
   const names = here.slice(0, 2).map((t) => t.name);
