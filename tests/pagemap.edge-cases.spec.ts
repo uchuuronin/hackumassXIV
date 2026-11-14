@@ -236,3 +236,30 @@ test('a page that animates constantly does not flood listeners', async ({ page }
   expect(calls).toBeGreaterThanOrEqual(1);
   expect(calls).toBeLessThanOrEqual(3);
 });
+
+test('icon-only buttons: a name is trusted only when a second clue agrees with the icon', async ({ page }) => {
+  const icon = (cls: string) => `<svg class="${cls}" width="20" height="20"><path d="M0 0h20v20z"/></svg>`;
+  const map = await html(
+    page,
+    `<a id="a" href="/cart">${icon('icon-cart')}</a>
+     <button id="b">${icon('icon-bag')}<span class="badge">3</span></button>
+     <button id="c">${icon('icon-cart')}</button>
+     <a id="d" href="/promo/summer">${icon('icon-cart')}</a>
+     <button id="e">${icon('icon-heart')}<span>12</span></button>
+     <a id="f" href="/account/orders">${icon('icon-user')}</a>
+     <button id="g">${icon('icon-trash')}<span>2</span></button>`,
+  );
+  const got = await page.evaluate(
+    (m) => Object.fromEntries(m.elements.map((e) => [window.__steady.api.elementFor(e.id)!.id, `${e.label}${e.labelConfident ? '' : '?'}`])),
+    map,
+  );
+  expect(got).toEqual({
+    a: 'Basket', // a basket icon that leads to /cart
+    b: 'Basket', // a basket icon with a count on it
+    c: 'Basket?', // only the icon's name to go on
+    d: 'Basket?', // the icon says basket but the link goes somewhere else
+    e: 'Save for later?', // a count beside a heart proves nothing
+    f: 'Account', // an account icon that leads to /account
+    g: 'Remove?', // never sure about a button that deletes
+  });
+});

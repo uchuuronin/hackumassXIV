@@ -25,6 +25,21 @@ import { addMark, clearAllMarks, markNear, marksOf, removeMark } from './marks';
 import { stageOf } from './stage';
 import { PageWatcher } from './watch';
 
+const DIALOG = 'dialog[open],[role="dialog"],[role="alertdialog"]';
+const HEADER = 'header,nav,[role="banner"],[role="navigation"],[id*="header" i],[class*="header" i],[class*="topbar" i],[class*="navbar" i],[id*="nav" i]';
+const FOOTER = 'footer,[role="contentinfo"],[id*="footer" i],[class*="footer" i]';
+const SIDE = 'aside,[role="complementary"],[class*="sidebar" i],[id*="sidebar" i]';
+
+function regionOf(el: Element): PageElement['region'] {
+  if (el.closest(DIALOG)) return 'dialog';
+  // The <header> of an article or a card is not the site's top bar.
+  const inMain = el.closest('main,[role="main"],article');
+  if (el.closest(FOOTER) && !inMain?.closest(FOOTER)) return inMain && inMain.querySelector(FOOTER)?.contains(el) ? 'main' : 'footer';
+  if (el.closest(HEADER)) return inMain && inMain.querySelector(HEADER)?.contains(el) ? 'main' : 'header';
+  if (el.closest(SIDE)) return 'side';
+  return 'main';
+}
+
 const DEFAULT_MAX = 400;
 const MAX_COVER_CHECKS = 400;
 const MAX_OPTIONS = 60;
@@ -119,7 +134,8 @@ export function createPageMap(doc: Document = document): PageMapApi & { stop(): 
       sensitive: !!secret || !!fill,
       marks: marksOf(el),
       inFrame: c.inFrame,
-      inDialog: !!el.closest('dialog[open],[role="dialog"],[role="alertdialog"]'),
+      inDialog: !!el.closest(DIALOG),
+      region: regionOf(el),
     };
     if (c.inferred) out.inferred = true;
 

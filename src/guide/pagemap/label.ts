@@ -99,7 +99,9 @@ function nameOfField(el: Element): Name {
   // 2. A real <label>.
   const labels = input.labels;
   if (labels && labels.length) {
-    const text = clip(textOf(labels[0] ?? null));
+    // A tick box's label is often a whole sentence, and the end of it can matter ("…then $12.99 a month").
+    const long = type === 'checkbox' || type === 'radio';
+    const text = clip(textOf(labels[0] ?? null, long ? 220 : 200), long ? 200 : 80);
     if (text) return { label: stripRequiredMark(text), source: 'label', confident: true };
   }
 
@@ -140,7 +142,7 @@ function nameOfPressable(el: Element): Name {
   if (title) return { label: title, source: 'title', confident: true };
 
   const icon = iconGuess(el);
-  if (icon) return { label: icon, source: 'icon', confident: false };
+  if (icon) return { label: icon, source: 'icon', confident: secondClue(el, icon, numbersOnly) };
   if (numbersOnly) return { label: numbersOnly, source: 'text', confident: true };
 
   const fromName = humanize(el.getAttribute('name')) || humanize(el.id);
@@ -171,6 +173,38 @@ function iconGuess(el: Element): string {
   const hay = parts.join(' ').toLowerCase().replace(/[_]+/g, '-');
   for (const [pattern, word] of ICONS) if (pattern.test(hay)) return word;
   return '';
+}
+
+/** Where a link with this icon should lead, if the icon's name is right. */
+const LEADS_TO: Record<string, RegExp> = {
+  Basket: /\b(cart|basket|bag|checkout)\b/,
+  Search: /\bsearch\b/,
+  Account: /\b(account|profile|sign-?in|log-?in|my)\b/,
+  Help: /\b(help|support|faq|contact)\b/,
+  'Save for later': /\b(wish-?list|favou?rites|saved)\b/,
+  Home: /^\/?(index\.\w+)?$/,
+};
+
+/**
+ * An icon's name alone is a guess. It is trusted when a second, separate clue says the same thing:
+ *   - the link's own address agrees ("/cart" behind a basket icon), or
+ *   - a basket icon carries a count, which is what basket icons do.
+ * A count never vouches for anything else, and nothing vouches for a button that removes things.
+ */
+function secondClue(el: Element, name: string, numbersOnly: string): boolean {
+  const leadsTo = LEADS_TO[name];
+  if (!leadsTo) return false;
+  const href = el.getAttribute('href') ?? el.closest('a')?.getAttribute('href') ?? '';
+  if (href && !href.startsWith('#') && !/^javascript:/i.test(href)) {
+    let path = href;
+    try {
+      path = new URL(href, el.ownerDocument.baseURI).pathname;
+    } catch {
+      // keep the raw href
+    }
+    if (leadsTo.test(path.toLowerCase().replace(/[_/.]+/g, ' ').trim()) || (name === 'Home' && leadsTo.test(path))) return true;
+  }
+  return name === 'Basket' && /^\d{1,3}$/.test(numbersOnly);
 }
 
 function fileName(src: string | null): string {

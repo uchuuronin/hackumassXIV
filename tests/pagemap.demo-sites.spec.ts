@@ -4,11 +4,15 @@ import { expect, test } from '@playwright/test';
 import { byLabel, getMap, inject, mayAutoClick, modelSafe, one, open } from './helpers';
 
 test.describe('shop home', () => {
-  test('names icon-only buttons, and says the name is a guess', async ({ page }) => {
+  test('the basket icon: two clues agree (the icon and where it leads), so its name is not a guess', async ({ page }) => {
     const map = await open(page, '/shop/?reset=1');
     const basket = one(map, 'Basket');
     expect(basket.labelSource).toBe('icon');
-    expect(basket.labelConfident).toBe(false);
+    expect(basket.labelConfident).toBe(true);
+  });
+
+  test('an icon-only button with one clue is named, and the name is marked as a guess', async ({ page }) => {
+    const map = await open(page, '/shop/?reset=1');
     const search = map.elements.find((e) => e.kind === 'button' && e.label === 'Search')!;
     expect(search.labelConfident).toBe(false);
     expect(search.protection).toBe('none'); // a search box only looks things up

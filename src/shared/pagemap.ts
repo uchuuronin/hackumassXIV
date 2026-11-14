@@ -91,6 +91,9 @@ export type LabelSource =
   | 'name' // from the name or id attribute: a guess
   | 'none';
 
+/** Which part of the page an element sits in. Worked out from tags, roles and the site's own names. */
+export type Region = 'header' | 'footer' | 'side' | 'dialog' | 'main';
+
 /** Marks that other lanes put on buttons. C keeps the list. */
 export type MarkKind =
   | 'fake' // B: this looks like an advert dressed up as a button
@@ -185,6 +188,8 @@ export interface PageElement {
   inFrame: boolean;
   /** Inside the pop-up window that is open right now. */
   inDialog: boolean;
+  /** Top bar and menus, footer, side column, pop-up, or the main part of the page. */
+  region: Region;
   /** Not a real button or link: found only because the page shows a hand cursor on it. */
   inferred?: boolean;
 }
@@ -379,6 +384,7 @@ export interface ModelSafeElement {
   formId?: string;
   leavesSite?: boolean;
   inDialog: boolean;
+  region: Region;
 }
 
 export interface ModelSafeMap {
@@ -425,6 +431,7 @@ export function toModelSafe(map: PageMap): ModelSafeMap {
       formId: el.formId,
       leavesSite: el.leavesSite,
       inDialog: el.inDialog,
+      region: el.region,
     })),
     forms: map.forms.map((f) => ({
       id: f.id,

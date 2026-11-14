@@ -5,7 +5,7 @@ import type { SecretKind } from '@/shared/pagemap';
 
 const WORDS: Record<SecretKind, string> = {
   password: 'This is your password. Please type this one yourself. Steady never sees or keeps passwords.',
-  'card-number': 'This is the long number across the front of your card. Please type this one yourself.',
+  'card-number': 'This is the long number across the front of your card. Please type this one yourself. Steady never fills in card details.',
   'card-expiry': 'This is the date on your card, the month and then the year. Please type this one yourself.',
   'card-code': 'This is the three numbers on the back of your card. Please type this one yourself.',
   'card-name': 'Type your name the way it is printed on your card.',

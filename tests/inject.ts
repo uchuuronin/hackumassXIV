@@ -1,12 +1,108 @@
-// Bundled and injected into pages by the tests, so the page map can be checked
-// in a real browser without loading the whole extension.
-import { createPageMap } from '@/guide/pagemap';
+// Bundled and injected into pages by the tests, so the guide lane can be checked
+// in a real browser without the rest of the extension. The other lanes' pieces are
+// replaced by recorders: every call to the overlay or the voice lands in `calls`.
+import * as choices from '@/guide/choices';
+import { modelVia } from '@/guide/choices/prompt';
+import { adaptOverlay } from '@/guide/adapters';
+import * as details from '@/guide/details';
+import * as recorder from '@/guide/recorder';
+import * as spotlight from '@/guide/spotlight';
+import { pageMap } from '@/guide/map';
 import { toModelSafe } from '@/shared/pagemap';
+import { provide, type ChoiceLabelReply, type ChoiceLabelRequest } from '@/shared/ports';
+
+type Call = { port: string; method: string; args: unknown[] };
+
+const calls: Call[] = [];
+const log =
+  (port: string, method: string) =>
+  (...args: unknown[]) => {
+    calls.push({ port, method, args });
+  };
+
+provide('overlay', { labels: log('overlay', 'labels'), spotlight: log('overlay', 'spotlight'), clear: log('overlay', 'clear') });
+provide('speech', { say: log('speech', 'say') });
+// Saved data has to outlive a page load, as it does in the real extension.
+const fallback = new Map<string, string>();
+const disk = {
+  get: (k: string) => {
+    try {
+      return sessionStorage.getItem(k);
+    } catch {
+      return fallback.get(k) ?? null; // pages with no address of their own have no storage
+    }
+  },
+  set: (k: string, v: string) => {
+    try {
+      sessionStorage.setItem(k, v);
+    } catch {
+      fallback.set(k, v);
+    }
+  },
+  remove: (k: string) => {
+    try {
+      sessionStorage.removeItem(k);
+    } catch {
+      fallback.delete(k);
+    }
+  },
+};
+provide('store', {
+  async get<T>(key: string) {
+    const raw = disk.get(`steady-test:${key}`);
+    return raw === null ? undefined : (JSON.parse(raw) as T);
+  },
+  async set(key, value) {
+    disk.set(`steady-test:${key}`, JSON.stringify(value));
+  },
+  async remove(key) {
+    disk.remove(`steady-test:${key}`);
+  },
+});
+// Stands in for A's click events: one passive listener, handed on to whoever subscribed.
+const clickListeners = new Set<(target: Element) => void>();
+document.addEventListener('click', (e) => e.isTrusted && e.target instanceof Element && clickListeners.forEach((l) => l(e.target as Element)), true);
+provide('clicks', {
+  onClick(listener) {
+    clickListeners.add(listener);
+    return () => clickListeners.delete(listener);
+  },
+});
+
+const steady = {
+  api: pageMap,
+  toModelSafe,
+  choices,
+  /** Wire choice labels to a function that sends a prompt to Gemini and returns its text. */
+  useGemini(ask: (prompt: string) => Promise<string>) {
+    provide('model', modelVia(async (prompt) => {
+      calls.push({ port: 'gemini', method: 'ask', args: [prompt] });
+      return ask(prompt);
+    }));
+  },
+  adaptOverlay,
+  details,
+  recorder,
+  spotlight,
+  calls,
+  /** Tests set this to play the part of Gemini. */
+  setModel(reply: ((request: ChoiceLabelRequest) => ChoiceLabelReply) | null) {
+    provide(
+      'model',
+      reply && {
+        async labelChoices(request) {
+          calls.push({ port: 'model', method: 'labelChoices', args: [request] });
+          return reply(request);
+        },
+      },
+    );
+  },
+};
 
 declare global {
   interface Window {
-    __steady: { api: ReturnType<typeof createPageMap>; toModelSafe: typeof toModelSafe };
+    __steady: typeof steady;
   }
 }
 
-window.__steady = { api: createPageMap(document), toModelSafe };
+window.__steady = steady;

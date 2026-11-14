@@ -28,3 +28,6 @@ private/*
 tests/.tmp
 test-results
 playwright-report
+
+# Built by the tests
+sites/.tmp-panel.js
