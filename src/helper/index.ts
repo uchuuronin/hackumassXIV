@@ -4,7 +4,7 @@ import { pageMap } from '@/guide';
 import { getOverlay } from '@/hands';
 import type { LaneContext } from '@/shared/lanes';
 import type { Msg, ToolResultMsg } from '@/shared/tools';
-import { getTool, registerTool } from './registry';
+import { getTool, listTools, registerTool } from './registry';
 import { startPause } from './pause';
 import { startFakeCheck } from './fake';
 import { startHomeTurf } from './sites';
@@ -31,7 +31,12 @@ export function startHelper(ctx: LaneContext): void {
   startPause(ctx);
   startFakeCheck(ctx);
   startHomeTurf(ctx).catch((err) => console.error('[Steady] home turf', err));
-  const onMessage = (message: unknown, _sender: unknown, sendResponse: (r: ToolResultMsg) => void) => {
+  const onMessage = (message: unknown, _sender: unknown, sendResponse: (r: unknown) => void) => {
+    const raw = message as { type?: string } | null;
+    if (raw?.type === 'tool/list') {
+      sendResponse({ type: 'tool/list', tools: listTools().map(({ name, description, parameters, owner }) => ({ name, description, parameters, owner })) });
+      return true;
+    }
     const msg = message as Partial<Msg> | null;
     if (msg?.type !== 'tool/run') return undefined;
     const tool = getTool(msg.name ?? '');
