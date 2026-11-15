@@ -95,6 +95,8 @@ function showPause(el: PageElement, target: Element) {
   box.setAttribute('aria-modal', 'true');
   const h = document.createElement('h2');
   h.textContent = risk.title;
+  h.id = 'steady-pause-title';
+  box.setAttribute('aria-labelledby', 'steady-pause-title');
   box.append(h);
   // The lines are read out with the title when the card opens, so a screen reader says what the pause is about.
   const about = document.createElement('div');
@@ -162,7 +164,19 @@ export function startPause(ctx: LaneContext): void {
     e.stopImmediatePropagation();
     showPause(el, target);
   };
-  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && open) closePause(); };
+  const onKey = (e: KeyboardEvent) => {
+    if (!open) return;
+    if (e.key === 'Escape') { closePause(); return; }
+    if (e.key === 'Tab') {
+      // Keep Tab between the card's own buttons, so it cannot wander to the page behind.
+      const els = Array.from(open.shadowRoot?.querySelectorAll('button:not(:disabled)') ?? []) as HTMLElement[];
+      if (!els.length) return;
+      const i = els.indexOf(open.shadowRoot?.activeElement as HTMLElement);
+      const next = e.shiftKey ? els[(i <= 0 ? els.length : i) - 1] : els[(i + 1) % els.length];
+      e.preventDefault();
+      next?.focus();
+    }
+  };
   document.addEventListener('click', onClick, true);
   document.addEventListener('keydown', onKey, true);
   ctx.onStop(() => {
