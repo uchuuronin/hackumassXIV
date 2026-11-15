@@ -25,6 +25,8 @@ import { recordStartTool, recordStopTool } from './recorder';
 import * as spotlight from './spotlight';
 import { suggestTool } from './suggest';
 import * as timeout from './timeout';
+import * as trail from './trail';
+import { whereTool } from './trail';
 import { timeoutTool } from './timeout';
 import type { StuckSend, StuckSent } from '@/shared/family';
 
@@ -59,6 +61,7 @@ export const guideTools: Tool[] = [
   recordStartTool,
   recordStopTool,
   timeoutTool,
+  whereTool,
 ];
 
 export async function startGuide(ctx: LaneContext): Promise<void> {
@@ -137,6 +140,11 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
 
   // A page that quietly counts down and then clears itself: notice it, and say so calmly.
   cleanups.push(timeout.watch());
+
+  // "Where was I?": keep a private trail of ordinary boxes on this computer, and pick up after "take me back there".
+  cleanups.push(trail.watch());
+  const arrived = await trail.arrive();
+  if (arrived) need('speech').say(arrived.said, arrived.options);
 
   // A recording under way carries on across page loads. So does a saved task she is in the middle of.
   await recorder.resume();

@@ -18,7 +18,7 @@ export interface Said {
 
 const TASKS_KEY = 'guide:tasks';
 const RECORDING_KEY = 'guide:recording';
-const CANT: Said = { said: 'I can\'t help on this page. Open the website you want, and I will be right here.' };
+const CANT: Said = { said: 'I can\'t help on this page. Open the website you want, and I\'ll be right here.' };
 
 async function activeTabId(): Promise<number | undefined> {
   // For trying the panel in an ordinary tab: sidepanel.html?tab=123 talks to that tab.
@@ -55,6 +55,7 @@ export function intent(text: string, tasks: RecordedTask[]): string | null {
   if (!said) return null;
   const task = tasks.find((t) => said === t.name.toLowerCase() || said.includes(t.name.toLowerCase()));
   if (task) return task.name;
+  if (/\bwhere was i\b|\bwhat was i doing\b|\blost my place\b/.test(said)) return 'Where was I?';
   if (/\b(sign|log) ?(me )?in\b|\bmy password\b/.test(said)) return 'Help me sign in';
   if (/\b(i'?m|i am|im) stuck\b|\bask (my |someone|for help)|\bcall my\b|\bneed (some )?help from\b/.test(said)) return "I'm stuck";
   if (/\b(fill|type) (this|it|that|them|these|the form|my (name|address|details))\b|\bfill (this |it )?in\b/.test(said)) return 'Help me fill this in';

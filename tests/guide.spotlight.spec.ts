@@ -43,7 +43,7 @@ test('a button that has gone: says so plainly and lights nothing', async ({ page
   const id = one(map, 'Was here').id;
   await page.evaluate(() => document.getElementById('b')!.remove());
   const result = await page.evaluate((i) => window.__steady.spotlight.on(i), id);
-  expect(result).toEqual({ ok: false, said: 'I can\'t find that on this page any more. The page may have changed. You can press "I\'m stuck" and we will ask for help.' });
+  expect(result).toEqual({ ok: false, said: 'I can\'t find that on this page any more. The page may have changed. You can press "I\'m stuck" and we\'ll ask for help.' });
   expect(await overlayCalls(page)).toEqual([]);
 });
 

@@ -39,7 +39,7 @@ async function inTask(page: Page) {
 test('asks before sending anything, in a way that is easy to say yes or no to', async ({ page }) => {
   await ready(page);
   const offer = await page.evaluate(() => window.__steady.family.offer());
-  expect(offer).toMatchObject({ status: 'offer', said: 'Shall I let Maya know you would like a hand?', options: ['Yes, tell Maya', 'No, not yet'] });
+  expect(offer).toMatchObject({ status: 'offer', said: 'Want me to let Maya know you\'d like a hand?', options: ['Yes, tell Maya', 'No, not yet'] });
   expect(await sent(page)).toEqual([]);
 });
 
@@ -47,7 +47,7 @@ test('on yes: tells her helper, and says what happens now', async ({ page }) => 
   await ready(page);
   await page.evaluate(() => window.__steady.family.offer());
   const done = await page.evaluate(() => window.__steady.family.send());
-  expect(done).toMatchObject({ status: 'sent', said: 'I have told Maya. Nothing is lost: everything on this page stays as it is. You can wait for them, or carry on if you like.' });
+  expect(done).toMatchObject({ status: 'sent', said: 'I\'ve told Maya. Nothing\'s lost. Everything on this page stays just as it is. You can wait for them, or keep going if you like.' });
   expect(await sent(page)).toEqual([{ to: 'maya@example.com', helperName: 'Maya', fromName: 'Rose' }]);
 });
 
@@ -56,7 +56,7 @@ test('during a saved task: the message has the task name and the step number, an
   await inTask(page);
   await page.evaluate(() => ((document.querySelector('#first') as HTMLInputElement).value = 'Marguerite')); // whatever she has typed never leaves the page
   const offer = await page.evaluate(() => window.__steady.family.offer());
-  expect(offer.said).toBe(`Shall I let Maya know you would like a hand with step 2 of "${TASK}"?`);
+  expect(offer.said).toBe(`Want me to let Maya know you'd like a hand with step 2 of "${TASK}"?`);
   await page.evaluate(() => window.__steady.family.send());
   const notes = await sent(page);
   expect(notes).toEqual([{ to: 'maya@example.com', helperName: 'Maya', fromName: 'Rose', task: TASK, step: 2, of: 3 }]);
@@ -66,7 +66,7 @@ test('during a saved task: the message has the task name and the step number, an
 test('no helper saved yet: says where to add one, and sends nothing', async ({ page }) => {
   await ready(page, null);
   const offer = await page.evaluate(() => window.__steady.family.offer());
-  expect(offer).toMatchObject({ status: 'no-helper', said: 'I do not know who to ask yet. Add the person who helps you under "Who helps you" in My details.' });
+  expect(offer).toMatchObject({ status: 'no-helper', said: 'I don\'t know who to ask yet. You can add the person who helps you under "Who helps you" in My details.' });
   expect((await page.evaluate(() => window.__steady.family.send())).status).toBe('no-helper');
   expect(await sent(page)).toEqual([]);
 });
@@ -75,7 +75,7 @@ test('the message could not be sent: says so kindly, and offers to try again', a
   await ready(page, MAYA, false);
   await page.evaluate(() => window.__steady.family.offer());
   const failed = await page.evaluate(() => window.__steady.family.send());
-  expect(failed).toMatchObject({ status: 'failed', said: 'I could not reach Maya just now. That is not your fault. You could telephone them, or I can try again.', options: ['Try again', 'No, not yet'] });
+  expect(failed).toMatchObject({ status: 'failed', said: 'I couldn\'t reach Maya just now. That\'s not your fault. You could phone them, or I can try again.', options: ['Try again', 'No, not yet'] });
 });
 
 test('asked twice in a row: does not send a second message', async ({ page }) => {
@@ -90,17 +90,17 @@ test('asked twice in a row: does not send a second message', async ({ page }) =>
 test('"No, not yet": nothing is sent, and there is no fuss', async ({ page }) => {
   await ready(page);
   await page.evaluate(() => window.__steady.family.offer());
-  expect(await page.evaluate(() => window.__steady.family.decline())).toMatchObject({ status: 'declined', said: 'That is fine. I am here if you change your mind.' });
+  expect(await page.evaluate(() => window.__steady.family.decline())).toMatchObject({ status: 'declined', said: 'That\'s fine. I\'m here if you change your mind.' });
   expect(await sent(page)).toEqual([]);
 });
 
 test('one place for every answer button: the words go to whichever conversation is open', async ({ page }) => {
   await ready(page, MAYA, true, '/shop/checkout.html?reset=1');
   const a = (words: string) => page.evaluate((w) => window.__steady.answer(w), words);
-  expect((await a("I'm stuck")).said).toBe('Shall I let Maya know you would like a hand?');
-  expect((await a('No, not yet')).said).toBe('That is fine. I am here if you change your mind.');
+  expect((await a("I'm stuck")).said).toBe('Want me to let Maya know you\'d like a hand?');
+  expect((await a('No, not yet')).said).toBe('That\'s fine. I\'m here if you change your mind.');
   expect((await a('Help me fill this in')).said).toContain('I can fill in your name');
-  expect((await a('Yes, fill them in')).said).toContain('I have filled in');
-  expect((await a('Stop for now')).said).toBe('I have stopped. Everything already filled in is still there.');
-  expect((await a('Something nobody offered')).said).toBe('I am not sure what to do with that. Try one of the buttons, or ask me a question.');
+  expect((await a('Yes, fill them in')).said).toContain("I've filled in");
+  expect((await a('Stop for now')).said).toBe('Okay, I\'ve stopped. Everything that\'s filled in is still there.');
+  expect((await a('Something nobody offered')).said).toBe('I\'m not sure what to do with that. Try one of the buttons, or ask me a question.');
 });

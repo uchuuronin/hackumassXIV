@@ -6,7 +6,7 @@ import { pageMap } from './map';
 
 export type SpotlightResult = { ok: true } | { ok: false; said: string };
 
-const GONE = 'I can\'t find that on this page any more. The page may have changed. You can press "I\'m stuck" and we will ask for help.';
+const GONE = 'I can\'t find that on this page any more. The page may have changed. You can press "I\'m stuck" and we\'ll ask for help.';
 
 let current: { id: string; stopWatching: () => void } | null = null;
 

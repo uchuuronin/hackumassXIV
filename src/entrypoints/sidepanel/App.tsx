@@ -8,8 +8,9 @@ import { toModelSafe, type PageMapResponse } from '@/shared/pagemap';
 import { HELPER_KEYS, type GeminiAnswer, type GeminiAsk, type ToolResult, type ToolResultMsg } from '@/shared/tools';
 import { getProfile, setProfile } from '@/helper/profile';
 import { theme } from '@/shared/theme';
+import { TONE } from '@/shared/voice';
 import { Buddy, type Mood } from '@/guide/panel/Buddy';
-import { HelperCard, TeachScreen } from '@/guide/panel/FamilyCard';
+import { GetTaskCard, HelperCard, RememberCard, TeachScreen } from '@/guide/panel/FamilyCard';
 import { MyDetailsCard } from '@/guide/panel/MyDetailsCard';
 import { intent, useGuide } from '@/guide/panel/useGuide';
 
@@ -17,6 +18,7 @@ interface Reply { quiet?: boolean; said: string; point?: string; tool?: { name: 
 
 const RULES = `You are Steady, a patient helper for an older adult using a web page.
 Use plain, short, kind words. At most two sentences. No jargon.
+${TONE}
 Answer the question directly. Only ask a question back if two different elements could both be right.
 To pay or check out, the person usually starts at the basket or cart: point at that element and say so.
 Use only the page data below. If an element has labelConfident false, say it might be that, never state it as fact.
@@ -193,7 +195,7 @@ export default function App() {
   }
 
   const mood: Mood = listening ? 'listening' : busy || guide.working ? 'thinking' : glad ? 'glad' : 'idle';
-  const words = busy || guide.working ? 'Let me look…' : reply?.said || guide.hint.said || 'Hello. I am Steady. What shall we do?';
+  const words = busy || guide.working ? 'Let me look…' : reply?.said || guide.hint.said || 'Hello, I\'m Steady. What are we doing today?';
   // Buttons under the bubble: the answers Steady offered, or, before anything is said, what fits this page
   // and is not already one of the big buttons below ("Help me sign in").
   const tiles = ['What do I click?', 'Help me fill this in', "I'm stuck", ...guide.tasks.map((t) => t.name)];
@@ -227,6 +229,8 @@ export default function App() {
         <main className="sheet">
           <section className="card"><MyDetailsCard /></section>
           <HelperCard />
+          <GetTaskCard />
+          <RememberCard />
           <button type="button" className="btn quiet" onClick={() => setScreen('teach')}>
             <Icon name="steps" /> For the person who helps
           </button>
@@ -280,7 +284,7 @@ export default function App() {
       </header>
       {guide.recording && (
         <div className="watching" role="status">
-          <span>I am watching: "{guide.recording}". Do the task on the website, then press Finish.</span>
+          <span>I'm watching: "{guide.recording}". Do the task on the website, then press Finish.</span>
           <button type="button" className="btn main" onClick={() => setScreen('teach')}>Finish</button>
         </div>
       )}
@@ -296,7 +300,7 @@ export default function App() {
           </button>
           {guide.tasks.map((t) => (
             <button key={t.id} type="button" className="tile sun" onClick={() => guide.press(t.name)}>
-              <Icon name="steps" /><span>{t.name}<small>{t.steps.length === 1 ? '1 step' : `${t.steps.length} steps, one at a time`}</small></span>
+              <Icon name="steps" /><span>{t.name}<small>{t.steps.length === 1 ? '1 step' : `${t.steps.length} steps, one at a time`}{t.shared ? ' · sent to you' : ''}</small></span>
             </button>
           ))}
         </div>

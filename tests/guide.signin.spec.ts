@@ -19,7 +19,7 @@ async function clinic(page: Page, details: object | null = null) {
 test('the panel notices a sign-in page and offers to help with it', async ({ page }) => {
   await clinic(page);
   expect(await page.evaluate(() => window.__steady.suggest())).toEqual({
-    said: 'This page is asking you to sign in. I can take you through it.',
+    said: 'This page wants you to sign in. I can walk you through it.',
     options: ['Help me sign in', 'What do I click?'],
   });
 });
@@ -27,16 +27,16 @@ test('the panel notices a sign-in page and offers to help with it', async ({ pag
 test('"Help me sign in": says why the page is asking, then goes box by box', async ({ page }) => {
   await clinic(page);
   const first = await a(page, 'Help me sign in');
-  expect(first.said).toBe('This page wants to know it is you, so it can show you your own things. There are 2 boxes. This box is for your email: "Email address".');
+  expect(first.said).toBe('This page wants to check it\'s really you before it shows you your own things. There are 2 boxes. This box is for your email: "Email address".');
   await page.fill('#email', 'rose@example.com');
   await page.locator('#email').blur();
-  await expect.poll(async () => (await spoken(page)).at(-1)).toBe('"Password". This is your password. Please type this one yourself. Steady never sees or keeps passwords.');
+  await expect.poll(async () => (await spoken(page)).at(-1)).toBe('"Password" is next. That\'s your password, so you type this one. I never see passwords and I never keep them.');
 });
 
 test('with her email saved: offers to fill it, and never the password', async ({ page }) => {
   await clinic(page, { givenName: 'Rose', email: 'rose@example.com' });
   const offer = await a(page, 'Help me sign in');
-  expect(offer.said).toBe('This page wants to know it is you, so it can show you your own things. There are 2 boxes. I can fill in your email from "My details". Shall I?');
+  expect(offer.said).toBe('This page wants to check it\'s really you before it shows you your own things. There are 2 boxes. I can fill in your email for you. Want me to?');
   await a(page, 'Yes, fill them in');
   expect(await page.inputValue('#email')).toBe('rose@example.com');
   expect(await page.inputValue('#password')).toBe('');
@@ -49,7 +49,7 @@ test('stuck on the password: says what to do when it is forgotten', async ({ pag
   await a(page, 'Go on'); // on to the password box
   await expect
     .poll(async () => (await spoken(page)).at(-1))
-    .toBe('There is no rush. If you can\'t remember your password, that happens to everyone. Click "Forgot your password?" and the website will help you make a new one.');
+    .toBe('No rush. If you can\'t remember your password, don\'t worry, everyone forgets them. Click "Forgot your password?" and the website will help you set a new one.');
 });
 
 test('a code sent to her phone: says what it is, where to type it, and never to read it to anyone', async ({ page }) => {
@@ -57,7 +57,7 @@ test('a code sent to her phone: says what it is, where to type it, and never to 
   await page.evaluate(() => window.__steady.details.clear());
   const first = await a(page, 'Help me sign in');
   expect(first.said).toBe(
-    'The website has sent you a short code, to check it is really you. Never read this code to anyone on the telephone, even if they say they are from the website. "6-digit code". Look for a text message on your phone, then type the numbers from it here. There is no rush.',
+    'The website has sent you a short code to check it\'s really you. Never read that code out to anyone on the phone, even if they say they\'re from the website. "6-digit code" is next. Check your phone for a text message, then type the numbers from it here. No rush.',
   );
 });
 
@@ -65,7 +65,7 @@ test('not a sign-in page: says so and offers what does fit', async ({ page }) =>
   await page.goto('/shop/basket.html?reset=1');
   await inject(page);
   expect(await a(page, 'Help me sign in')).toEqual({
-    said: 'This does not look like a page for signing in. I can still explain the buttons here.',
+    said: 'This doesn\'t look like a sign-in page. I can still tell you what the buttons here do.',
     options: ['What do I click?'],
   });
 });

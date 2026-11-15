@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { GoogleGenAI } from '@google/genai';
 import { registerStuck } from './stuck';
+import { registerTasks } from './tasks';
 
 const app = Fastify({ logger: true });
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -49,6 +50,9 @@ app.get('/health', async () => ({ ok: true }));
 
 // "I'm stuck" (owner: C): one short, fixed email to the person who helps. See ./stuck.ts.
 registerStuck(app);
+
+// Passing a recorded task to another computer (owner: C): three words, kept for seven days. See ./tasks.ts.
+registerTasks(app);
 
 app.post<{ Body: { prompt: string } }>('/gemini', async (req, reply) => {
   const prompt = req.body?.prompt;

@@ -12,10 +12,11 @@ import * as family from '@/guide/family';
 import * as player from '@/guide/player';
 import { suggest } from '@/guide/suggest';
 import * as timeout from '@/guide/timeout';
+import * as trail from '@/guide/trail';
 import * as spotlight from '@/guide/spotlight';
 import { pageMap } from '@/guide/map';
 import { toModelSafe } from '@/shared/pagemap';
-import { provide, type ChoiceLabelReply, type ChoiceLabelRequest } from '@/shared/ports';
+import { need, provide, type ChoiceLabelReply, type ChoiceLabelRequest } from '@/shared/ports';
 
 type Call = { port: string; method: string; args: unknown[] };
 
@@ -88,6 +89,11 @@ const steady = {
   answer,
   suggest,
   timeout,
+  trail,
+  /** The saved-data stand-in, for tests that need to put something there directly. */
+  get store() {
+    return need('store');
+  },
   /** Tests play the part of the relay: true = sent, false = could not send. */
   setFamily(reply: boolean) {
     provide('family', {

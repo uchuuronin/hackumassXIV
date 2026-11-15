@@ -7,6 +7,7 @@ import { pageMap } from './map';
 import { tasks } from './recorder';
 import * as player from './player';
 import { SIGN_IN } from './signin';
+import * as trail from './trail';
 
 export interface Suggestion {
   /** One short sentence, or '' when there is nothing worth saying. */
@@ -17,14 +18,16 @@ export interface Suggestion {
 
 export async function suggest(): Promise<Suggestion> {
   const at = player.where();
-  if (at) return { said: `We are on step ${at.step} of ${at.of} of "${at.task}".`, options: ['Show me again', 'Stop for now', STARTERS.stuck] };
+  if (at) return { said: `We're on step ${at.step} of ${at.of} of "${at.task}".`, options: ['Show me again', 'Stop for now', STARTERS.stuck] };
 
   const map = pageMap.get();
   if (/cookie|privacy|consent|tracking/i.test(map.dialog?.label ?? '')) {
     return { said: 'This page is asking about cookies. I can tell you what each button does.', options: [STARTERS.click] };
   }
+  // A page she had started that has come back empty.
+  if (await trail.keptCount()) return { said: "You were part-way through this page before. I kept what you typed.", options: [STARTERS.where, STARTERS.fill] };
   if (map.stage.kind === 'sign-in' || map.stage.kind === 'code') {
-    return { said: 'This page is asking you to sign in. I can take you through it.', options: [SIGN_IN, STARTERS.click] };
+    return { said: 'This page wants you to sign in. I can walk you through it.', options: [SIGN_IN, STARTERS.click] };
   }
   const here = (await tasks()).filter((t) => t.steps[0]?.page.origin === location.origin);
   const names = here.slice(0, 2).map((t) => t.name);
@@ -33,9 +36,9 @@ export async function suggest(): Promise<Suggestion> {
   // Boxes Steady knows how to fill (a name, an address), or a secret box such as a card number: a form worth offering help with.
   const boxes = map.elements.filter((e) => e.visible && e.kind !== 'button' && e.kind !== 'link' && e.kind !== 'search');
   if (boxes.filter((e) => e.fillAs).length >= 2 || boxes.some((e) => e.secret)) {
-    return { said: 'This page has boxes to fill in. I can help with those.', options: [STARTERS.fill, STARTERS.click, ...names] };
+    return { said: 'There are boxes to fill in here. I can help with those.', options: [STARTERS.fill, STARTERS.click, ...names] };
   }
-  if (names.length) return { said: names.length === 1 ? 'There is a saved task for this website.' : 'There are saved tasks for this website.', options: [...names, STARTERS.click] };
+  if (names.length) return { said: names.length === 1 ? "There's a saved task for this website." : 'There are saved tasks for this website.', options: [...names, STARTERS.click] };
   return { said: '', options: [STARTERS.click] };
 }
 

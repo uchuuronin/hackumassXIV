@@ -49,4 +49,70 @@ export interface RecordedTask {
   site: string;
   recordedAt: number;
   steps: TaskStep[];
+  /** Set when the task arrived from another computer, so Steady can always say so. */
+  shared?: { at: number; said?: boolean };
+}
+
+// ---- A task that arrives from another computer ----
+
+const KINDS = ['button', 'link', 'text', 'email', 'password', 'number', 'tel', 'date', 'time', 'search', 'textarea', 'select', 'checkbox', 'radio', 'range', 'file', 'other'];
+const PROTECTIONS = ['none', 'pay', 'delete', 'submit'];
+
+const text = (value: unknown, max: number): string | undefined =>
+  typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, max) || undefined : undefined;
+
+function webOrigin(value: unknown): string | undefined {
+  try {
+    const url = new URL(String(value));
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Check a task that came from somewhere else, and rebuild it from only the parts Steady knows.
+ * Anything extra is dropped, so there is nowhere for someone's answers, or anything else, to ride along.
+ * Null if it is not a task.
+ */
+export function checkTask(input: unknown): RecordedTask | null {
+  if (!input || typeof input !== 'object') return null;
+  const raw = input as Record<string, unknown>;
+  const name = text(raw.name, 80);
+  const site = webOrigin(raw.site);
+  if (raw.version !== 1 || !name || !site || !Array.isArray(raw.steps) || raw.steps.length < 1 || raw.steps.length > 80) return null;
+
+  const steps: TaskStep[] = [];
+  for (const item of raw.steps as Array<Record<string, unknown>>) {
+    const loc = (item?.locator ?? {}) as Record<string, unknown>;
+    const page = (item?.page ?? {}) as Record<string, unknown>;
+    const attrs = (loc.attrs ?? {}) as Record<string, unknown>;
+    const type = item?.type;
+    const label = text(loc.label, 200);
+    const origin = webOrigin(page.origin);
+    const path = text(page.path, 300);
+    if ((type !== 'click' && type !== 'choose' && type !== 'type') || !label || !origin || !path?.startsWith('/')) return null;
+    if (!KINDS.includes(String(loc.kind)) || !PROTECTIONS.includes(String(loc.protection))) return null;
+    steps.push({
+      type,
+      say: text(item.say, 200) ?? '',
+      locator: {
+        kind: loc.kind as StepLocator['kind'],
+        label,
+        labelConfident: loc.labelConfident === true,
+        context: text(loc.context, 120),
+        group: text(loc.group, 200),
+        formLabel: text(loc.formLabel, 120),
+        protection: loc.protection as StepLocator['protection'],
+        secret: text(loc.secret, 40) as StepLocator['secret'],
+        fillAs: text(loc.fillAs, 40) as StepLocator['fillAs'],
+        sendsForm: loc.sendsForm === true,
+        region: (text(loc.region, 20) ?? 'main') as StepLocator['region'],
+        attrs: { id: text(attrs.id, 120), name: text(attrs.name, 120), testId: text(attrs.testId, 120) },
+        hrefPath: text(loc.hrefPath, 300),
+      },
+      page: { origin, path, stage: (text(page.stage, 20) ?? 'other') as TaskStep['page']['stage'] },
+    });
+  }
+  return { version: 1, id: text(raw.id, 40) ?? `t${Date.now().toString(36)}`, name, site, recordedAt: Number(raw.recordedAt) || Date.now(), steps, shared: { at: Date.now() } };
 }

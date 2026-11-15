@@ -11,7 +11,7 @@ const finish = (page: Page) => page.evaluate(() => window.__steady.recorder.stop
 test('booking at the clinic: three step types, and none of her answers are kept', async ({ page }) => {
   await page.goto('/clinic/book.html?reset=1');
   const started = await begin(page, "Book a doctor's appointment");
-  expect(started.said).toBe('I am watching now. Do the task the way you normally would. I never save what you type or choose.');
+  expect(started.said).toBe('I\'m watching now. Do the task the way you normally would. I never save what you type or choose.');
 
   await page.selectOption('#reason', 'Flu shot');
   await page.check('[value="herrera"]');

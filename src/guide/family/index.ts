@@ -35,7 +35,7 @@ export async function clearHelper(): Promise<void> {
   await need('store').remove(HELPER_KEY);
 }
 
-const NO_HELPER: StuckState = { status: 'no-helper', said: 'I do not know who to ask yet. Add the person who helps you under "Who helps you" in My details.' };
+const NO_HELPER: StuckState = { status: 'no-helper', said: 'I don\'t know who to ask yet. You can add the person who helps you under "Who helps you" in My details.' };
 
 /** "I'm stuck": ask whether to tell her helper. Nothing is sent yet. */
 export async function offer(): Promise<StuckState> {
@@ -47,7 +47,7 @@ export async function offer(): Promise<StuckState> {
   offering = true;
   const at = player.where();
   const about = at ? ` with step ${at.step} of "${at.task}"` : '';
-  return { status: 'offer', said: `Shall I let ${helper.name} know you would like a hand${about}?`, options: [`Yes, tell ${helper.name}`, 'No, not yet'] };
+  return { status: 'offer', said: `Want me to let ${helper.name} know you'd like a hand${about}?`, options: [`Yes, tell ${helper.name}`, 'No, not yet'] };
 }
 
 /** "Yes, tell Maya." */
@@ -68,15 +68,15 @@ export async function send(): Promise<StuckState> {
   }
   if (!ok) {
     offering = true; // "Try again" is a yes
-    return { status: 'failed', said: `I could not reach ${helper.name} just now. That is not your fault. You could telephone them, or I can try again.`, options: ['Try again', 'No, not yet'] };
+    return { status: 'failed', said: `I couldn't reach ${helper.name} just now. That's not your fault. You could phone them, or I can try again.`, options: ['Try again', 'No, not yet'] };
   }
   lastSentAt = Date.now();
-  return { status: 'sent', said: `I have told ${helper.name}. Nothing is lost: everything on this page stays as it is. You can wait for them, or carry on if you like.` };
+  return { status: 'sent', said: `I've told ${helper.name}. Nothing's lost. Everything on this page stays just as it is. You can wait for them, or keep going if you like.` };
 }
 
 export function decline(): StuckState {
   offering = false;
-  return { status: 'declined', said: 'That is fine. I am here if you change your mind.' };
+  return { status: 'declined', said: 'That\'s fine. I\'m here if you change your mind.' };
 }
 
 /** Waiting for a yes or a no. */

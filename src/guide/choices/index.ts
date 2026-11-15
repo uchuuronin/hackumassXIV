@@ -104,7 +104,7 @@ export async function show(): Promise<ChoicesResult> {
   void oneAtATime(inOrder, ++showing);
   // A cookie box is the pop-up people meet most, and nobody ever says what a cookie is.
   const cookies = /cookie|privacy|consent|tracking/i.test(map.dialog?.label ?? '')
-    ? 'This box is asking about cookies. Cookies are small notes a website keeps on your computer so that it remembers you. Saying no is safe, and the website will still work. '
+    ? 'This box is asking about cookies. Cookies are little notes a website keeps on your computer so it remembers you. It\'s safe to say no, and the website will still work. '
     : '';
   return { labels, unsure, said: cookies + summary(labels.length, unsure) };
 }
@@ -197,16 +197,16 @@ export function hide(): void {
 function summary(shown: number, unsure: string[]): string {
   if (!shown && !unsure.length) return 'I can\'t see any buttons to explain on this page.';
   if (!shown) {
-    return 'I am not sure what the buttons on this page do, so I have not labelled them. You can press "I\'m stuck" and we will ask for help.';
+    return 'I\'m not sure what the buttons on this page do, so I\'ve left them alone. You can press "I\'m stuck" and we\'ll ask for help.';
   }
   const done =
     shown === 1
-      ? 'I will show you the main button. Afterwards, rest the pointer on it and I will tell you again what it does.'
-      : `I will show you the ${shown} main buttons, one at a time. Afterwards, rest the pointer on any button and I will tell you again what it does.`;
+      ? 'I\'ll show you the main button. After that, rest the pointer on it and I\'ll tell you again what it does.'
+      : `I'll show you the ${shown} main buttons, one at a time. After that, rest the pointer on any button and I'll tell you again what it does.`;
   if (!unsure.length) return done;
   const names = unsure.slice(0, 3).map((n) => `"${n}"`);
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-  return `${done} I am not sure about ${list}, so I left ${unsure.length === 1 ? 'it' : 'them'} alone.`;
+  return `${done} I'm not sure about ${list}, so I left ${unsure.length === 1 ? 'it' : 'them'} alone.`;
 }
 
 /** For B's tool list: "What do I click?" */
@@ -232,6 +232,6 @@ export const hideChoicesTool: Tool = {
   parameters: {},
   async run() {
     hide();
-    return { ok: true, said: 'I have taken the notes away.' };
+    return { ok: true, said: 'I\'ve taken the notes away.' };
   },
 };

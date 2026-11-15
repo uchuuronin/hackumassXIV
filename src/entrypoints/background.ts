@@ -3,6 +3,7 @@ import { askRelay } from '@/helper/relay';
 import { sendStuck } from '@/guide/family/send';
 import type { StuckSend } from '@/shared/family';
 import type { GeminiAsk } from '@/shared/tools';
+import { speak } from '@/shared/voice';
 
 export default defineBackground(() => {
   // Clicking the toolbar icon opens the side panel.
@@ -27,10 +28,9 @@ export default defineBackground(() => {
 
     // Speaking lives here so the panel redrawing never interrupts the voice.
     if (msg?.type === 'tts/say') {
-      browser.tts.stop();
-      // `rate` is optional (A's read aloud sends the person's own speed).
-      const rate = Number((msg as { rate?: number }).rate);
-      browser.tts.speak(String(msg.text ?? ''), { rate: rate >= 0.5 && rate <= 2 ? rate : 0.9, lang: 'en-US' });
+      // The voice and the pacing are in src/shared/voice.ts (C): the warmest voice the browser has, one sentence at a time.
+      // `rate` is optional (A's read aloud sends the person's own speed); a speed that makes no sense is ignored there.
+      void speak(browser.tts as never, String(msg.text ?? ''), { rate: Number((msg as { rate?: number }).rate) });
       return undefined;
     }
     // Text size (owner: A): the browser's own zoom, so layouts reflow properly.

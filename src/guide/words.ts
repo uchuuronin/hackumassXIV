@@ -4,19 +4,19 @@
 import type { SecretKind } from '@/shared/pagemap';
 
 const WORDS: Record<SecretKind, string> = {
-  password: 'This is your password. Please type this one yourself. Steady never sees or keeps passwords.',
-  'card-number': 'This is the long number across the front of your card. Please type this one yourself. Steady never fills in card details.',
-  'card-expiry': 'This is the date on your card, the month and then the year. Please type this one yourself.',
-  'card-code': 'This is the three numbers on the back of your card. Please type this one yourself.',
-  'card-name': 'Type your name the way it is printed on your card.',
-  'one-time-code': 'Look for a text message on your phone, then type the numbers from it here. There is no rush.',
+  password: "That's your password, so you type this one. I never see passwords and I never keep them.",
+  'card-number': "That's the long number across the front of your card. You type this one. I never touch card details.",
+  'card-expiry': "That's the date on your card. Month first, then the year.",
+  'card-code': "Those are the three numbers on the back of your card.",
+  'card-name': 'Type your name just as it\'s printed on your card.',
+  'one-time-code': 'Check your phone for a text message, then type the numbers from it here. No rush.',
   'id-number':
-    'This asks for an ID number. Please type this one yourself, and only if you are sure this website should have it. It is fine to stop and ask someone first.',
+    'This is asking for an ID number. Only type it if you\'re sure this website should have it. It\'s fine to stop and ask someone first.',
   'bank-account':
-    'This asks for your bank details. Please type this one yourself, and only if you are sure this website should have them. It is fine to stop and ask someone first.',
+    'This is asking for your bank details. Only type them if you\'re sure this website should have them. It\'s fine to stop and ask someone first.',
   'gift-card':
-    'This asks for a gift card number. Real companies almost never ask to be paid with gift cards. It is a good idea to check with someone you trust before going on.',
-  'date-of-birth': 'This is your date of birth. Please choose this one yourself.',
+    'This is asking for a gift card number. Real companies almost never ask to be paid that way. I\'d check with someone you trust before going any further.',
+  'date-of-birth': "That's your date of birth. You pick this one.",
 };
 
 /** The sentence for a field Steady leaves to the person. */

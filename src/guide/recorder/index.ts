@@ -30,7 +30,7 @@ export async function start(name: string): Promise<{ said: string }> {
   current = { version: 1, id: `t${Date.now().toString(36)}`, name: name.trim() || 'A task', site: location.origin, recordedAt: Date.now(), steps: [] };
   await need('store').set(RECORDING, current);
   listen();
-  return { said: 'I am watching now. Do the task the way you normally would. I never save what you type or choose.' };
+  return { said: 'I\'m watching now. Do the task the way you normally would. I never save what you type or choose.' };
 }
 
 /** Call on every page load. Carries on if a recording was under way. */
@@ -55,7 +55,7 @@ export async function stop(): Promise<{ task: RecordedTask; said: string }> {
     await store.set(TASKS, [...all.filter((t) => t.id !== task.id), task]);
   }
   const count = task.steps.length === 1 ? '1 step' : `${task.steps.length} steps`;
-  return { task, said: task.steps.length ? `Saved "${task.name}" with ${count}.` : 'Nothing was recorded, so I have not saved anything.' };
+  return { task, said: task.steps.length ? `Saved "${task.name}" with ${count}.` : 'Nothing was recorded, so I haven\'t saved anything.' };
 }
 
 /** Take a saved task away. For the person who recorded it. */
@@ -181,7 +181,7 @@ export const recordStopTool: Tool = {
   description: 'For a family member: stop recording and save the task.',
   parameters: {},
   async run() {
-    if (!isRecording()) return { ok: false, said: 'I am not recording at the moment.' };
+    if (!isRecording()) return { ok: false, said: 'I\'m not recording right now.' };
     const { task, said } = await stop();
     return { ok: true, said, data: { id: task.id, name: task.name, steps: task.steps.length } };
   },

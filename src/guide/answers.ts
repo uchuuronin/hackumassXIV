@@ -12,6 +12,7 @@ import { tasks } from './recorder';
 import * as signin from './signin';
 import { SIGN_IN } from './signin';
 import * as timeout from './timeout';
+import * as trail from './trail';
 
 export interface Answer {
   said: string;
@@ -21,7 +22,7 @@ export interface Answer {
 }
 
 /** The things she can ask for at any time. */
-export const STARTERS = { click: 'What do I click?', fill: 'Help me fill this in', stuck: "I'm stuck" } as const;
+export const STARTERS = { click: 'What do I click?', fill: 'Help me fill this in', stuck: "I'm stuck", where: 'Where was I?' } as const;
 
 export async function answer(words: string): Promise<Answer> {
   const said = words.trim();
@@ -31,10 +32,16 @@ export async function answer(words: string): Promise<Answer> {
   if (said === STARTERS.fill) return details.start((await need('store').get<HelpLevel>(HELPER_KEYS.level)) ?? 'with-me');
   if (said === STARTERS.stuck || said === 'Ask for help') return family.offer();
   if (said === SIGN_IN) return signin.start();
+  if (said === STARTERS.where) return trail.where();
+
+  // "Where was I?": putting back what she typed, or going back to the page.
+  if (said === 'Yes, put it back') return trail.restore();
+  if (said === 'No, thank you' && trail.offeringWhat()) return trail.decline();
+  if (said === 'Yes, take me there' && trail.offeringWhat() === 'go') return trail.goBack();
 
   // A page that is counting down.
   if (said === 'Yes, keep my place') return timeout.keepPlace();
-  if (said === 'I will click it') return timeout.leave();
+  if (said === 'I\'ll click it') return timeout.leave();
 
   // "I'm stuck".
   if (/^Yes, tell /.test(said) || said === 'Try again') return family.send();
@@ -42,9 +49,9 @@ export async function answer(words: string): Promise<Answer> {
 
   // The form.
   if (said === 'Yes, fill them in' || said === 'It looks right') return details.keep();
-  if (said === 'No, I will type them' || said === 'Take them out') return details.undo();
+  if (said === 'No, I\'ll type them' || said === 'Take them out') return details.undo();
   if (said === 'Yes, remember them' || said === 'Yes, remember it') return details.remember();
-  if (said === 'No, thank you') return { said: 'All right. I will not keep them.' };
+  if (said === 'No, thank you') return { said: 'No problem. I won\'t keep them.' };
 
   // A saved task.
   if (said === 'Yes, take me there') return player.goThere();
@@ -63,7 +70,7 @@ export async function answer(words: string): Promise<Answer> {
   const task = (await tasks()).find((t) => t.name === said);
   if (task) return player.start(task.id);
 
-  return { said: 'I am not sure what to do with that. Try one of the buttons, or ask me a question.' };
+  return { said: 'I\'m not sure what to do with that. Try one of the buttons, or ask me a question.' };
 }
 
 export const answerTool: Tool = {

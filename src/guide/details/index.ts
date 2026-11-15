@@ -108,6 +108,9 @@ const ticked = (id: string) => (box(id) as HTMLInputElement | null)?.checked ===
 const quoted = (label: string) => `"${label.replace(/[.\s]+$/, '')}"`;
 const isOptional = (el: PageElement) => /\boptional\b/i.test(el.label) && !el.required;
 
+/** A basket, a checkout or a payment page. */
+const atShop = (): boolean => ['basket', 'checkout', 'payment'].includes(pageMap.get().stage.kind);
+
 function list(words: string[]): string {
   return words.length <= 1 ? (words[0] ?? '') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
 }
@@ -150,14 +153,14 @@ function plan(fields: PageElement[], details: MyDetails, fill: boolean): { fills
       done.add(`radio:${group}`);
       const options = fields.filter((f) => f.kind === 'radio' && (f.group ?? f.label) === group);
       const chosen = options.find((f) => ticked(f.id));
-      const now = chosen ? `At the moment it is set to ${quoted(chosen.label)}. Change it if you like, or tell me to go on.` : 'Nothing is chosen yet.';
-      steps.push({ id: (chosen ?? el).id, ids: options.map((o) => o.id), kind: 'choice', label: group, text: `This one is your choice: ${quoted(group)}. ${now}` });
+      const now = chosen ? `Right now it says ${quoted(chosen.label)}. Change it if you like, or tell me to go on.` : 'Nothing\'s picked yet.';
+      steps.push({ id: (chosen ?? el).id, ids: options.map((o) => o.id), kind: 'choice', label: group, text: `This one's up to you: ${quoted(group)}. ${now}` });
       continue;
     }
     if (el.kind === 'checkbox') {
       const text = ticked(el.id)
-        ? `There is a tick box that is already ticked: ${name}. Untick it if you do not want it, or tell me to go on.`
-        : `There is a tick box: ${name}. It is not ticked. Tick it only if you want it, or tell me to go on.`;
+        ? `Heads up, this box is already ticked: ${name}. Untick it if you don't want that, or tell me to go on.`
+        : `There's a tick box here: ${name}. It's not ticked. Only tick it if you want it, or tell me to go on.`;
       steps.push({ id: el.id, ids: [el.id], kind: 'choice', label: el.label, text });
       continue;
     }
@@ -167,7 +170,7 @@ function plan(fields: PageElement[], details: MyDetails, fill: boolean): { fills
       if (done.has(key)) continue;
       done.add(key);
       if (mates.every((m) => live(m.id) !== '')) continue;
-      steps.push({ id: el.id, ids: mates.map((m) => m.id), kind: 'secret', secret: el.secret, label: el.group!, text: `${quoted(el.group!)}. ${typeItYourself(el.secret)}` });
+      steps.push({ id: el.id, ids: mates.map((m) => m.id), kind: 'secret', secret: el.secret, label: el.group!, text: `${quoted(el.group!)} is next. ${typeItYourself(el.secret)}` });
       continue;
     }
 
@@ -175,7 +178,9 @@ function plan(fields: PageElement[], details: MyDetails, fill: boolean): { fills
     if (live(el.id) !== '') continue;
 
     if (el.secret) {
-      steps.push({ id: el.id, ids: [el.id], kind: 'secret', secret: el.secret, label: el.label, text: `${name}. ${typeItYourself(el.secret)}` });
+      // An ID number at a shop: B's Over-Ask Alert says to leave it empty, and so does this.
+      const words = el.secret === 'id-number' && atShop() ? "A shop doesn't need this to sell you something, so you can leave it empty." : typeItYourself(el.secret);
+      steps.push({ id: el.id, ids: [el.id], kind: 'secret', secret: el.secret, label: el.label, text: `${name} is next. ${words}` });
       continue;
     }
     if (el.fillAs) {
@@ -193,12 +198,12 @@ function plan(fields: PageElement[], details: MyDetails, fill: boolean): { fills
     }
     if (isOptional(el)) continue;
     if (el.kind === 'select') {
-      steps.push({ id: el.id, ids: [el.id], kind: 'choice', label: el.label, text: `This one is your choice: ${name}. Nothing is chosen yet.` });
+      steps.push({ id: el.id, ids: [el.id], kind: 'choice', label: el.label, text: `This one's up to you: ${name}. Nothing's picked yet.` });
     } else if (!el.labelConfident) {
-      const guess = el.labelSource === 'none' ? 'I can\'t read what this box is for.' : `This box looks like ${name}, but I am not sure.`;
+      const guess = el.labelSource === 'none' ? 'I can\'t read what this box is for.' : `This box looks like ${name}, but I'm not sure.`;
       steps.push({ id: el.id, ids: [el.id], kind: 'yours', label: el.label, text: `${guess} Fill it in if you know what it wants.` });
     } else {
-      steps.push({ id: el.id, ids: [el.id], kind: 'yours', label: el.label, text: `This one is for you: ${name}.` });
+      steps.push({ id: el.id, ids: [el.id], kind: 'yours', label: el.label, text: `This one's yours to fill in: ${name}.` });
     }
   }
   return { fills, steps };
@@ -248,16 +253,16 @@ async function present(): Promise<FillState> {
     // The password nobody remembers: say what to do about it, instead of repeating "type your password".
     const forgot = mine.secret === 'password' && !typedAndWaiting ? pageMap.get().elements.find((e) => e.visible && /forgot|reset (your |my )?password|can.?t sign in|trouble signing/i.test(e.label)) : undefined;
     const again = forgot
-      ? `There is no rush. If you can't remember your password, that happens to everyone. Click ${quoted(forgot.label)} and the website will help you make a new one.`
+      ? `No rush. If you can't remember your password, don't worry, everyone forgets them. Click ${quoted(forgot.label)} and the website will help you set a new one.`
       : typedAndWaiting
-        ? 'There is no rush. When you have finished this box, tell me to go on and I will show you the next one.'
-        : `There is no rush. ${mine.text}`;
+        ? 'No rush. When you\'re done with this box, tell me to go on and I\'ll show you the next one.'
+        : `Take your time. ${mine.text}`;
     need('speech').say(again, GO_ON);
   }, pace.nudgeMs);
   helpTimer = window.setTimeout(
     () =>
       stillHere() &&
-      need('speech').say('Would you like to carry on, stop here for now, or ask someone for help? Everything you have typed stays where it is.', [
+      need('speech').say('Want to keep going, stop here for now, or ask someone for a hand? Everything you\'ve typed stays put.', [
         'Carry on',
         'Stop for now',
         'Ask for help',
@@ -322,7 +327,7 @@ async function begun(level: HelpLevel, hasOwnLead: boolean): Promise<FillState> 
 
   if (level === 'show') return walk(s, '', false);
   if (!Object.keys(details).length) {
-    return walk(s, hasOwnLead ? '' : 'I do not have your details saved yet, so we will go through the boxes together this time.', false);
+    return walk(s, hasOwnLead ? '' : 'I don\'t have your details saved yet, so let\'s go through the boxes together this time.', false);
   }
   const planned = plan(s.fields, details, true);
   if (!planned.fills.length) return walk(s, '', false);
@@ -332,15 +337,15 @@ async function begun(level: HelpLevel, hasOwnLead: boolean): Promise<FillState> 
   s.steps = planned.steps;
   return {
     status: 'offer',
-    said: `I can fill in your ${list(groupWords(s.fills.map((f) => f.key)))} from "My details". Shall I?`,
-    options: ['Yes, fill them in', 'No, I will type them'],
+    said: `I can fill in your ${list(groupWords(s.fills.map((f) => f.key)))} for you. Want me to?`,
+    options: ['Yes, fill them in', 'No, I\'ll type them'],
   };
 }
 
 /** "Yes", "it looks right", "go on", "I've done that one". */
 export async function keep(): Promise<FillState> {
   const s = session;
-  if (!s) return { status: 'stopped', said: 'I am not filling anything in at the moment. Ask me to help with a form and I will.' };
+  if (!s) return { status: 'stopped', said: 'I\'m not filling anything in right now. Ask me to help with a form and I will.' };
   clearTimers();
 
   if (s.phase === 'offer') {
@@ -356,15 +361,15 @@ export async function keep(): Promise<FillState> {
       status: 'check',
       said:
         n === 1
-          ? `I have filled in your ${words}. Please have a look. If it is wrong, change it in the box. Tell me when it looks right.`
-          : `I have filled in ${n} boxes with your ${words}. Please have a look. If one is wrong, change it in the box. Tell me when it looks right.`,
+          ? `I've filled in your ${words}. Have a look. If it's wrong, just fix it in the box. Tell me when it looks right.`
+          : `I've filled in ${n} boxes with your ${words}. Have a look. If anything's wrong, just fix it in the box. Tell me when it looks right.`,
       options: ['It looks right', 'Take them out'],
     };
   }
   if (s.phase === 'check') {
     s.phase = 'walk';
     s.at = 0;
-    s.lead = s.steps.length ? 'Now the ones only you can fill in.' : '';
+    s.lead = s.steps.length ? 'Now for the ones only you can do.' : '';
     return s.steps.length ? present() : finish();
   }
   s.at += 1;
@@ -374,21 +379,21 @@ export async function keep(): Promise<FillState> {
 /** "No." Before filling: leave it all to her. After filling: take it all out again. */
 export async function undo(): Promise<FillState> {
   const s = session;
-  if (!s) return { status: 'stopped', said: 'There is nothing to take out.' };
-  if (s.phase === 'offer') return walk(s, 'That is fine. We can go through the boxes together.', false);
+  if (!s) return { status: 'stopped', said: 'There\'s nothing to take out.' };
+  if (s.phase === 'offer') return walk(s, 'That\'s fine. We\'ll go through the boxes together.', false);
   if (s.phase === 'check') {
     for (const revert of s.reverts.reverse()) revert();
     s.reverts = [];
-    return walk(s, 'I have taken them out again. We can go through the boxes together.', false);
+    return walk(s, 'I\'ve taken them back out. We\'ll go through the boxes together.', false);
   }
   const step = s.steps[s.at];
-  return step ? stepState(step, `I have not put anything in this one. ${step.text}`) : finish();
+  return step ? stepState(step, `I haven't put anything in this one. ${step.text}`) : finish();
 }
 
 /** Say the current step again. For "Carry on" and "what was that?". */
 export function repeat(): FillState {
   const step = session?.phase === 'walk' ? session.steps[session.at] : undefined;
-  return step ? stepState(step, step.text) : { status: 'stopped', said: 'I am not filling anything in at the moment.' };
+  return step ? stepState(step, step.text) : { status: 'stopped', said: 'I\'m not filling anything in right now.' };
 }
 
 // ---- before the button ----
@@ -436,13 +441,14 @@ function review(s: Session): { flags: string[]; learn: MyDetails; learnKeys: Fil
     if (el.secret && el.group) {
       const mates = s.fields.filter((f) => f.secret === el.secret && f.group === el.group);
       if (mates.length > 1) {
-        if (!seen.has(el.group) && mates.some((m) => live(m.id) === '')) flags.push(`${quoted(el.group)} is not finished yet.`);
+        if (!seen.has(el.group) && mates.some((m) => live(m.id) === '')) flags.push(`${quoted(el.group)} isn't finished yet.`);
         seen.add(el.group);
         continue;
       }
     }
     if (!value) {
-      if (!isOptional(el)) empty.push(quoted(el.label));
+      // An empty ID-number box at a shop is the right answer, not something missing.
+      if (!isOptional(el) && !(el.secret === 'id-number' && atShop())) empty.push(quoted(el.label));
       continue;
     }
     if (el.secret || !el.fillAs) continue; // what is typed in a secret box is never looked at
@@ -458,7 +464,7 @@ function review(s: Session): { flags: string[]; learn: MyDetails; learnKeys: Fil
     if (saved && saved.toLowerCase() !== shown.toLowerCase()) {
       const d = distance(saved.toLowerCase(), shown.toLowerCase());
       if (saved.length >= 4 && d <= 2 && !(el.kind === 'select')) {
-        flags.push(`${quoted(el.label)} says "${shown}", and I have "${saved}" saved. Please check which is right.`);
+        flags.push(`${quoted(el.label)} says "${shown}", and I've got "${saved}" saved. Worth checking which one is right.`);
         continue;
       }
     }
@@ -486,12 +492,12 @@ async function finish(): Promise<FillState> {
   stopListening();
   session = null;
 
-  let said = 'That is every box.';
+  let said = 'That\'s every box.';
   said += flags.length ? ` Before you go on, ${flags.length === 1 ? 'one thing' : 'a few things'} to check. ${flags.join(' ')}` : ' I can\'t see anything missing.';
   if (forward) {
-    said += ` When you are happy, click ${quoted(forward.label)} yourself.`;
-    if (forward.protection === 'pay') said += ' That is the button that pays, so I will never click it for you.';
-    else if (forward.protection === 'submit') said += ' That is the button that sends it, so I will never click it for you.';
+    said += ` When you're ready, click ${quoted(forward.label)} yourself.`;
+    if (forward.protection === 'pay') said += ' That\'s the one that pays, so I\'ll never press it for you.';
+    else if (forward.protection === 'submit') said += ' That\'s the one that sends it, so I\'ll leave that to you.';
     await spotlight.on(forward.id, 'Check your answers, then click this yourself.', { dim: false });
   } else {
     spotlight.off();
@@ -506,7 +512,7 @@ async function finish(): Promise<FillState> {
     status: 'done',
     said,
     then: {
-      said: `One more thing. You typed your ${list(words)}, which I did not have saved. Shall I remember ${many ? 'them' : 'it'} for next time? ${many ? 'They stay' : 'It stays'} on this computer.`,
+      said: `One more thing. You typed your ${list(words)}, which I didn't have. Want me to remember ${many ? 'them' : 'it'} for next time? ${many ? 'They stay' : 'It stays'} on this computer.`,
       options: many ? ['Yes, remember them', 'No, thank you'] : ['Yes, remember it', 'No, thank you'],
     },
   };
@@ -514,11 +520,11 @@ async function finish(): Promise<FillState> {
 
 /** "Yes, remember them." Adds what she typed to "My details". Never a card, a password or a date of birth. */
 export async function remember(): Promise<FillState> {
-  if (!pendingRemember) return { status: 'stopped', said: 'There is nothing new to remember.' };
+  if (!pendingRemember) return { status: 'stopped', said: 'There\'s nothing new to remember.' };
   const many = Object.keys(pendingRemember).length > 1;
   await save({ ...(await load()), ...pendingRemember });
   pendingRemember = null;
-  return { status: 'done', said: `I will remember ${many ? 'them' : 'it'} for next time.` };
+  return { status: 'done', said: `I'll remember ${many ? 'them' : 'it'} for next time.` };
 }
 
 function stopListening(): void {
@@ -537,7 +543,7 @@ export const isActive = (): boolean => !!session;
 
 export function stop(): FillState {
   stopQuietly();
-  return { status: 'stopped', said: 'I have stopped. Everything already filled in is still there.' };
+  return { status: 'stopped', said: 'Okay, I\'ve stopped. Everything that\'s filled in is still there.' };
 }
 
 // ---- tools, for B's tool list ----

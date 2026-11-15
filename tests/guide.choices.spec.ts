@@ -31,7 +31,7 @@ test('the basket: says plainly what each main button does, and which item each "
     'Remove (Large-number kitchen timer)': 'careful: Click this to take the Large-number kitchen timer out of your basket.',
   });
   expect(result.said).toBe(
-    'I will show you the 5 main buttons, one at a time. Afterwards, rest the pointer on any button and I will tell you again what it does.',
+    'I\'ll show you the 5 main buttons, one at a time. After that, rest the pointer on any button and I\'ll tell you again what it does.',
   );
 });
 
@@ -92,7 +92,7 @@ test('buttons Steady has no words for go to Gemini, by name only', async ({ page
   // Gemini was not sure about one, so it gets no label, and the helper says so.
   expect(result.unsure).toEqual(['Reactivate']);
   expect(result.said).toBe(
-    'I will show you the 2 main buttons, one at a time. Afterwards, rest the pointer on any button and I will tell you again what it does. I am not sure about "Reactivate", so I left it alone.',
+    'I\'ll show you the 2 main buttons, one at a time. After that, rest the pointer on any button and I\'ll tell you again what it does. I\'m not sure about "Reactivate", so I left it alone.',
   );
   const sent = await page.evaluate(() => JSON.stringify(window.__steady.calls.find((c) => c.port === 'model')!.args));
   expect(sent).toContain('Compare plans');
@@ -130,7 +130,7 @@ test('with no Gemini, unknown buttons are left alone and the helper says so', as
   await page.evaluate(() => window.__steady.setModel(null));
   const result = await show(page);
   expect(result.labels).toEqual({});
-  expect(result.said).toBe('I am not sure what the buttons on this page do, so I have not labelled them. You can press "I\'m stuck" and we will ask for help.');
+  expect(result.said).toBe('I\'m not sure what the buttons on this page do, so I\'ve left them alone. You can press "I\'m stuck" and we\'ll ask for help.');
 });
 
 test('when a pop-up is open, only its buttons are labelled', async ({ page }) => {
@@ -147,7 +147,7 @@ test('when a pop-up is open, only its buttons are labelled', async ({ page }) =>
   });
   // It also says what cookies are, in one plain breath, before pointing at buttons.
   expect(result.said).toBe(
-    'This box is asking about cookies. Cookies are small notes a website keeps on your computer so that it remembers you. Saying no is safe, and the website will still work. I will show you the 2 main buttons, one at a time. Afterwards, rest the pointer on any button and I will tell you again what it does.',
+    'This box is asking about cookies. Cookies are little notes a website keeps on your computer so it remembers you. It\'s safe to say no, and the website will still work. I\'ll show you the 2 main buttons, one at a time. After that, rest the pointer on any button and I\'ll tell you again what it does.',
   );
 });
 

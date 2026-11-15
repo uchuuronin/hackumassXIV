@@ -16,12 +16,12 @@ export async function start(): Promise<{ said: string; options?: string[] }> {
   const password = seen.find((e) => e.secret === 'password');
   const code = seen.find((e) => e.secret === 'one-time-code');
   if (!password && !code && map.stage.kind !== 'sign-in' && map.stage.kind !== 'sign-up') {
-    return { said: 'This does not look like a page for signing in. I can still explain the buttons here.', options: ['What do I click?'] };
+    return { said: 'This doesn\'t look like a sign-in page. I can still tell you what the buttons here do.', options: ['What do I click?'] };
   }
 
   let lead: string;
   if (code && !password) {
-    lead = 'The website has sent you a short code, to check it is really you. Never read this code to anyone on the telephone, even if they say they are from the website.';
+    lead = 'The website has sent you a short code to check it\'s really you. Never read that code out to anyone on the phone, even if they say they\'re from the website.';
   } else {
     const form = map.forms.find((f) => f.fieldIds.includes((password ?? seen[0]!).id));
     const boxes = seen.filter((e) => form?.fieldIds.includes(e.id) && e.kind !== 'checkbox' && e.kind !== 'radio').length;
@@ -29,7 +29,7 @@ export async function start(): Promise<{ said: string; options?: string[] }> {
     lead =
       map.stage.kind === 'sign-up'
         ? `This page makes a new account for you on this website. ${count}`
-        : `This page wants to know it is you, so it can show you your own things. ${count}`;
+        : `This page wants to check it's really you before it shows you your own things. ${count}`;
   }
   const level = (await need('store').get<HelpLevel>(HELPER_KEYS.level)) ?? 'with-me';
   return details.start(level, { lead });

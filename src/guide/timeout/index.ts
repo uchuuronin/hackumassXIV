@@ -10,6 +10,7 @@ import { need } from '@/shared/ports';
 import type { Tool } from '@/shared/tools';
 import { pageMap } from '../map';
 import * as spotlight from '../spotlight';
+import * as trail from '../trail';
 
 export interface TimeoutState {
   status: 'none' | 'warning' | 'ended' | 'kept';
@@ -81,7 +82,11 @@ export async function check(): Promise<TimeoutState> {
   if (!notice) return NONE;
 
   if (notice.kind === 'ended') {
-    return { status: 'ended', said: 'This page has reset itself, and what was typed has been cleared. That was the website, not you. We can fill it in again together.', options: ['Help me fill this in'] };
+    const base = 'The page has reset itself and cleared what was typed. That was the website, not you.';
+    // "Where was I?" kept what she typed in ordinary boxes: offer to put it back.
+    const kept = await trail.keptHere();
+    if (kept) return { status: 'ended', said: `${base} I kept what you typed in ${kept === 1 ? '1 box' : `${kept} boxes`}. Want me to put it back?`, options: ['Yes, put it back', 'No, thank you'] };
+    return { status: 'ended', said: `${base} We can fill it in again together.`, options: ['Help me fill this in'] };
   }
   const resets = /\b(reset|clear)/i.test(notice.text);
   const what = resets ? 'reset' : 'sign you out';
@@ -90,15 +95,15 @@ export async function check(): Promise<TimeoutState> {
   if (!button) {
     return {
       status: 'warning',
-      said: `This page says it will ${what} ${when}. I can't see a button that asks for more time. If it does ${what}, that is the website, not you, and we can do this again together.`,
+      said: `This page says it will ${what} ${when}. I can't see a button that asks for more time. If it does ${what}, that's the website, not you, and we can do it again together.`,
     };
   }
   stay = { id: button.id };
   await spotlight.on(button.id, 'This gives you more time.', { dim: false });
   return {
     status: 'warning',
-    said: `This page says it will ${what} ${when}. Nothing is lost yet. The ${button.kind === 'link' ? 'link' : 'button'} "${button.label}" gives you more time. Shall I click it for you?`,
-    options: ['Yes, keep my place', 'I will click it'],
+    said: `This page says it will ${what} ${when}. Nothing's lost yet. The ${button.kind === 'link' ? 'link' : 'button'} "${button.label}" gives you more time. Want me to click it for you?`,
+    options: ['Yes, keep my place', 'I\'ll click it'],
   };
 }
 
@@ -106,16 +111,16 @@ export async function check(): Promise<TimeoutState> {
 export async function keepPlace(): Promise<TimeoutState> {
   const el = stay && pageMap.elementFor(stay.id);
   if (!el || !(el instanceof HTMLElement)) return { status: 'none', said: 'I can\'t see that button any more. The page may already have given you more time.' };
-  if (!pageMap.mayAutoClick(el).allowed) return { status: 'warning', said: 'I would rather you click that one yourself. It is the one I have lit up.' };
+  if (!pageMap.mayAutoClick(el).allowed) return { status: 'warning', said: 'I\'d rather you click that one yourself. It\'s the one I\'ve lit up.' };
   spotlight.off();
   stay = null;
   el.click();
-  return { status: 'kept', said: 'Done. The page has given you more time. There is no rush.' };
+  return { status: 'kept', said: 'Done. You\'ve got more time now, so no need to hurry.' };
 }
 
-/** "I will click it." */
+/** "I'll click it." */
 export function leave(): TimeoutState {
-  return { status: 'warning', said: 'All right. It is the one I have lit up.' };
+  return { status: 'warning', said: 'Okay. It\'s the one I\'ve lit up.' };
 }
 
 /**

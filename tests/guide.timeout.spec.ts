@@ -12,8 +12,8 @@ test('a countdown with a way to stop it: says what it means and offers to press 
   const state = await page.evaluate(() => window.__steady.timeout.check());
   expect(state).toEqual({
     status: 'warning',
-    said: 'This page says it will reset in less than a minute. Nothing is lost yet. The link "Stay on this page" gives you more time. Shall I click it for you?',
-    options: ['Yes, keep my place', 'I will click it'],
+    said: 'This page says it will reset in less than a minute. Nothing\'s lost yet. The link "Stay on this page" gives you more time. Want me to click it for you?',
+    options: ['Yes, keep my place', 'I\'ll click it'],
   });
   expect(await page.evaluate(() => (window as never as { stayed?: number }).stayed)).toBeUndefined(); // nothing pressed yet
   const lit = await page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'overlay' && c.method === 'spotlight' && c.args[0]).at(-1)!.args[0] as { targetId: string; dim?: boolean });
@@ -24,7 +24,7 @@ test('"Yes, keep my place": presses the button once, and says so', async ({ page
   await html(page, BAR('1:30') + FORM);
   await page.evaluate(() => window.__steady.timeout.check());
   const done = await page.evaluate(() => window.__steady.timeout.keepPlace());
-  expect(done).toEqual({ status: 'kept', said: 'Done. The page has given you more time. There is no rush.' });
+  expect(done).toEqual({ status: 'kept', said: 'Done. You\'ve got more time now, so no need to hurry.' });
   expect(await page.evaluate(() => (window as never as { stayed?: number }).stayed)).toBe(1);
 });
 
@@ -39,7 +39,7 @@ test('no way to ask for more time: says so honestly, and takes the blame off her
   await html(page, `<div role="alert">Your session will expire in 2 minutes due to inactivity.</div>` + FORM);
   expect(await page.evaluate(() => window.__steady.timeout.check())).toEqual({
     status: 'warning',
-    said: 'This page says it will sign you out in about 2 minutes. I can\'t see a button that asks for more time. If it does sign you out, that is the website, not you, and we can do this again together.',
+    said: 'This page says it will sign you out in about 2 minutes. I can\'t see a button that asks for more time. If it does sign you out, that\'s the website, not you, and we can do it again together.',
   });
 });
 
@@ -55,14 +55,14 @@ test('watching: speaks once when the warning appears, not on every tick of the c
     await page.waitForTimeout(350);
   }
   expect((await spoken(page)).length).toBe(1);
-  expect((await spoken(page))[0]!.options).toEqual(['Yes, keep my place', 'I will click it']);
+  expect((await spoken(page))[0]!.options).toEqual(['Yes, keep my place', 'I\'ll click it']);
 });
 
 test('the page has already reset: says it was the website, and offers to do it again together', async ({ page }) => {
   await html(page, `<div role="status" class="session-bar">Your session ended and the form was cleared. Please start again.</div>` + FORM);
   expect(await page.evaluate(() => window.__steady.timeout.check())).toEqual({
     status: 'ended',
-    said: 'This page has reset itself, and what was typed has been cleared. That was the website, not you. We can fill it in again together.',
+    said: 'The page has reset itself and cleared what was typed. That was the website, not you. We can fill it in again together.',
     options: ['Help me fill this in'],
   });
 });
