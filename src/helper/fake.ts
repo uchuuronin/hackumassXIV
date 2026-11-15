@@ -30,8 +30,11 @@ export function advertAround(node: Element): Element | null {
     }
     if (n.tagName === 'BODY' || n.tagName === 'HTML') continue;
     const className = typeof n.className === 'string' ? n.className : '';
-    const words = `${n.id} ${className} ${n.getAttribute('aria-label') ?? ''} ${n.getAttribute('title') ?? ''}`;
-    if (AD_WORDS.test(words) || AD_COMPOUND.test(words) || n.hasAttribute('data-ad') || n.hasAttribute('data-ad-slot')) return n;
+    const words = `${n.id} ${className}`;
+    // A label or tooltip is ordinary writing, so a sentence that mentions adverts (a commit message, a headline)
+    // doesn't count. Only a short one that names the box itself: "Advertisement", "Sponsored", "Sponsored ad". (C)
+    const named = [n.getAttribute('aria-label'), n.getAttribute('title')].some((t) => !!t && t.trim().split(/\s+/).length <= 3 && AD_WORDS.test(t.trim()));
+    if (named || AD_WORDS.test(words) || AD_COMPOUND.test(words) || n.hasAttribute('data-ad') || n.hasAttribute('data-ad-slot')) return n;
   }
   return null;
 }
