@@ -77,7 +77,7 @@ const ODD_BUTTONS = `<main><h1>Your plan</h1>
   <button id="a">Compare plans</button> <button id="b">Manage add-ons</button> <button id="c">Reactivate</button>
   <label>Card number <input autocomplete="cc-number" value="4111 1111 1111 1111"></label></main>`;
 
-test('buttons Steady has no words for go to Gemini, by name only', async ({ page }) => {
+test('buttons Milo has no words for go to Gemini, by name only', async ({ page }) => {
   await html(page, ODD_BUTTONS);
   await page.evaluate(() =>
     window.__steady.setModel((request) => ({
@@ -210,7 +210,7 @@ test('afterwards, resting the pointer on a button brings its note back, and movi
   await expect.poll(hoverNotes).toEqual(['Click this to take the Two-cup teapot out of your basket.']);
   await page.hover('h1');
   await expect.poll(hoverNotes).toEqual(['Click this to take the Two-cup teapot out of your basket.', 'clear']);
-  // A button that was not one of the main six still explains itself, if Steady has sure words for it.
+  // A button that was not one of the main six still explains itself, if Milo has sure words for it.
   await page.goto('/shop/checkout.html');
   await show(page);
   await page.waitForTimeout(300);

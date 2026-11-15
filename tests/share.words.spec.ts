@@ -56,7 +56,7 @@ test('the relay refuses anything that is not a small, plain task', () => {
   expect(tidyTask({ ...TASK, name: 'x'.repeat(100_000) })).toBeNull();
 });
 
-test('a task that arrives is rebuilt from the parts Steady knows, and marked as from another computer', () => {
+test('a task that arrives is rebuilt from the parts Milo knows, and marked as from another computer', () => {
   const arrived = checkTask({ ...TASK, extra: 'ignored', steps: [{ ...STEP, value: 'never kept', locator: { ...STEP.locator, typed: '4111 1111' } }] })!;
   expect(arrived.name).toBe("Book a doctor's appointment");
   expect(arrived.shared?.at).toBeGreaterThan(0);

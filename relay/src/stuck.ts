@@ -1,7 +1,7 @@
 // POST /stuck: turns a "I'm stuck" note into one short email. Owner: C. Registered from server.ts.
 //
 // Settings (in the relay's .env; the values are in email.env, sent privately):
-//   EMAIL_USER           the Gmail address Steady sends from   (GMAIL_USER and SMTP_USER also work)
+//   EMAIL_USER           the Gmail address Milo sends from   (GMAIL_USER and SMTP_USER also work)
 //   EMAIL_APP_PASSWORD   its app password                      (GMAIL_APP_PASSWORD, EMAIL_PASS and SMTP_PASS also work)
 //   STUCK_DRY_RUN=1      build the email and log it, but do not send it (for trying things out)
 
@@ -22,7 +22,7 @@ export function registerStuck(app: FastifyInstance): void {
   app.post<{ Body: StuckBody & { replyInbox?: unknown } }>('/stuck', { config: { rateLimit: { max: 5, timeWindow: '10 minutes' } } }, async (req, reply) => {
     const body = req.body ?? {};
     if (!stuckMessage(body)) return reply.code(400).send({ error: 'bad note' });
-    // Reply notes are off unless her Steady asks for them. If the link can't be made, the email still goes, without one.
+    // Reply notes are off unless her Milo asks for them. If the link can't be made, the email still goes, without one.
     let replyUrl: string | undefined;
     const store = body.replyInbox ? familyStore() : null;
     if (store) {
@@ -37,7 +37,7 @@ export function registerStuck(app: FastifyInstance): void {
     const message = stuckMessage(body, replyUrl)!;
     if (!transport) return reply.code(503).send({ error: 'email is not set up on the relay' });
     try {
-      await transport.sendMail({ from: `Steady <${user || 'steady@localhost'}>`, to: message.to, subject: message.subject, text: message.text });
+      await transport.sendMail({ from: `Milo <${user || 'steady@localhost'}>`, to: message.to, subject: message.subject, text: message.text });
       req.log.info({ dryRun }, 'stuck note sent'); // never log who it went to or what it said
       // In a dry run nothing was sent, so the words are handed back for whoever is trying things out to read.
       return dryRun ? { ok: true, preview: message.text } : { ok: true };

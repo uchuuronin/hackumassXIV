@@ -1,4 +1,4 @@
-// What an element is, whether Steady may press it, and whether Steady may fill it.
+// What an element is, whether Milo may press it, and whether Milo may fill it.
 // When unsure, lean safe: a protected button only costs one real press;
 // an unprotected "Place order" could cost money.
 

@@ -1,4 +1,4 @@
-// The recorder (features 5 and 12). A family member does a task once; Steady keeps the steps.
+// The recorder (features 5 and 12). A family member does a task once; Milo keeps the steps.
 //   - three step types: click this, choose yours, type this yourself;
 //   - several locators per step;
 //   - sending a form counts as a click on its send button;
@@ -156,7 +156,7 @@ function add(type: StepType, el: PageElement): void {
 function sayFor(type: StepType, el: PageElement, name: string): string {
   if (type === 'type') return `Type this yourself: "${name}".`;
   if (type === 'choose') return `Choose your own: "${name}".`;
-  // A button with no words on it: the name is Steady's guess, so the step says so.
+  // A button with no words on it: the name is Milo's guess, so the step says so.
   if (!el.labelConfident) return `Click this button. I think it is "${el.label}".`;
   return el.context ? `Click "${el.label}" for the ${el.context}.` : `Click "${el.label}".`;
 }
@@ -166,7 +166,7 @@ function sayFor(type: StepType, el: PageElement, name: string): string {
 export const recordStartTool: Tool = {
   name: 'record_start',
   owner: 'guide',
-  description: 'For a family member: start recording a task on this website, so Steady can walk the person through it later. Keeps where to click, choose and type. Never keeps what was typed or chosen.',
+  description: 'For a family member: start recording a task on this website, so Milo can walk the person through it later. Keeps where to click, choose and type. Never keeps what was typed or chosen.',
   parameters: { name: { type: 'string', description: 'What to call the task, in plain words: "Book a doctor\'s appointment"', required: true } },
   async run(args) {
     const name = String(args.name ?? '').trim();

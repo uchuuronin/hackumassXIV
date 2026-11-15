@@ -64,7 +64,7 @@ test('if the lit button disappears, the light goes out by itself', async ({ page
   await expect.poll(async () => (await overlayCalls(page)).at(-1)).toBeNull();
 });
 
-test("when Steady's own big chooser opens over the lit box, the light and the dimming step aside, and come back after", async ({ page }) => {
+test("when Milo's own big chooser opens over the lit box, the light and the dimming step aside, and come back after", async ({ page }) => {
   await page.goto('/clinic/book.html?reset=1');
   await inject(page);
   const id = await page.evaluate(() => window.__steady.api.get().elements.find((e) => e.label === 'Reason for your visit')!.id);
@@ -72,7 +72,7 @@ test("when Steady's own big chooser opens over the lit box, the light and the di
   const last = () => page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'overlay' && c.method === 'spotlight').at(-1)!.args[0] as { targetId: string } | null);
   expect((await last())?.targetId).toBe(id);
 
-  // A's Big Pick: a large panel of Steady's own, on top of the little list.
+  // A's Big Pick: a large panel of Milo's own, on top of the little list.
   await page.evaluate(() => {
     const panel = document.createElement('div');
     panel.id = 'big-pick';

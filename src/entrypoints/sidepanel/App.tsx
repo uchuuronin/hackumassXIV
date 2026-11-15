@@ -1,15 +1,16 @@
 // Owner: B (panel). Type or speak a question, get a short answer (read aloud if voice is on), answer buttons, and a pointer on the page.
 // Layout and look reworked by C on Saturday afternoon. B's asking, listening and speaking are unchanged.
 // What C added: buttons that run the guide lane ("What do I click?", "Help me fill this in", saved tasks,
-// "I'm stuck"), Steady's own sentences as she goes along, and the "My details" screen. See src/guide/panel/.
+// "I'm stuck"), Milo's own sentences as she goes along, and the "My details" screen. See src/guide/panel/.
 import { useEffect, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
-import { toModelSafe, type PageMapResponse } from '@/shared/pagemap';
+import { toModelSafe, type PageMapResponse, type PageWordsRequest, type PageWordsResponse } from '@/shared/pagemap';
 import { HELPER_KEYS, type GeminiAnswer, type GeminiAsk, type HelpLevel, type ToolResult, type ToolResultMsg } from '@/shared/tools';
 import { getProfile, setProfile } from '@/helper/profile';
 import { theme } from '@/shared/theme';
 import { TONE } from '@/shared/voice';
-import { Buddy, type Mood } from '@/guide/panel/Buddy';
+import { Run, STOP, type Outcome } from '@/guide/agent/loop';
+import { Buddy, Field, useRest, type Mood } from '@/guide/panel/Buddy';
 import { GetTaskCard, HelperCard, RememberCard, TeachScreen } from '@/guide/panel/FamilyCard';
 import { Settings } from './Settings';
 import { GuideSwitches } from '@/guide/panel/GuideSwitches';
@@ -19,15 +20,7 @@ import { intent, useGuide } from '@/guide/panel/useGuide';
 import { useScreenFocus } from '@/guide/panel/useScreenFocus';
 import { useStill } from '@/guide/panel/useStill';
 
-interface Reply { quiet?: boolean; said: string; point?: string; tool?: { name: string; args: Record<string, unknown> }; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean; /** A second, separate message under the first. */ then?: { said: string; options?: string[] } }
-
-const RULES = `You are Steady, a patient helper for an older adult using a web page.
-Use plain, short, kind words. At most two sentences. No jargon.
-${TONE}
-Answer the question directly. Only ask a question back if two different elements could both be right.
-To pay or check out, the person usually starts at the basket or cart: point at that element and say so.
-Use only the page data below. If an element has labelConfident false, say it might be that, never state it as fact.
-Reply with ONLY JSON: {"said": string, "point": id of the one element to point at (leave out if none), "options": up to 3 short choices (only if you must ask which one they mean), "tool": {"name": string, "args": object} (only if a TOOLS entry clearly fits what was asked; never to pay, send or submit; then say in one short question what you will do, for example: Shall I press the Add to basket button?)}.`;
+interface Reply { quiet?: boolean; said: string; point?: string; /** From the step-by-step helper: its buttons go back to it. */ agent?: boolean; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean; /** A second, separate message under the first. */ then?: { said: string; options?: string[] } }
 
 async function activeTabId(): Promise<number | undefined> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -45,6 +38,8 @@ function compactMap(safe: unknown): string {
     for (const [k, v] of Object.entries(e)) {
       if (typeof v === 'string') out[k] = v.slice(0, 60);
       else if (typeof v === 'number' || typeof v === 'boolean' || k === 'marks') out[k] = v;
+      // The choices in a dropdown (guide lane, C): the step-by-step helper has to know them to pick one. Short, and a dozen at most.
+      else if (k === 'optionLabels' && Array.isArray(v)) out[k] = v.filter((x) => typeof x === 'string').slice(0, 12).map((x) => (x as string).slice(0, 40));
     }
     return out;
   });
@@ -63,6 +58,19 @@ async function readPage(tabId: number): Promise<string> {
     return compactMap(toModelSafe(res.map));
   } catch {
     return '';
+  }
+}
+
+/** The words on the page that Gemini may read (the guide lane decides: src/guide/pagewords.ts). */
+async function readWords(tabId: number): Promise<string> {
+  try {
+    const ask: PageWordsRequest = { type: 'page/words' };
+    const res = (await browser.tabs.sendMessage(tabId, ask)) as PageWordsResponse | undefined;
+    if (res?.held === 'private') return '(not read: this is a private kind of page)';
+    if (res?.held === 'off') return '(not read: the person switched reading off)';
+    return res?.words || '(not read)';
+  } catch {
+    return '(not read)';
   }
 }
 
@@ -87,24 +95,6 @@ async function runTool(tabId: number, name: string, args: Record<string, unknown
   }
 }
 
-function parse(text: string): Reply {
-  const m = text.match(/\{[\s\S]*\}/);
-  if (m) {
-    try {
-      const j = JSON.parse(m[0]);
-      if (typeof j.said === 'string') {
-        return {
-          said: j.said,
-          point: typeof j.point === 'string' ? j.point : undefined,
-          tool: j.tool && typeof j.tool.name === 'string' ? { name: j.tool.name as string, args: (j.tool.args && typeof j.tool.args === 'object' ? j.tool.args : {}) as Record<string, unknown> } : undefined,
-          options: Array.isArray(j.options) ? j.options.filter((o: unknown) => typeof o === 'string').slice(0, 3) : undefined,
-        };
-      }
-    } catch { /* fall through */ }
-  }
-  return { said: text.trim() || "Sorry, I didn't get that." };
-}
-
 export default function App() {
   const [text, setText] = useState('');
   const [reply, setReply] = useState<Reply | null>(null);
@@ -114,11 +104,18 @@ export default function App() {
   const [micProblem, setMicProblem] = useState(false);
   const [micError, setMicError] = useState('');
   const inFlight = useRef(false);
-  const pending = useRef<{ tabId: number; name: string; args: Record<string, unknown> } | null>(null);
+  // The step-by-step helper for what she asks in her own words (guide lane, C: src/guide/agent/loop.ts).
+  const agent = useRef<Run | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
   const lastAsk = useRef(0);
   const voiceRef = useRef(true);
   const [screen, setScreen] = useState<'home' | 'details' | 'teach' | 'settings'>('home');
   const [glad, setGlad] = useState(false);
+  const [petted, setPetted] = useState(false);
+  const pet = () => {
+    setPetted(true);
+    window.setTimeout(() => setPetted(false), 1800);
+  };
   const [welcome, setWelcome] = useState(false);
   // Guide lane (C): focus follows the screen, and the panel keeps still if she asked for that.
   useScreenFocus(welcome ? 'welcome' : screen);
@@ -139,7 +136,7 @@ export default function App() {
 
   function say(t: string) {
     if (!voiceRef.current) return;
-    console.log('[Steady] speak once', t.length, 'characters');
+    console.log('[Milo] speak once', t.length, 'characters');
     browser.runtime.sendMessage({ type: 'tts/say', text: t }).catch(() => undefined);
   }
 
@@ -189,58 +186,101 @@ export default function App() {
     browser.tabs.create({ url: browser.runtime.getURL('/mic.html' as never) });
   }
 
-  async function ask(question: string) {
-    const q = question.trim();
-    if (!q || inFlight.current || Date.now() - lastAsk.current < 2000) return;
+  /** Runs the helper until it ends or needs her, and shows how it ended. */
+  async function drive(go: () => Promise<Outcome>, tabId?: number) {
     inFlight.current = true;
-    lastAsk.current = Date.now();
     setBusy(true);
-    setReply(null);
-    pending.current = null;
     try {
-      // C's buttons and shortcuts ("help me fill this in", a saved task's name) work for the voice too.
-      const button = intent(q, guide.tasks);
-      if (button) { setText(''); guide.press(button); return; }
-      const tabId = await activeTabId();
-      const level = await getProfile<HelpLevel>(HELPER_KEYS.level, 'with-me');
-      const tools = tabId && level !== 'show' ? await listTools(tabId) : [];
-      const page = tabId ? await readPage(tabId) : '';
-      const toolText = tools.length ? tools.map((t) => `- ${t.name}(${Object.keys(t.parameters).join(', ')}): ${t.description}`).join('\n') : '(none)';
-      const note = level === 'show' ? '\n\nNOTE: The person chose Show me. Only explain and point. Do not offer to click or fill.' : '';
-      const prompt = `${RULES}\n\nTOOLS:\n${toolText}\n\nPAGE:\n${page || '(could not read this page)'}${note}\n\nPERSON: ${q}`;
-      const msg: GeminiAsk = { type: 'gemini/ask', prompt };
-      const ans = (await browser.runtime.sendMessage(msg)) as GeminiAnswer | undefined;
-      if (!ans?.ok) {
-        setReply({ said: "I couldn't reach my helper just now. Please try again.", quiet: true });
-      } else {
-        const r = parse(ans.text);
-        if (r.tool && tabId && tools.some((t) => t.name === r.tool!.name)) {
-          // "Do it with me": nothing runs until the person says yes.
-          pending.current = { tabId, name: r.tool.name, args: r.tool.args };
-          r.options = ['Yes, do it', 'No thanks'];
-          if (!r.said.trim().endsWith('?')) r.said = `${r.said} Shall I do that?`;
-        }
-        setReply(r);
-        say(r.said);
-        if (r.point && tabId) {
-          const run = { type: 'tool/run', name: 'point_at', args: { id: r.point } };
-          (browser.tabs.sendMessage(tabId, run) as Promise<ToolResultMsg>).catch(() => undefined);
-        }
+      const end = await go();
+      setReply({ said: end.said, options: end.options, point: end.point, quiet: end.kind === 'lost', agent: true });
+      say(end.said);
+      if (end.point && tabId) {
+        const run = { type: 'tool/run', name: 'point_at', args: { id: end.point } };
+        (browser.tabs.sendMessage(tabId, run) as Promise<ToolResultMsg>).catch(() => undefined);
       }
+      if (!agent.current?.waiting) agent.current = null;
     } finally {
+      setProgress(null);
       setBusy(false);
       inFlight.current = false;
     }
   }
 
-  // The guide's hook knows how the conversation is going (src/guide/panel/useGuide.ts): surprise shows at once, the rest when Steady isn't busy.
-  const mood: Mood = guide.mood === 'shocked' ? 'shocked' : listening ? 'listening' : busy || guide.working ? 'thinking' : (guide.mood ?? (glad ? 'glad' : 'idle'));
-  const words = busy || guide.working ? 'Let me look…' : reply?.said || guide.hint.said || 'Hello, I\'m Steady. What are we doing today?';
-  // Buttons under the bubble: the answers Steady offered, or, before anything is said, what fits this page
+  async function ask(question: string) {
+    const q = question.trim();
+    if (!q || inFlight.current || Date.now() - lastAsk.current < 2000) return;
+    lastAsk.current = Date.now();
+    // C's buttons and shortcuts ("help me fill this in", a saved task's name) work for the voice too.
+    const button = intent(q, guide.tasks);
+    if (button) { setText(''); guide.press(button); return; }
+    const tabId = await activeTabId();
+    // She is answering a question the helper asked ("Which day?"), in her own words.
+    if (agent.current?.waiting) { setText(''); return drive(() => agent.current!.next(q), tabId); }
+    setReply(null);
+    const saved = await getProfile<HelpLevel>(HELPER_KEYS.level, 'with-me');
+    agent.current = new Run(q, saved === 'show' ? 'show' : saved === 'do-it' ? 'for-me' : 'with-me', {
+      tone: TONE,
+      async ask(prompt) {
+        const msg: GeminiAsk = { type: 'gemini/ask', prompt, json: true }; // the rules ask for JSON, so ask Gemini for strict JSON
+        const ans = (await browser.runtime.sendMessage(msg).catch(() => undefined)) as GeminiAnswer | undefined;
+        return ans?.ok ? ans.text : null;
+      },
+      async page() {
+        return tabId ? { map: await readPage(tabId), words: await readWords(tabId) } : { map: '', words: '(not read)' };
+      },
+      async tools() {
+        return tabId ? listTools(tabId) : [];
+      },
+      async run(name, args) {
+        return tabId ? runTool(tabId, name, args) : undefined;
+      },
+      point(id) {
+        if (!tabId) return;
+        const run = { type: 'tool/run', name: 'point_at', args: { id } };
+        (browser.tabs.sendMessage(tabId, run) as Promise<ToolResultMsg>).catch(() => undefined);
+      },
+      progress(said) {
+        setProgress(said);
+        say(said);
+      },
+      // After a step the page may redraw or move to another address. Wait for it, then a moment more for Milo to start there.
+      async settle() {
+        await new Promise((r) => window.setTimeout(r, 900));
+        for (let i = 0; tabId && i < 12; i += 1) {
+          const tab = await browser.tabs.get(tabId).catch(() => undefined);
+          if (!tab || tab.status === 'complete') break;
+          await new Promise((r) => window.setTimeout(r, 500));
+        }
+        await new Promise((r) => window.setTimeout(r, 400));
+      },
+    });
+    return drive(() => agent.current!.next(), tabId);
+  }
+
+  // The guide's hook knows how the conversation is going (src/guide/panel/useGuide.ts): surprise shows at once, the rest when Milo isn't busy.
+  const words = busy || guide.working ? (progress ?? 'Let me look…') : reply?.said || guide.hint.said || 'Hello, I\'m Milo. What are we doing today?';
+  // Which of the dog's looks fits this moment (guide lane, C). First what is happening now, then how she seems, then what he has to offer.
+  const rest = useRest(words);
+  const mood: Mood =
+    guide.mood === 'shocked' ? 'shocked'
+    : listening ? 'listening'
+    : guide.mood === 'sending' ? 'sending'
+    : progress ? 'pointing'
+    : busy || guide.working ? 'thinking'
+    : guide.mood ? guide.mood
+    : petted ? 'petted'
+    : glad ? 'glad'
+    : reply?.quiet ? 'sad'
+    : reply?.point ? 'pointing'
+    : reply && /^I'm not sure\b/.test(reply.said) ? 'confused'
+    : rest ? rest
+    : !reply && guide.hint.said ? 'idea'
+    : 'idle';
+  // Buttons under the bubble: the answers Milo offered, or, before anything is said, what fits this page
   // and is not already one of the big buttons below ("Help me sign in").
   const tiles = ['What do I click?', 'Help me fill this in', "I'm stuck", ...guide.tasks.map((t) => t.name)];
   const offered = reply ? (reply.options ?? []) : (guide.hint.options ?? []).filter((o) => !tiles.includes(o));
-  const answers = busy || guide.working ? [] : offered;
+  const answers = busy && progress ? [STOP] : busy || guide.working ? [] : offered;
   const then = busy || guide.working ? undefined : reply?.then;
   // Typed words that mean one of the buttons ("help me fill this in", the name of a saved task) press that
   // button. Anything else goes to B's ask(), which is unchanged. (B: spoken words still go straight to ask().
@@ -251,16 +291,11 @@ export default function App() {
     setText('');
     return guide.press(button);
   };
-  const confirmTool = async (p: { tabId: number; name: string; args: Record<string, unknown> }, o: string) => {
-    if (o !== 'Yes, do it') { setReply({ said: 'All right. I will leave it.' }); return; }
-    const out = await runTool(p.tabId, p.name, p.args);
-    const said = out?.said || 'Done.';
-    setReply({ said });
-    say(said);
-  };
-  const pressAnswer = (o: string) => {
-    const p = pending.current;
-    if (p && reply && !reply.guide) { pending.current = null; return confirmTool(p, o); }
+  const pressAnswer = async (o: string) => {
+    // "Stop", while the helper is part-way through: it finishes nothing more.
+    if (o === STOP && busy && agent.current) { agent.current.stop(); return; }
+    // A yes, a no, "carry on", or one of the answers it offered.
+    if (reply?.agent && agent.current?.waiting) return drive(() => agent.current!.next(o), await activeTabId());
     return !reply || reply.guide ? guide.press(o) : (setText(o), ask(o));
   };
   const vars = {
@@ -280,7 +315,7 @@ export default function App() {
     };
     return (
       <div className={appClass} style={vars}>
-        <header className="band small"><Dots /><h1 className="where" tabIndex={-1}>Welcome to Steady</h1></header>
+        <header className="band small hello"><Field /><Dots /><Buddy mood="hello" /><h1 className="where" tabIndex={-1}>Welcome to Milo</h1></header>
         <main className="sheet">
           <Welcome
             say={say}
@@ -299,6 +334,7 @@ export default function App() {
     return (
       <div className={appClass} style={vars}>
         <header className="band small">
+          <Field />
           <Dots />
           <button type="button" className="btn back" onClick={() => setScreen('home')}><Icon name="back" /> Back</button>
           <h1 className="where" tabIndex={-1}>Settings</h1>
@@ -315,6 +351,7 @@ export default function App() {
     return (
       <div className={appClass} style={vars}>
         <header className="band small">
+          <Field />
           <Dots />
           <button type="button" className="btn back" onClick={() => setScreen('home')}><Icon name="back" /> Back</button>
           <h1 className="where" tabIndex={-1}>My details</h1>
@@ -336,6 +373,7 @@ export default function App() {
     return (
       <div className={appClass} style={vars}>
         <header className="band small">
+          <Field />
           <Dots />
           <button type="button" className="btn back" onClick={() => setScreen('details')}><Icon name="back" /> Back</button>
           <h1 className="where" tabIndex={-1}>For the person who helps</h1>
@@ -349,11 +387,12 @@ export default function App() {
 
   return (
     <div className={appClass} style={vars}>
-      <header className="band">
+      <header className={`band sky-${mood}`}>
+        <Field />
         <Dots />
         <div className="who">
-          <Buddy mood={mood} />
-          <h1>Steady</h1>
+          <Buddy mood={mood} onPet={pet} />
+          <h1>Milo</h1>
         </div>
         <section aria-live="polite" className="talk">
           <p className={`bubble${reply?.quiet ? ' quiet' : ''}`} key={words}>{words}</p>

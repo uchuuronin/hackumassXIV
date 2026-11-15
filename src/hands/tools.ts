@@ -31,7 +31,7 @@ function yes(value: string): boolean | null {
   return null;
 }
 
-/** Why Steady must not fill this field, in plain words, or null if it may. */
+/** Why Milo must not fill this field, in plain words, or null if it may. */
 export function whyNotFill(info: PageElement | null, el: Element): string | null {
   if (!info) return 'I can only fill boxes I can read on the page.';
   if (info.secret) return 'That box is for private details, so you need to type it yourself.';

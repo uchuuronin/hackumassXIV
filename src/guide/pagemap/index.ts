@@ -417,7 +417,7 @@ export function createPageMap(doc: Document = document): PageMapApi & { stop(): 
   };
 
   const mayAutoClick = (target: Element): AutoClickVerdict => {
-    // An advert frame from another site: Steady can't see inside it, so it never presses it.
+    // An advert frame from another site: Milo can't see inside it, so it never presses it.
     if (target.tagName === 'IFRAME') return { allowed: false, reason: 'This part of the page comes from another website.' };
     const fake = markNear(target, 'fake');
     if (fake) return { allowed: false, reason: fake.reason };
@@ -428,7 +428,7 @@ export function createPageMap(doc: Document = document): PageMapApi & { stop(): 
     if (!data) return { allowed: false, reason: 'There is nothing to click here.' };
     if (fakeButton) return { allowed: false, id: data.id, reason: fakeButton.reason };
     if (data.disabled) return { allowed: false, id: data.id, reason: 'This button is switched off by the page for now.' };
-    // Never click something the person can't see: a pop-up, a banner or Steady's own panel is on top of it.
+    // Never click something the person can't see: a pop-up, a banner or Milo's own panel is on top of it.
     if (data.covered) return { allowed: false, id: data.id, reason: 'Something is on top of this button, so I will leave it alone.' };
     if (data.protection !== 'none') {
       const what = data.protection === 'pay' ? 'pays' : data.protection === 'delete' ? 'removes something' : 'sends something';

@@ -9,14 +9,24 @@ export default defineBackground(() => {
   // Clicking the toolbar icon opens the side panel.
   browser.sidePanel
     .setPanelBehavior({ openPanelOnActionClick: true })
-    .catch((err) => console.error('[Steady] sidePanel behavior', err));
+    .catch((err) => console.error('[Milo] sidePanel behavior', err));
+
+  // Alt+M (M for Milo) opens the panel too, so nobody needs the mouse to reach Milo (guide lane, C).
+  browser.commands?.onCommand.addListener((command, tab) => {
+    if (command !== 'open-steady') return;
+    const open = (windowId: number | undefined) => {
+      if (windowId !== undefined) browser.sidePanel.open({ windowId }).catch((err) => console.error('[Milo] could not open the panel', err));
+    };
+    if (tab?.windowId !== undefined) open(tab.windowId);
+    else browser.windows.getCurrent().then((w) => open(w.id), () => undefined);
+  });
 
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const msg = message as { type?: string; text?: string; prompt?: string } | null;
 
     // Everything that needs Gemini goes through here, so the relay URL lives in one place.
     if (msg?.type === 'gemini/ask') {
-      askRelay(String((msg as GeminiAsk).prompt ?? ''), (msg as GeminiAsk).search === true).then(sendResponse);
+      askRelay(String((msg as GeminiAsk).prompt ?? ''), (msg as GeminiAsk).search === true, (msg as GeminiAsk).json === true).then(sendResponse);
       return true;
     }
 

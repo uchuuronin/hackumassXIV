@@ -74,7 +74,7 @@ test('then the boxes that are hers, one at a time, moving on by itself as she fi
   expect(first.said).toBe(
     'Now for the ones only you can do. This one\'s up to you: "Delivery speed". Right now it says "Express 2 days · adds $9.99". Change it if you like, or tell me to go on.',
   );
-  await page.check('[value="standard"]'); // she changes it: no need to tell Steady
+  await page.check('[value="standard"]'); // she changes it: no need to tell Milo
   await expect.poll(() => lastSaid(page)).toBe('"Name on card" is next. Type your name just as it\'s printed on your card.');
   await type(page, '#ccname', 'Rose Marchetti');
   await expect.poll(() => lastSaid(page)).toBe('"Card number" is next. That\'s the long number across the front of your card. You type this one. I never touch card details.');
@@ -95,7 +95,7 @@ test('then the boxes that are hers, one at a time, moving on by itself as she fi
   expect(JSON.stringify(await spoken(page))).not.toContain('4111'); // what she typed is never said back
 });
 
-test('"take them out": every box is emptied again, and Steady goes through them with her', async ({ page }) => {
+test('"take them out": every box is emptied again, and Milo goes through them with her', async ({ page }) => {
   await ready(page, '/shop/checkout.html?reset=1');
   await start(page);
   await yes(page);
@@ -124,7 +124,7 @@ test('never writes over something she already typed', async ({ page }) => {
   expect(check.said).toContain('8 boxes');
 });
 
-test('if she skips ahead to a later box, Steady keeps up', async ({ page }) => {
+test('if she skips ahead to a later box, Milo keeps up', async ({ page }) => {
   await ready(page, '/shop/checkout.html?reset=1');
   await start(page);
   await yes(page);

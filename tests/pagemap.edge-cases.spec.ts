@@ -163,8 +163,8 @@ test('prices written in pieces, in tables, and with a renewal', async ({ page })
   ]);
 });
 
-test("Steady's own overlay is never in the map", async ({ page }) => {
-  const map = await html(page, `<div data-steady-ui><button>Steady's own button</button><span>$5.00</span></div><button>Site button</button>`);
+test("Milo's own overlay is never in the map", async ({ page }) => {
+  const map = await html(page, `<div data-steady-ui><button>Milo's own button</button><span>$5.00</span></div><button>Site button</button>`);
   expect(map.elements.map((e) => e.label)).toEqual(['Site button']);
   expect(map.amounts).toHaveLength(0);
 });
@@ -285,7 +285,7 @@ test('"Apply" beside a promo code is an ordinary button; other buttons that send
   });
 });
 
-test("a button under Steady's own panel or pop-up counts as covered; one under a note that lets clicks through does not", async ({ page }) => {
+test("a button under Milo's own panel or pop-up counts as covered; one under a note that lets clicks through does not", async ({ page }) => {
   const map = await html(
     page,
     `<button id="under-panel" style="position:fixed;left:20px;top:20px;width:160px;height:48px">Add to basket</button>
@@ -296,7 +296,7 @@ test("a button under Steady's own panel or pop-up counts as covered; one under a
   );
   const covered = Object.fromEntries(map.elements.map((e) => [e.label, e.covered]));
   expect(covered).toEqual({ 'Add to basket': true, Checkout: false, Help: false });
-  // So nothing that acts for the person can reach through Steady's own pop-up to the page behind it.
+  // So nothing that acts for the person can reach through Milo's own pop-up to the page behind it.
   expect((await mayAutoClick(page, '#under-panel')).allowed).toBe(false);
 });
 

@@ -21,7 +21,7 @@ export interface Answer {
   options?: string[];
   /** A second, separate message to show after this one. */
   then?: FollowUp;
-  /** How Steady's face should look while it says this. */
+  /** How Milo's face should look while it says this. */
   mood?: 'worried' | 'reassuring' | 'glad';
 }
 
@@ -46,7 +46,7 @@ async function fill(run: () => Promise<Answer> | Answer): Promise<Answer> {
 export async function answer(words: string): Promise<Answer> {
   const said = words.trim();
 
-  // Starting something else while Steady is asking who to tell: stop asking, and keep nothing.
+  // Starting something else while Milo is asking who to tell: stop asking, and keep nothing.
   if (family.isAsking() && said !== STARTERS.stuck && (Object.values(STARTERS) as string[]).includes(said)) family.reset();
 
   // Starting something.
@@ -70,7 +70,7 @@ export async function answer(words: string): Promise<Answer> {
   if (said === walk.YES_BOOK || said === walk.YES) return walk.yes();
   if (said === walk.NO) return walk.no();
   if (said === walk.READY) return walk.ready();
-  if (walk.isOffer(said)) return walk.pick(said); // one of the things Steady said she could do on this page
+  if (walk.isOffer(said)) return walk.pick(said); // one of the things Milo said she could do on this page
   if (said === walk.LOOKING) return walk.looking();
   if (walk.isActive()) {
     if (said === 'Show me again') return walk.repeat();
@@ -125,7 +125,7 @@ export const answerTool: Tool = {
   name: 'guide_answer',
   owner: 'guide',
   description:
-    'The person pressed one of the answer buttons Steady offered, or one of the three starters: "What do I click?", "Help me fill this in", "I\'m stuck". Pass the exact words on the button. The reply\'s data.options are the next answers to show as buttons.',
+    'The person pressed one of the answer buttons Milo offered, or one of the three starters: "What do I click?", "Help me fill this in", "I\'m stuck". Pass the exact words on the button. The reply\'s data.options are the next answers to show as buttons.',
   parameters: { words: { type: 'string', description: 'The exact words on the button', required: true } },
   async run(args) {
     const reply = await answer(String(args.words ?? ''));

@@ -1,5 +1,5 @@
 // Feature 5, "Labels at every choice": a plain sentence beside each main button on the page.
-// C's logic. Drawn through A's overlay. Gemini (B) is asked only about buttons Steady has no words for.
+// C's logic. Drawn through A's overlay. Gemini (B) is asked only about buttons Milo has no words for.
 
 import type { PageElement, PageMap } from '@/shared/pagemap';
 import { need, type OverlayLabel } from '@/shared/ports';
@@ -15,7 +15,7 @@ const MAX_LABELS = 6;
 
 export interface ChoicesResult {
   labels: OverlayLabel[];
-  /** Names of main buttons Steady would not vouch for. They get no label. */
+  /** Names of main buttons Milo would not vouch for. They get no label. */
   unsure: string[];
   /** What the helper says afterwards. */
   said: string;
@@ -81,7 +81,7 @@ export function wayForward(map: PageMap): { button: PageElement; todo: ToDo[] } 
   return button ? { button, todo: before(button, map) } : null;
 }
 
-/** The button or link that moves her on from this page (to the checkout, to the next step), if Steady is sure of one. */
+/** The button or link that moves her on from this page (to the checkout, to the next step), if Milo is sure of one. */
 export function mainWay(map: PageMap): PageElement | null {
   const basket = basketWord(map);
   return candidates(map).find((el) => phraseFor(el, map, basket)?.tone === 'go') ?? null;

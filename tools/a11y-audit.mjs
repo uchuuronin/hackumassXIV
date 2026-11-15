@@ -1,4 +1,4 @@
-// The accessibility sweep: every screen of the panel and every part Steady draws on a page.
+// The accessibility sweep: every screen of the panel and every part Milo draws on a page.
 // Checks WCAG 2.0 to 2.2 (A and AA) with axe-core, plus our own rules: no words under 18 px, no button
 // under 48 px, a visible focus ring on every Tab stop, Tab stays inside pop-ups, and the panel still
 // fits when narrow or with wider text spacing. Owner: C.
@@ -25,7 +25,7 @@ const id = sw.url().split('/')[2];
 let fails = 0;
 const say = (s) => console.log(s);
 
-// Runs in the page. Looks at everything Steady drew (whole document for the panel; [data-steady-ui] hosts on a page).
+// Runs in the page. Looks at everything Milo drew (whole document for the panel; [data-steady-ui] hosts on a page).
 const PROBE = async ({ scope }) => {
   const roots = scope === 'doc' ? [document] : [...document.querySelectorAll('[data-steady-ui]')].map((h) => h.shadowRoot).filter(Boolean);
   const all = (sel) => roots.flatMap((r) => [...r.querySelectorAll(sel)]);

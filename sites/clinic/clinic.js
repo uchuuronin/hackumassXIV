@@ -1,4 +1,4 @@
-// Fernbrook Family Clinic: a made-up clinic for the Steady demo. Fake doctors, fake slots. Nothing is booked.
+// Fernbrook Family Clinic: a made-up clinic for the Milo demo. Fake doctors, fake slots. Nothing is booked.
 (function () {
   const look2 = Demo.look === 2;
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -12,7 +12,7 @@
       </header>`;
     $('#site-footer').innerHTML = `
       <footer class="foot"><a href="#">Opening hours</a><a href="#">Directions</a><a href="#">Privacy</a><a href="#">Accessibility</a></footer>
-      <p class="demo-note">Demo site for the Steady project at HackUMass. Fernbrook Family Clinic is made up, the data is fake, and nothing is booked.</p>`;
+      <p class="demo-note">Demo site for the Milo project at HackUMass. Fernbrook Family Clinic is made up, the data is fake, and nothing is booked.</p>`;
   }
 
   // ---- sign in, then a code from "your phone" ----

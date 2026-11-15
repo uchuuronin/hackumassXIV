@@ -75,7 +75,7 @@ test('no helper saved yet: asks for the email address of someone she trusts, rig
   expect(await sent(page)).toEqual([]);
 });
 
-test('she types the address, then the name: Steady reads both back and asks before sending', async ({ page }) => {
+test('she types the address, then the name: Milo reads both back and asks before sending', async ({ page }) => {
   await ready(page, null);
   await page.evaluate(() => window.__steady.answer("I'm stuck"));
   const wrong = await page.evaluate(() => window.__steady.answer('maya at example'));

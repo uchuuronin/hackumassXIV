@@ -10,7 +10,7 @@ npm run sites
 
 Open http://localhost:4173/pointing/?label=steady-off (change `label` to name the condition, for example `steady-on` or `dwell-on`). Options: `n` targets (odd), `w` target size in pixels, `d` ring size, `rounds`.
 
-Run it with Steady off and on, with the same shake level, and write both result lines in the tracker's Proof table.
+Run it with Milo off and on, with the same shake level, and write both result lines in the tracker's Proof table.
 
 ## Shake script: `tools/shake/shake.js` (macOS)
 

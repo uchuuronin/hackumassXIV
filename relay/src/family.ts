@@ -2,12 +2,12 @@
 // The plain parts, kept apart from the server and the database so they can be checked on their own.
 //
 // How it fits together:
-//   - Her Steady has a secret of its own (an "inbox" token). The relay only ever keeps a fingerprint of it.
+//   - Her Milo has a secret of its own (an "inbox" token). The relay only ever keeps a fingerprint of it.
 //   - To link, HER computer asks for a short code: three everyday words, good for 15 minutes, used once.
-//     The helper types it into their Steady and gets a token that can do one thing: put a task in her inbox.
+//     The helper types it into their Milo and gets a token that can do one thing: put a task in her inbox.
 //   - When she presses "I'm stuck" with reply notes switched on, the email carries a link to a small page.
 //     A note typed there goes into her inbox. The page shows the task's name and the step number, nothing else.
-//   - Her Steady collects what is in the inbox. Nothing is pushed to her, and nothing is kept for long.
+//   - Her Milo collects what is in the inbox. Nothing is pushed to her, and nothing is kept for long.
 
 import { createHash } from 'node:crypto';
 import { makeCode, tidyCode, tidyTask } from './taskShare';
@@ -101,7 +101,7 @@ export async function join(store: FamilyStore, codeText: unknown, newToken: () =
   return send;
 }
 
-/** A linked helper sends a task. It waits in her inbox until her Steady collects it. */
+/** A linked helper sends a task. It waits in her inbox until her Milo collects it. */
 export async function sendTask(store: FamilyStore, sendToken: unknown, taskInput: unknown, newId: () => string): Promise<'ok' | 'not-linked' | 'bad-task' | 'full'> {
   const token = tidyToken(sendToken);
   const inboxId = token && (await store.inboxOf(fingerprint(token)));
@@ -113,7 +113,7 @@ export async function sendTask(store: FamilyStore, sendToken: unknown, taskInput
   return 'ok';
 }
 
-/** Her Steady collects what is waiting, and says which earlier items it has safely received. */
+/** Her Milo collects what is waiting, and says which earlier items it has safely received. */
 export async function readInbox(store: FamilyStore, inboxToken: unknown, ack: unknown): Promise<{ items: InboxItem[]; linked: boolean } | null> {
   const token = tidyToken(inboxToken);
   if (!token) return null;
@@ -186,12 +186,12 @@ export function replyPage(info: ReplyInfo | null, state: 'ask' | 'sent' | 'empty
   const they = named ? who : 'They';
   const lower = named ? who : 'they';
   const where = info.task && info.step && info.of ? `They were on step ${info.step} of ${info.of} of “${esc(info.task)}”.` : info.task ? `They were doing “${esc(info.task)}”.` : '';
-  if (state === 'sent') return `${head}<h1>Sent</h1><p>${they} will see your note in Steady, beside the step they are on. A telephone call still helps most.</p>${foot}`;
+  if (state === 'sent') return `${head}<h1>Sent</h1><p>${they} will see your note in Milo, beside the step they are on. A telephone call still helps most.</p>${foot}`;
   if (state === 'enough') return `${head}<h1>That's all the notes for this one</h1><p>You've sent ${NOTES_PER_REPLY} notes for this message. A telephone call is the quickest way to help now.</p>${foot}`;
   const problem = state === 'empty' ? '<p role="alert"><strong>There was nothing to send. Please write a few words.</strong> Web addresses are taken out.</p>' : '';
-  return `${head}<h1>${who} would like a hand</h1><p>${where} You can send one short note. It appears in Steady on their computer, beside the step they are on.</p>${problem}
+  return `${head}<h1>${who} would like a hand</h1><p>${where} You can send one short note. It appears in Milo on their computer, beside the step they are on.</p>${problem}
 <form method="post"><label for="note">Your note (up to ${NOTE_MAX} letters, plain words only)</label><textarea id="note" name="note" maxlength="${NOTE_MAX}" required></textarea><button type="submit">Send the note</button></form>
-<small>Steady did not tell us what website ${lower} ${named ? 'was' : 'were'} on or anything they typed, so this page can't show it. Web addresses in a note are taken out.</small>${foot}`;
+<small>Milo did not tell us what website ${lower} ${named ? 'was' : 'were'} on or anything they typed, so this page can't show it. Web addresses in a note are taken out.</small>${foot}`;
 }
 
 // ---- A store kept in the relay's memory: for trying things out, and for the tests ----

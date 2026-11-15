@@ -2,10 +2,10 @@
 // The panel's side. Owner: C. The relay's side is relay/src/family.ts.
 //
 // Who holds what:
-//   - HER Steady makes a secret of its own (the "inbox"). To link, her computer asks the relay for a short
+//   - HER Milo makes a secret of its own (the "inbox"). To link, her computer asks the relay for a short
 //     code and shows it. So linking always starts on her computer, with her (or someone sitting with her).
-//   - The HELPER types the code into their Steady and gets a token that can do one thing: put a task in her inbox.
-//   - Her Steady collects what is waiting. A task is checked and rebuilt before it is kept, exactly as one
+//   - The HELPER types the code into their Milo and gets a token that can do one thing: put a task in her inbox.
+//   - Her Milo collects what is waiting. A task is checked and rebuilt before it is kept, exactly as one
 //     that came by three words is. A note is plain text.
 
 import { RELAY_URL } from '@/helper/relay';
@@ -17,10 +17,10 @@ import { checkTask, type RecordedTask } from '@/shared/tasks';
 const TASKS_KEY = 'guide:tasks';
 /** Things already collected, to tell the relay next time so it can let go of them. */
 const GOT_KEY = 'guide:inbox-got';
-/** Until when her Steady is expecting something soon (a helper typing the code, a note after "I'm stuck"). */
+/** Until when her Milo is expecting something soon (a helper typing the code, a note after "I'm stuck"). */
 export const SOON_KEY = 'guide:inbox-soon';
 const relayUrl = async () => (await deviceStore.get<string>('guide:relay-url')) ?? RELAY_URL;
-const NO_REACH = "I couldn't reach Steady's server just now. Check the internet is working, then try again.";
+const NO_REACH = "I couldn't reach Milo's server just now. Check the internet is working, then try again.";
 
 async function post(path: string, body: unknown): Promise<{ status: number; data: Record<string, unknown> } | null> {
   try {
@@ -150,6 +150,6 @@ export async function sendLinked(task: RecordedTask): Promise<SentOver> {
     await deviceStore.remove(HELPS_KEY);
     return { ok: false, said: 'They have unlinked this computer, so I could not send it. You can link again with a new code.', unlinked: true };
   }
-  if (r.status === 429) return { ok: false, said: 'They have a lot waiting already. Ask them to open Steady, then try again.' };
+  if (r.status === 429) return { ok: false, said: 'They have a lot waiting already. Ask them to open Milo, then try again.' };
   return r.status === 200 ? { ok: true } : { ok: false, said: "I couldn't send it just now. Please try again in a moment." };
 }

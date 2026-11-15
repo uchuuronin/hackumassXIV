@@ -1,9 +1,9 @@
 // Feature 8, "Where was I?". A private trail, kept on this computer only: the page she was on, how far
 // down it she had scrolled, and what she typed into ordinary boxes. When she comes back after the telephone
-// rings, or the website clears the page, Steady can put her back where she was.
+// rings, or the website clears the page, Milo can put her back where she was.
 //
 // What is never kept: anything in a box that looks like a password, a card, a code, an ID number, bank
-// details or a date of birth, and anything in a box Steady can't name for certain.
+// details or a date of birth, and anything in a box Milo can't name for certain.
 // Nothing is put back without a yes, and nothing she has typed since is ever written over.
 
 import { isOn } from '../switches';
@@ -106,7 +106,7 @@ export function watch(options: { saveMs?: number } = {}): () => void {
   const changed = new Set<Element>();
 
   const save = async () => {
-    if (!(await isOn('trail'))) return changed.clear(); // she has asked Steady not to keep her place
+    if (!(await isOn('trail'))) return changed.clear(); // she has asked Milo not to keep her place
     const place = (await all()).find((p) => p.key === keyHere()) ?? blank();
     for (const dom of changed) {
       // The page map's full entry, which knows whether the box belongs to a form.

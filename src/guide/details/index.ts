@@ -2,7 +2,7 @@
 //   1. Ask first. Nothing is written until the person says yes.
 //   2. Fill every matching box in one go, then ask ONCE whether it looks right.
 //   3. The boxes that are theirs (card, password, choices) come one at a time. When they finish
-//      a box, Steady moves to the next by itself. Nobody has to say "next".
+//      a box, Milo moves to the next by itself. Nobody has to say "next".
 //   4. A long time on one box: say it again gently, then offer a way out. Never nag.
 //   5. Before the button: point out anything that looks missing or misspelt.
 //   6. Offer to remember what they typed, so next time is easier. Never a card, password or date of birth.
@@ -136,7 +136,7 @@ function pickForm(map: PageMap): { form: PageForm; fields: PageElement[] } | und
   return best;
 }
 
-/** Splits the form into what Steady can fill and what is the person's own. `fill: false` leaves everything to them. */
+/** Splits the form into what Milo can fill and what is the person's own. `fill: false` leaves everything to them. */
 function plan(fields: PageElement[], details: MyDetails, fill: boolean): { fills: Fill[]; steps: Step[] } {
   const hasSecondAddressLine = fields.some((f) => f.fillAs === 'address-line2');
   const fills: Fill[] = [];
@@ -209,7 +209,7 @@ function plan(fields: PageElement[], details: MyDetails, fill: boolean): { fills
   return { fills, steps };
 }
 
-/** The button that moves on from this form. Steady points at it and stops. */
+/** The button that moves on from this form. Milo points at it and stops. */
 function forwardButton(map: PageMap, form: PageForm): PageElement | undefined {
   const sender = map.elements.find((e) => e.id === form.submitId && e.visible);
   if (sender) return sender;
@@ -307,7 +307,7 @@ function walk(s: Session, lead: string, fill: boolean): Promise<FillState> {
   return s.steps.length ? present() : finish();
 }
 
-/** `level` is B's help level. At 'show' nothing is filled. At 'with-me' and 'do-it' Steady offers to fill. */
+/** `level` is B's help level. At 'show' nothing is filled. At 'with-me' and 'do-it' Milo offers to fill. */
 export async function start(level: HelpLevel = 'with-me', options: { lead?: string } = {}): Promise<FillState> {
   const state = await begun(level, options.lead !== undefined);
   // A lead from the caller ("This page wants to know it is you…") comes before whatever is said first.
@@ -468,7 +468,7 @@ function review(s: Session): { flags: string[]; learn: MyDetails; learnKeys: Fil
         continue;
       }
     }
-    // Something she typed that Steady did not have: worth offering to remember.
+    // Something she typed that Milo did not have: worth offering to remember.
     if (el.fillAs === 'name' && !s.details.givenName && !s.details.familyName) {
       const [first, ...rest] = shown.split(/\s+/);
       if (first) learn.givenName = first;
@@ -503,7 +503,7 @@ async function finish(): Promise<FillState> {
     spotlight.off();
   }
 
-  // Remembering is Steady's own housekeeping: a second, separate message, so the first one stays short.
+  // Remembering is Milo's own housekeeping: a second, separate message, so the first one stays short.
   const words = groupWords(learnKeys);
   if (!words.length) return { status: 'done', said };
   pendingRemember = learn;
@@ -578,7 +578,7 @@ export const fillNextTool: Tool = {
 export const fillTakeOutTool: Tool = {
   name: 'fill_take_out',
   owner: 'guide',
-  description: 'While helping with a form: the person said no. Before filling, this leaves every box to them. After filling, it takes everything Steady put in back out.',
+  description: 'While helping with a form: the person said no. Before filling, this leaves every box to them. After filling, it takes everything Milo put in back out.',
   parameters: {},
   run: async () => result(await undo()),
 };
@@ -594,7 +594,7 @@ export const fillRepeatTool: Tool = {
 export const fillRememberTool: Tool = {
   name: 'fill_remember',
   owner: 'guide',
-  description: 'After a form: the person agreed that Steady may remember the name, address, phone or email they typed, for next time.',
+  description: 'After a form: the person agreed that Milo may remember the name, address, phone or email they typed, for next time.',
   parameters: {},
   run: async () => result(await remember()),
 };

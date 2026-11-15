@@ -1,4 +1,4 @@
-// Is Steady in the middle of a conversation where what she types or says is an answer to it?
+// Is Milo in the middle of a conversation where what she types or says is an answer to it?
 // (Going through a page with her; asking for the email address of someone she trusts.)
 // The panel is told, so her words come to the page first and not to the general helper. Owner: C.
 

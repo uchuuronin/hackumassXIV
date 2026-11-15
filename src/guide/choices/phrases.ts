@@ -115,7 +115,7 @@ export function basketWord(map: PageMap): string {
   return 'basket';
 }
 
-/** A sentence for this button, or null when Steady has no words that are sure to be true. */
+/** A sentence for this button, or null when Milo has no words that are sure to be true. */
 export function phraseFor(el: PageElement, map: PageMap, basket = basketWord(map)): Phrase | null {
   // The plan: choice labels never land on a flagged button. B's warning labels those.
   if (el.marks.some((m) => m.kind === 'fake')) return null;

@@ -1,7 +1,7 @@
-// How Steady sounds: the words (TONE) and the voice that reads them aloud (speak).
+// How Milo sounds: the words (TONE) and the voice that reads them aloud (speak).
 // Proposed by C after the Saturday evening review: "it speaks like AI", "make it a warm shop helper".
 //
-// TONE is one short instruction for any language model that writes Steady's words.
+// TONE is one short instruction for any language model that writes Milo's words.
 // The sentences written by hand in src/guide follow the same rules.
 
 export const TONE = `How you talk: like a kind, unhurried person helping at a shop counter. You are talking to one person.
@@ -47,7 +47,7 @@ async function pickVoice(tts: Tts): Promise<string | undefined> {
         break;
       }
     }
-    console.log('[Steady] voice:', chosen ?? '(the browser default)', '| available:', voices.map((v) => v.voiceName).join(', '));
+    console.log('[Milo] voice:', chosen ?? '(the browser default)', '| available:', voices.map((v) => v.voiceName).join(', '));
   } catch {
     // no list of voices: the browser's default voice is used
   }

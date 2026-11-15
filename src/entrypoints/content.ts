@@ -33,7 +33,7 @@ export default defineContentScript({
       try {
         await start(lane);
       } catch (err) {
-        console.error(`[Steady] the ${name} lane failed to start`, err);
+        console.error(`[Milo] the ${name} lane failed to start`, err);
       }
     }
   },

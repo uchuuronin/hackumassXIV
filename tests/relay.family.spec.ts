@@ -33,7 +33,7 @@ test('a code works once, and only for a quarter of an hour', async () => {
   expect(await newCode(store, 'not a token', pick)).toBeNull();
 });
 
-test('a linked helper sends a task: it waits in her inbox until her Steady says it has it', async () => {
+test('a linked helper sends a task: it waits in her inbox until her Milo says it has it', async () => {
   const store = memoryFamily();
   const send = (await join(store, (await newCode(store, HERS, pick))!, token))!;
   expect(await sendTask(store, send, TASK, token)).toBe('ok');
@@ -90,22 +90,22 @@ test('the reply page shows the task and the step, never a page or anything typed
 test('with no first name saved, the email and the reply page say "they" and "them", not "Someone you help" over and over', () => {
   const mail = stuckMessage({ to: 'maya@example.com', helperName: 'Maya', fromName: 'Someone you help', task: 'Book a doctor', step: 9, of: 18 }, 'http://relay.example/reply/abc')!;
   expect(mail.subject).toBe('Someone you help would like a hand');
-  expect(mail.text).toContain('Someone you help pressed "I\'m stuck" in Steady, the helper on their computer, and would like a hand.\nThey were on step 9 of 18 of "Book a doctor".');
-  expect(mail.text).toContain('To send them a short note that appears in Steady, open this link:');
+  expect(mail.text).toContain('Someone you help pressed "I\'m stuck" in Milo, the helper on their computer, and would like a hand.\nThey were on step 9 of 18 of "Book a doctor".');
+  expect(mail.text).toContain('To send them a short note that appears in Milo, open this link:');
   expect(mail.text.match(/Someone you help/g)).toHaveLength(1);
   const named = stuckMessage({ to: 'maya@example.com', helperName: 'Maya', fromName: 'Rose', task: 'Book a doctor', step: 9, of: 18 })!;
   expect(named.text).toContain('Rose was on step 9 of 18 of "Book a doctor".');
 
   const about = { inboxId: 'x', helperName: 'Maya', fromName: 'Someone you help', task: 'Book a doctor', step: 9, of: 18 };
   expect(replyPage(about, 'ask')).toContain('<h1>Someone you help would like a hand</h1>');
-  expect(replyPage(about, 'sent')).toContain('They will see your note in Steady');
+  expect(replyPage(about, 'sent')).toContain('They will see your note in Milo');
   expect(replyPage(about, 'ask')).toContain('what website they were on');
-  expect(replyPage({ ...about, fromName: 'Rose' }, 'sent')).toContain('Rose will see your note in Steady');
+  expect(replyPage({ ...about, fromName: 'Rose' }, 'sent')).toContain('Rose will see your note in Milo');
 });
 
 test('the email only gets a link when reply notes are on', () => {
   const plain = stuckMessage({ to: 'maya@example.com', helperName: 'Maya', fromName: 'Rose' })!;
   expect(plain.text).not.toContain('http');
   const withLink = stuckMessage({ to: 'maya@example.com', helperName: 'Maya', fromName: 'Rose' }, 'http://relay.example/reply/abc')!;
-  expect(withLink.text).toContain('To send Rose a short note that appears in Steady, open this link:\nhttp://relay.example/reply/abc\nIt works for 2 days.');
+  expect(withLink.text).toContain('To send Rose a short note that appears in Milo, open this link:\nhttp://relay.example/reply/abc\nIt works for 2 days.');
 });

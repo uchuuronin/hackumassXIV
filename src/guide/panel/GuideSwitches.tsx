@@ -28,14 +28,14 @@ export function GuideSwitches() {
     if (!next.lastTime) await deviceStore.remove('guide:lastChoices');
   };
   const flip = (id: GuideSwitchId) => void save({ ...on, [id]: !on[id] });
-  // "Keep it light" and "Everything on" change how much Steady says. What is remembered stays as she set it.
-  const light = same(on, { ...LIGHT, calm: on.calm, trail: on.trail, lastTime: on.lastTime, timeout: on.timeout, motion: on.motion });
+  // "Keep it light" and "Everything on" change how much Milo says. What is remembered stays as she set it.
+  const light = same(on, { ...on, walk: LIGHT.walk, hints: LIGHT.hints, nudges: LIGHT.nudges });
 
   return (
     <section className="card">
-      <h2>How much Steady says</h2>
-      <p>Some people want every step talked through. Others want Steady there when asked and quiet otherwise. Either is fine, and the warnings about adverts and payments stay on both ways.</p>
-      <div className="switches" role="radiogroup" aria-label="How much Steady says">
+      <h2>How much Milo says</h2>
+      <p>Some people want every step talked through. Others want Milo there when asked and quiet otherwise. Either is fine, and the warnings about adverts and payments stay on both ways.</p>
+      <div className="switches" role="radiogroup" aria-label="How much Milo says">
         <button type="button" role="radio" aria-checked={!light && on.walk && on.hints && on.nudges} className="switch" onClick={() => void save({ ...on, walk: true, hints: true, nudges: true })}>
           <span><b>Talk me through it</b><small>I suggest things, go one question at a time, and check in if you seem stuck.</small></span>
           {!light && on.walk && on.hints && on.nudges && <span className="pill">Chosen</span>}

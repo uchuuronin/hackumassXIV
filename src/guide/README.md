@@ -2,7 +2,7 @@
 
 ## The page map
 
-One picture of the page that every lane reads: each button, link and field with its name, kind, position and whether Steady may press or fill it. It only reads the page. It never clicks, types or changes anything.
+One picture of the page that every lane reads: each button, link and field with its name, kind, position and whether Milo may press or fill it. It only reads the page. It never clicks, types or changes anything.
 
 ```ts
 import { pageMap } from '@/guide';
@@ -28,7 +28,7 @@ pageMap.amounts();             // prices and totals with a Range each, for the H
 ```
 
 `mayAutoClick` says no for pay, delete and submit buttons, anything marked fake, disabled buttons, and frames from other websites.
-Put `data-steady-ui` on the overlay's host element, so the map never lists Steady's own buttons.
+Put `data-steady-ui` on the overlay's host element, so the map never lists Milo's own buttons.
 
 ### For B (helper and protect)
 
@@ -63,16 +63,16 @@ Useful fields: `stage.kind === 'payment'`, `amounts` (with `recurring` for renew
 | Spotlight | `spotlight.on(id, text, { dim })`, `spotlight.off()` | Brings a step into view gently and asks A's overlay to dim the rest (`setSpotlight`). `{ dim: false }` gives a ring only, used for boxes in a form so the other boxes stay readable. Says so when the step is hidden or gone. |
 | Fill in my details | `details.start(level)` (B's `HelpLevel`), `keep()`, `undo()`, `repeat()`, `remember()`, `stop()`, `setPace()` | Asks first, fills name, address, phone and email in one go, and asks once whether it looks right. Then points at each box that is the person's own and moves on by itself when they finish it. Checks in gently after a long pause. Before the button, points out anything empty or misspelt, and offers to remember what they typed. Never fills secrets, never writes over what is there, never presses the button. |
 | Recorder | `recorder.start(name)`, `stop()`, `resume()`, `locate(step)` | Keeps the steps of a task (click, choose, type), never the answers. Finds a step again by several clues, and marks a weak match as a guess. |
-| Player | `player.start(taskId)`, `resume()`, `next()`, `repeat()`, `goThere()`, `stop()`, `where()` | Walks the person through a recorded task one step at a time. She does every step herself; Steady lights it, says it, and moves on when it is done. Keeps its place from page to page and remembers it if she stops. Offers to take her to the right page, says plainly when a step can't be found, and offers help after a long pause or three missed clicks. Never clicks anything. |
+| Player | `player.start(taskId)`, `resume()`, `next()`, `repeat()`, `goThere()`, `stop()`, `where()` | Walks the person through a recorded task one step at a time. She does every step herself; Milo lights it, says it, and moves on when it is done. Keeps its place from page to page and remembers it if she stops. Offers to take her to the right page, says plainly when a step can't be found, and offers help after a long pause or three missed clicks. Never clicks anything. |
 | "I'm stuck" | `family.offer()`, `send()`, `decline()`, `saveHelper()` | Asks first, then sends one short note to the person who helps. The note has the task name and step number only (`StuckNote` in `src/shared/family.ts`). Will not send twice within three minutes. |
 | "Where was I?" | `trail.watch()`, `where()`, `restore()`, `goBack()`, `forget()` | Keeps a private trail on this computer: the page, how far down it she was, and what she typed into ordinary boxes of a form (200 characters at most, for a week, five pages). Never a password, card, code, ID number or date of birth, and never a box it can't name. "Where was I?" says the step of the task she is in, or offers to put back what she typed on a page that came back empty, or to take her back to a page she had started. Nothing is put back without a yes, and nothing typed since is written over. The timeout warning uses it when a page clears itself. |
-| Passing a task to another computer | `sendTask()`, `findTask()`, `keepTask()` in `family/share.ts`; `checkTask()` in `src/shared/tasks.ts` | The helper presses **Send** on a saved task and gets three everyday words ("garden kettle tulip"). On the other computer, typing the words under **My details → A task someone made for you** fetches it. Words, not a code, because they are said over the telephone: capitals, commas and a small slip in the spelling are forgiven. A task that arrives is rebuilt from only the parts Steady knows, is never added without a yes, and is always marked as having come from another computer. Relay: `POST /tasks`, `POST /tasks/find` (`relay/src/tasks.ts`), kept seven days in MongoDB. |
+| Passing a task to another computer | `sendTask()`, `findTask()`, `keepTask()` in `family/share.ts`; `checkTask()` in `src/shared/tasks.ts` | The helper presses **Send** on a saved task and gets three everyday words ("garden kettle tulip"). On the other computer, typing the words under **My details → A task someone made for you** fetches it. Words, not a code, because they are said over the telephone: capitals, commas and a small slip in the spelling are forgiven. A task that arrives is rebuilt from only the parts Milo knows, is never added without a yes, and is always marked as having come from another computer. Relay: `POST /tasks`, `POST /tasks/find` (`relay/src/tasks.ts`), kept seven days in MongoDB. |
 | "What do I click?" as a conversation | `start()`, `yes()`, `no()`, `tell()`, `resume()` in `walk/index.ts`; `wayForward()` and `before()` in `choices/index.ts` | Says what the page is and asks what she is here to do. On a yes it goes through the unanswered questions one at a time, reads out the choices the page gives, waits for her, then shows the button (and never presses it). It carries on when the page moves to its next part. While it is on, anything she types or says goes to `tell()`: Gemini is shown the open questions and their choices (page-map data that is safe to send) and her words, and anything it picks is checked against the page before it is used. A question may ask the relay to search the web (`search: true` on `gemini/ask`); a plain answer never does. Private boxes are never shown to Gemini and never touched. On a page with no form it says what she can do from here and shows the button notes. |
 | "Make this page easier" | `start()`, `undo()`, `always()`, `resume()`, `worth()` in `easier/index.ts`; the sums in `easier/colour.ts` | Repairs what the website got wrong, from her side: faint writing darkened (keeping its colour), buttons and boxes with no name given one, the keyboard's place shown, endless movement stopped, zoom unblocked, language and main part marked. Names come from two clues in the page that agree, or from Gemini given only words from the button's own code; a guess is never used. It says what it could not repair (a video with no captions), everything is undone by "Put the page back", and "Do this on every page" makes it quiet and automatic. |
-| Linking a helper's computer, and reply notes (Feature 12) | Panel: `getCode()`, `joinWith()`, `sendLinked()`, `collect()`, `unlinkAll()` in `family/link.ts`. Page: `showNote()` in `family/index.ts`. Relay: `relay/src/family.ts` (the rules), `familyRoutes.ts`, `familyStore.ts` | **Linking.** Her computer shows a short code (three words, 15 minutes, used once); the helper types it into their Steady. After that the helper's **Send** puts a task straight in her inbox on the relay, and her Steady collects it, checks it (`checkTask`), adds it and says who sent it. Her Steady has a secret of its own; the relay keeps only a fingerprint. She can unlink at any time. **Reply notes** are off unless she switches them on. Then the "I'm stuck" email carries a link to a small page on the relay that shows the task's name and step number and nothing else. A note typed there is cut short, stripped to plain text with web addresses taken out (on the relay and again on arrival), and drawn beside the step she is on with the helper's name. Showing a note is a message only Steady's panel sends (`family/note`), never a tool, so nothing Gemini says can make one appear. Steady only collects while the panel is open, and never asks the relay at all for someone with no link and reply notes off. |
+| Linking a helper's computer, and reply notes (Feature 12) | Panel: `getCode()`, `joinWith()`, `sendLinked()`, `collect()`, `unlinkAll()` in `family/link.ts`. Page: `showNote()` in `family/index.ts`. Relay: `relay/src/family.ts` (the rules), `familyRoutes.ts`, `familyStore.ts` | **Linking.** Her computer shows a short code (three words, 15 minutes, used once); the helper types it into their Milo. After that the helper's **Send** puts a task straight in her inbox on the relay, and her Milo collects it, checks it (`checkTask`), adds it and says who sent it. Her Milo has a secret of its own; the relay keeps only a fingerprint. She can unlink at any time. **Reply notes** are off unless she switches them on. Then the "I'm stuck" email carries a link to a small page on the relay that shows the task's name and step number and nothing else. A note typed there is cut short, stripped to plain text with web addresses taken out (on the relay and again on arrival), and drawn beside the step she is on with the helper's name. Showing a note is a message only Milo's panel sends (`family/note`), never a tool, so nothing Gemini says can make one appear. Milo only collects while the panel is open, and never asks the relay at all for someone with no link and reply notes off. |
 | Timeout warning | `timeout.watch()`, `check()`, `keepPlace()` | Notices a page that says it will reset or sign her out, says so once in plain words with the time left, and lights the way to more time. Presses "stay" only after a yes, and only a button the safety limit allows. If the page has already reset, says it was the website, not her. |
 | Sign-in guidance | `signin.start()` | On a sign-in page: says why the page is asking, then goes box by box through "Fill in my details". Never touches the password. If she is a long time on the password, says what "Forgot your password?" does. For a code sent to her phone, says never to read it to anyone. |
-| One place for buttons | `answer(words)` | Takes the words on any button Steady offered and passes them to whichever conversation is open. |
+| One place for buttons | `answer(words)` | Takes the words on any button Milo offered and passes them to whichever conversation is open. |
 | A hint for the panel | `suggest()` | One quiet line about the page that is open, and the buttons that fit it. Never spoken, never acts. |
 
 | "My details" card | `import { MyDetailsCard } from '@/guide/panel/MyDetailsCard'` | The screen where the details are typed in. A React component for B's panel: `<MyDetailsCard />`. |
@@ -81,12 +81,12 @@ Useful fields: `stage.kind === 'payment'`, `amounts` (with `recurring` for renew
 
 | Tool | What it is for |
 | --- | --- |
-| `guide_answer { words }` | Every button. Pass the exact words on the button: a starter ("What do I click?", "Help me fill this in", "I'm stuck"), the name of a saved task, or an answer Steady offered. The reply's `data.options` are the next buttons. |
+| `guide_answer { words }` | Every button. Pass the exact words on the button: a starter ("What do I click?", "Help me fill this in", "I'm stuck"), the name of a saved task, or an answer Milo offered. The reply's `data.options` are the next buttons. |
 | `guide_suggest` | One quiet line about the page, with `data.options`, for when a page opens. |
 
 The rest are there for the helper's own tool calling: `label_choices`, `hide_choice_labels`, `fill_my_details`, `fill_next`, `fill_take_out`, `fill_repeat`, `fill_remember`, `fill_stop`, `list_tasks`, `play_task`, `play_next`, `play_repeat`, `play_stop`, `im_stuck`, `stuck_send`, `stuck_cancel`, `record_start`, `record_stop`, `check_timeout`, `where_was_i`.
 
-**The panel.** `src/guide/panel/` holds what the helper panel uses from this lane: `useGuide` (presses buttons on the open page, receives what Steady says, fetches the hint), `Buddy` (Steady's face), `MyDetailsCard`, `HelperCard` and `TeachScreen` (the screen for the person who helps: numbered steps, a "watching" notice, and the list of saved tasks).
+**The panel.** `src/guide/panel/` holds what the helper panel uses from this lane: `useGuide` (presses buttons on the open page, receives what Milo says, fetches the hint), `Buddy` (Milo's face), `MyDetailsCard`, `HelperCard` and `TeachScreen` (the screen for the person who helps: numbered steps, a "watching" notice, and the list of saved tasks).
 
 **"I'm stuck", end to end.** Page → `family` port → background worker (`stuck/send`) → relay `POST /stuck` (`relay/src/stuck.ts`) → one fixed email. The relay needs `EMAIL_USER` and `EMAIL_APP_PASSWORD` in its `.env`; `STUCK_DRY_RUN=1` builds the email without sending it.
 
@@ -94,7 +94,7 @@ The rest are there for the helper's own tool calling: `label_choices`, `hide_cho
 
 **Answers as buttons.** A fill result carries `data.options`, short answers such as `['It looks right', 'Take them out']`. Show them as buttons so nobody has to type or remember a word.
 
-**Things Steady says without being asked.** When a box is finished Steady moves to the next one by itself, and after a long pause it checks in. Those sentences go through the `speech` port as `say(text, options?)`. Until B provides a `speech` port, the lane sends them to the panel as a `helper/answer` message (`{ said, options }`), so the panel needs to listen for that message from a page as well as returning it as a reply.
+**Things Milo says without being asked.** When a box is finished Milo moves to the next one by itself, and after a long pause it checks in. Those sentences go through the `speech` port as `say(text, options?)`. Until B provides a `speech` port, the lane sends them to the panel as a `helper/answer` message (`{ said, options }`), so the panel needs to listen for that message from a page as well as returning it as a reply.
 
 **Help level.** `fill_my_details` reads `helper:level` if no level is passed. At `'show'` it fills nothing and only points. At `'with-me'` and `'do-it'` it offers to fill, and fills only after a yes.
 
@@ -118,15 +118,15 @@ provide('store', { get, set, remove });             // B: saved on this device
 
 Until a piece is provided, a quiet stand-in is used, so nothing crashes. In `npm run dev` only, `src/guide/dev/` draws a temporary overlay and shows what the voice would say. Delete that folder when A's overlay and B's voice have landed.
 
-## How Steady talks
+## How Milo talks
 
-`src/shared/voice.ts` has two things. `TONE` is one short instruction for any language model that writes Steady's words (a kind, unhurried person at a shop counter: "I" and "you", contractions, one idea per sentence, never blame). The sentences written by hand in this lane follow the same rules. `speak()` reads aloud with the warmest voice the browser has, one sentence at a time and a little slower than normal; the background worker's `tts/say` uses it.
+`src/shared/voice.ts` has two things. `TONE` is one short instruction for any language model that writes Milo's words (a kind, unhurried person at a shop counter: "I" and "you", contractions, one idea per sentence, never blame). The sentences written by hand in this lane follow the same rules. `speak()` reads aloud with the warmest voice the browser has, one sentence at a time and a little slower than normal; the background worker's `tts/say` uses it.
 
-During a saved task Steady remembers what she picked last time for each choice (`guide:lastChoices`: which doctor, which day) and mentions it: "last time you picked … Go with that again, or pick something else." It points the option out for a moment and never chooses it for her. Never a secret box, never anything typed. It stays on the computer and "My details" has a button to clear it.
+During a saved task Milo remembers what she picked last time for each choice (`guide:lastChoices`: which doctor, which day) and mentions it: "last time you picked … Go with that again, or pick something else." It points the option out for a moment and never chooses it for her. Never a secret box, never anything typed. It stays on the computer and "My details" has a button to clear it.
 
 ## The look
 
-`src/shared/theme.ts` holds the one look for everything Steady draws: navy words on soft pastel shapes with a navy edge (green for the way forward, blue for "just so you know", pink for anything that pays, sends or removes). On the page, the thing itself gets a see-through wash of the same pastel that follows the words line by line (`Rect.parts`), instead of a box around the area. A's notes and rings, B's Pay Pause and helper panel, and the "My details" card all read from it. `tests/theme.contrast.spec.ts` checks every pair that carries words.
+`src/shared/theme.ts` holds the one look for everything Milo draws: navy words on soft pastel shapes with a navy edge (green for the way forward, blue for "just so you know", pink for anything that pays, sends or removes). On the page, the thing itself gets a see-through wash of the same pastel that follows the words line by line (`Rect.parts`), instead of a box around the area. A's notes and rings, B's Pay Pause and helper panel, and the "My details" card all read from it. `tests/theme.contrast.spec.ts` checks every pair that carries words.
 
 ## Trying it without the helper panel
 
@@ -134,14 +134,14 @@ During a saved task Steady remembers what she picked last time for each choice (
 npm run build:try
 ```
 
-Load `.output/chrome-mv3-dev` in `chrome://extensions` (Load unpacked), start the demo sites with `npm run sites`, and open the Steady side panel. Everything is on buttons there. The old on-page try-it panel has gone.
+Load `.output/chrome-mv3-dev` in `chrome://extensions` (Load unpacked), start the demo sites with `npm run sites`, and open the Milo side panel. Everything is on buttons there. The old on-page try-it panel has gone.
 
 These keys also work in the try-it build:
 
 | Keys | What it does |
 | --- | --- |
 | Alt+Shift+L / F / K | "What do I click?" / "Help me fill this in" / "I'm stuck" |
-| Alt+Shift+Y / N | The first / second answer Steady offered |
+| Alt+Shift+Y / N | The first / second answer Milo offered |
 | Alt+Shift+S | Save Rose's sample details, and Maya as the person who helps |
 | Alt+Shift+R | Start recording a task. Press again to stop. |
 | Alt+Shift+M | Print the page map in the DevTools console |

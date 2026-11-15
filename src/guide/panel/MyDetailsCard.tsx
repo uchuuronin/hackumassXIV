@@ -1,5 +1,5 @@
 // The "My details" card, for B's helper panel:  <MyDetailsCard />
-// Where the person, or a family member setting Steady up, types what Steady may fill in on forms.
+// Where the person, or a family member setting Milo up, types what Milo may fill in on forms.
 // The plan: name, address, phone and email. It stays on the device. There is no box for a card,
 // a password or a date of birth, on purpose.
 //
@@ -76,9 +76,9 @@ export function MyDetailsCard({ store = deviceStore }: { store?: StorePort }) {
     <section className="sd-card" aria-labelledby="sd-title">
       <style>{CSS}</style>
       <h2 id="sd-title">My details</h2>
-      <p>Steady can put these in forms for you. It asks first, and you check them before you go on.</p>
+      <p>Milo can put these in forms for you. It asks first, and you check them before you go on.</p>
       <p>Fill in only what you want to. These stay on this computer.</p>
-      <p>Steady never saves card numbers or passwords.</p>
+      <p>Milo never saves card numbers or passwords.</p>
       <form onSubmit={save} noValidate>
         {BOXES.map(([key, label, hint, type]) => (
           <div key={key}>

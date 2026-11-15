@@ -13,10 +13,10 @@ import { readWords } from '@/shared/sharewords';
 import { checkTask, type RecordedTask } from '@/shared/tasks';
 
 const TASKS_KEY = 'guide:tasks';
-/** While building: point at a relay on this computer. Not set for anyone using Steady. */
+/** While building: point at a relay on this computer. Not set for anyone using Milo. */
 const relayUrl = async () => (await deviceStore.get<string>('guide:relay-url')) ?? RELAY_URL;
 
-const NO_REACH = "I couldn't reach Steady's server just now. Check the internet is working, then try again.";
+const NO_REACH = "I couldn't reach Milo's server just now. Check the internet is working, then try again.";
 
 export type Sent = { ok: true; words: string; days: number } | { ok: false; said: string };
 

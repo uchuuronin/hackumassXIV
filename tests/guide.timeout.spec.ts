@@ -1,5 +1,5 @@
 // Feature 8, the timeout warning. Some websites quietly count down and then clear the page.
-// A slow, careful person is exactly who gets caught. Steady notices, says so calmly, and shows the way to more time.
+// A slow, careful person is exactly who gets caught. Milo notices, says so calmly, and shows the way to more time.
 import { expect, test, type Page } from '@playwright/test';
 import { html, inject } from './helpers';
 

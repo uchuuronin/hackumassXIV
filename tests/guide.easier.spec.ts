@@ -1,4 +1,4 @@
-// "Make this page easier": Steady repairs, from her side, what the website should have got right.
+// "Make this page easier": Milo repairs, from her side, what the website should have got right.
 // Faint words, buttons with no name, no way to see the keyboard's place, things that keep moving.
 // It says what it did, it never guesses a name, and it can put everything back.
 import { expect, test, type Page } from '@playwright/test';
@@ -88,7 +88,7 @@ test('a button it cannot work out is left without a name, never given a guess', 
 });
 
 test('with Gemini, a button the page gives only hints about is named, from hints that carry nothing private', async ({ page }) => {
-  await html(page, BAD.replace('js-toggle-x91', 'js-toggle-x91 hamburger')); // one clue: not enough for Steady alone
+  await html(page, BAD.replace('js-toggle-x91', 'js-toggle-x91 hamburger')); // one clue: not enough for Milo alone
   await page.evaluate(() => window.__steady.useGemini(async (prompt) => (/hamburger/.test(prompt) ? '{"1": "Open the menu"}' : '{}')));
   await press(page, 'Make this page easier');
   expect(await page.getAttribute('#mystery', 'aria-label')).toBe('Open the menu');
@@ -175,8 +175,8 @@ test('"Do this on every page" is remembered, done quietly on the next page, and 
   expect(await rgb(page, '#faint')).toEqual([184, 184, 184]);
 });
 
-test("Steady's own notes and pop-ups are never changed", async ({ page }) => {
-  await html(page, BAD + '<div data-steady-ui id="mine"><p id="minep" style="color:#b8b8b8">A note from Steady</p></div>');
+test("Milo's own notes and pop-ups are never changed", async ({ page }) => {
+  await html(page, BAD + '<div data-steady-ui id="mine"><p id="minep" style="color:#b8b8b8">A note from Milo</p></div>');
   await press(page, 'Make this page easier');
   expect(await rgb(page, '#minep')).toEqual([184, 184, 184]);
 });

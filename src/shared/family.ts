@@ -1,4 +1,4 @@
-// Feature 12, "I'm stuck": the person who helps, and the one short message Steady may send them.
+// Feature 12, "I'm stuck": the person who helps, and the one short message Milo may send them.
 // Owner: C. Shared because the background worker sends it and the relay turns it into an email.
 
 export const HELPER_KEY = 'guide:helper';
@@ -23,7 +23,7 @@ export interface StuckNote {
   step?: number;
   of?: number;
   /**
-   * Only when she has switched reply notes on: the secret of her Steady's inbox, so the relay can put a
+   * Only when she has switched reply notes on: the secret of her Milo's inbox, so the relay can put a
    * link in the email and bring a short note back. It says nothing about her, the page or what she typed.
    */
   replyInbox?: string;
@@ -31,7 +31,7 @@ export interface StuckNote {
 
 // ---- Linking a helper's computer, and notes that come back ----
 
-/** Her Steady's own secret. Made on this computer; the relay keeps only a fingerprint of it. */
+/** Her Milo's own secret. Made on this computer; the relay keeps only a fingerprint of it. */
 export const INBOX_KEY = 'guide:inbox';
 /** On her computer: whether a helper's computer is linked. */
 export const LINK_KEY = 'guide:link';

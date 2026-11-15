@@ -16,7 +16,7 @@ export interface Pick {
 
 /** How far from a button's edge a click may land and still go to it, in CSS pixels. */
 export const DEFAULT_REACH = 20;
-/** If two buttons are about equally near, Steady does not guess. A missed click is better than a wrong one. */
+/** If two buttons are about equally near, Milo does not guess. A missed click is better than a wrong one. */
 export const AMBIGUOUS_MARGIN = 6;
 
 export function distanceToRect(p: Point, r: Rect): number {

@@ -39,7 +39,7 @@ export interface Targeting {
   liveSeen(id: string): Rect | null;
 }
 
-/** True if the topmost thing under this point is Steady's own panel or pop-up. The overlay itself is click-through, so it is skipped. */
+/** True if the topmost thing under this point is Milo's own panel or pop-up. The overlay itself is click-through, so it is skipped. */
 function underSteadyUi(p: Point): boolean {
   const top = document.elementFromPoint(p.x, p.y);
   return !!top && !!top.closest(`[${STEADY_UI_ATTR}]`);
@@ -59,7 +59,7 @@ export function createTargeting(pageMap: PageMapApi): Targeting {
 
   return {
     intended(p, reach) {
-      // The pointer is on one of Steady's own pop-ups (Pay Pause, the panel): never point through it to a page button.
+      // The pointer is on one of Milo's own pop-ups (Pay Pause, the panel): never point through it to a page button.
       if (underSteadyUi(p)) return null;
       const hit = pickNearest(p, candidates(), reach);
       if (!hit) return null;

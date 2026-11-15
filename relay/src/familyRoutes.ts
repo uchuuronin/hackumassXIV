@@ -4,7 +4,7 @@
 //   POST /family/code    { inbox }            her computer asks for three words            -> { code, minutes }
 //   POST /family/join    { code }             the helper types them                        -> { send }
 //   POST /family/task    { send, task }       a linked helper sends a task                 -> { ok }
-//   POST /family/inbox   { inbox, ack? }      her Steady collects what is waiting          -> { items, linked }
+//   POST /family/inbox   { inbox, ack? }      her Milo collects what is waiting          -> { items, linked }
 //   POST /family/unlink  { inbox }            she unlinks                                  -> { ok }
 //   GET  /reply/:token                        the small page the "I'm stuck" email links to
 //   POST /reply/:token   note=...             the helper sends a note from that page
@@ -63,7 +63,7 @@ export function registerFamily(app: FastifyInstance): void {
     }
   });
 
-  // Her Steady asks every few seconds while it is waiting for a reply, so this one is allowed more often.
+  // Her Milo asks every few seconds while it is waiting for a reply, so this one is allowed more often.
   app.post<{ Body: { inbox?: unknown; ack?: unknown } }>('/family/inbox', few(400), async (req, reply) => {
     if (!store) return reply.code(503).send(NOT_SET_UP);
     try {

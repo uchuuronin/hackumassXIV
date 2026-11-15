@@ -108,7 +108,7 @@ export function startFakeCheck(ctx: LaneContext): void {
     });
     for (const id of shownFrames) if (!frameIds.has(id)) getOverlay().hide(id);
     shownFrames = frameIds;
-    console.log('[Steady] fake scan', { marked: [...marked.keys()], drawn, frames: frameIds.size });
+    console.log('[Milo] fake scan', { marked: [...marked.keys()], drawn, frames: frameIds.size });
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;

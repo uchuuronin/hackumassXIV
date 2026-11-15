@@ -1,4 +1,4 @@
-// What Steady says at a field it will not fill. Calm, plain, and never a hurry.
+// What Milo says at a field it will not fill. Calm, plain, and never a hurry.
 // Used by guided steps and "Fill in my details" (C). The helper (B) can read these aloud as they are.
 
 import type { SecretKind } from '@/shared/pagemap';
@@ -19,7 +19,7 @@ const WORDS: Record<SecretKind, string> = {
   'date-of-birth': "That's your date of birth. You pick this one.",
 };
 
-/** The sentence for a field Steady leaves to the person. */
+/** The sentence for a field Milo leaves to the person. */
 export function typeItYourself(secret: SecretKind): string {
   return WORDS[secret];
 }

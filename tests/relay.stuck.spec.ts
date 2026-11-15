@@ -10,12 +10,12 @@ test('says who, which task and which step, and nothing else', () => {
     [
       'Hello Maya,',
       '',
-      'Rose pressed "I\'m stuck" in Steady, the helper on their computer, and would like a hand.',
+      'Rose pressed "I\'m stuck" in Milo, the helper on their computer, and would like a hand.',
       'Rose was on step 2 of 3 of "Book a doctor\'s appointment".',
       '',
       'A telephone call is usually the quickest way to help.',
       '',
-      'Steady sent only what you see here. It did not send the website, the page, or anything that was typed.',
+      'Milo sent only what you see here. It did not send the website, the page, or anything that was typed.',
     ].join('\n'),
   );
 });

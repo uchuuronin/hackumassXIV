@@ -3,7 +3,7 @@
 //
 //   Alt+Shift+M  print the page map (DevTools console)     Alt+Shift+L  "What do I click?"
 //   Alt+Shift+F  "Help me fill this in"                    Alt+Shift+K  "I'm stuck"
-//   Alt+Shift+Y  the first answer Steady offered           Alt+Shift+N  the second
+//   Alt+Shift+Y  the first answer Milo offered           Alt+Shift+N  the second
 //   Alt+Shift+S  save Rose's sample details and a helper   Alt+Shift+R  start or stop recording a task
 
 import { need } from '@/shared/ports';
@@ -60,7 +60,7 @@ export function startTryIt(): () => void {
   const onKey = (event: KeyboardEvent) => {
     if (!(event.altKey && event.shiftKey) || !keys[event.code]) return;
     event.preventDefault();
-    Promise.resolve(keys[event.code]!()).catch((err) => console.error('[Steady] try-it shortcut failed', err));
+    Promise.resolve(keys[event.code]!()).catch((err) => console.error('[Milo] try-it shortcut failed', err));
   };
   window.addEventListener('keydown', onKey, true);
   return () => window.removeEventListener('keydown', onKey, true);
@@ -68,7 +68,7 @@ export function startTryIt(): () => void {
 
 function printMap(): void {
   const map = pageMap.get();
-  console.log(`[Steady] page map: ${map.stage.label}, ${map.elements.length} elements, built in ${map.tookMs} ms`, map);
+  console.log(`[Milo] page map: ${map.stage.label}, ${map.elements.length} elements, built in ${map.tookMs} ms`, map);
   console.table(
     map.elements
       .filter((e) => e.visible)

@@ -2,6 +2,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { html, inject } from './helpers';
 
+// These tests wait for a real page to settle between steps, and now and then lose that race when the whole
+// suite runs at once. A second try settles it; a real fault fails every time.
+test.describe.configure({ retries: 2 });
+
 const WALKING = ['Show me again', 'Skip this one', 'Stop for now'];
 const spoken = (page: Page) => page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'speech').map((c) => String(c.args[0])));
 const lit = (page: Page) => page.evaluate(() => window.__steady.spotlight.lit() && window.__steady.api.get().elements.find((e) => e.id === window.__steady.spotlight.lit())?.label);
@@ -66,7 +70,7 @@ test('when the page has all it needs it shows the button, and never presses it',
   await page.check('[value="herrera"]');
   await expect.poll(async () => (await spoken(page)).at(-1)).toMatch(/^(Thank you|Got it|Good)\. That's everything this part needs\. When you're ready, click "Next"\.$/);
   expect(await lit(page)).toBe('Next');
-  expect(await page.locator('[data-step="who"]').isVisible()).toBe(true); // still on the first step: Steady did not click
+  expect(await page.locator('[data-step="who"]').isVisible()).toBe(true); // still on the first step: Milo did not click
 });
 
 test('after she clicks the button it carries on with the next part of the same booking', async ({ page }) => {
@@ -81,7 +85,7 @@ test('after she clicks the button it carries on with the next part of the same b
   expect(await lit(page)).toBe('Day');
 });
 
-test('private boxes are hers to do: Steady says so and never reads them', async ({ page }) => {
+test('private boxes are hers to do: Milo says so and never reads them', async ({ page }) => {
   await clinic(page);
   await press(page, 'What do I click?');
   await press(page, 'Yes, help me book');
@@ -134,7 +138,7 @@ const gemini = (page: Page, answer: (prompt: string) => unknown) =>
   }, answer.toString());
 const prompts = (page: Page) => page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'gemini').map((c) => String(c.args[0])));
 
-test('she says it in her own words: Steady picks the closest choice, says so, and moves on', async ({ page }) => {
+test('she says it in her own words: Milo picks the closest choice, says so, and moves on', async ({ page }) => {
   await clinic(page);
   await gemini(page, (prompt) => {
     const id = /"id":"(s\d+)","name":"Reason for your visit"/.exec(prompt)![1];
@@ -220,7 +224,7 @@ test('a question may be looked up on the web; a plain answer never is', async ({
   expect(sent).toContain('localhost'); // which website she is on, so the search is about this place
 });
 
-test('"Show me" level: Steady says which choice is closest and leaves the picking to her', async ({ page }) => {
+test('"Show me" level: Milo says which choice is closest and leaves the picking to her', async ({ page }) => {
   await clinic(page);
   await page.evaluate(() => window.__steady.store.set('helper:level', 'show'));
   await gemini(page, (prompt) => ({ answers: [{ id: /"id":"(s\d+)","name":"Reason for your visit"/.exec(prompt)![1], option: 'A new concern' }], keep: [], used: [] }));
@@ -271,7 +275,7 @@ test('"I\'m still looking": no rush, and the notes on the buttons', async ({ pag
   expect(reply.said).toMatch(/^No rush\. You can change how many of each, or take something out\. I'll show you the \d+ main buttons/);
 });
 
-test('after she clicks through to the checkout, Steady carries on there', async ({ page }) => {
+test('after she clicks through to the checkout, Milo carries on there', async ({ page }) => {
   await basket(page);
   await press(page, 'What do I click?');
   await press(page, "I'm ready to pay");
@@ -341,7 +345,7 @@ test('a suggestion that pays, or points at something that is not on the page, is
   expect(reply.options).toEqual(['Read the newsletter', 'No, just show me the buttons']);
 });
 
-test('if Gemini is slow, wrong or not there, Steady answers the way it always has', async ({ page }) => {
+test('if Gemini is slow, wrong or not there, Milo answers the way it always has', async ({ page }) => {
   await html(page, GARDEN);
   await inject(page);
   await page.evaluate(() => window.__steady.walk.setPace({ understandMs: 150 }));

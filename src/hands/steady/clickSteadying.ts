@@ -96,7 +96,7 @@ export function startClickSteadying(ctx: LaneContext, { pageMap, overlay, tracke
   const onClick = (event: MouseEvent) => {
     if (!event.isTrusted || !(event.target instanceof Element)) return;
     const landed = event.target;
-    // A click on Steady's own panel or pop-up is never a miss: don't steer it to a page button behind it.
+    // A click on Milo's own panel or pop-up is never a miss: don't steer it to a page button behind it.
     if (landed.closest(`[${STEADY_UI_ATTR}]`)) return;
     const at = { x: event.clientX, y: event.clientY };
     const plain = event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;

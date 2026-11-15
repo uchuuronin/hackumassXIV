@@ -37,7 +37,7 @@ export async function suggest(): Promise<Suggestion> {
   const names = here.slice(0, 2).map((t) => t.name);
 
   if (map.stage.kind === 'basket') return { said: 'This is your basket. I can show you what each button does.', options: [STARTERS.click, ...names] };
-  // Boxes Steady knows how to fill (a name, an address), or a secret box such as a card number: a form worth offering help with.
+  // Boxes Milo knows how to fill (a name, an address), or a secret box such as a card number: a form worth offering help with.
   const boxes = map.elements.filter((e) => e.visible && e.kind !== 'button' && e.kind !== 'link' && e.kind !== 'search');
   if (boxes.filter((e) => e.fillAs).length >= 2 || boxes.some((e) => e.secret)) {
     return { said: 'There are boxes to fill in here. I can help with those.', options: [STARTERS.fill, STARTERS.click, ...names] };
@@ -51,7 +51,7 @@ export async function suggest(): Promise<Suggestion> {
 export const suggestTool: Tool = {
   name: 'guide_suggest',
   owner: 'guide',
-  description: 'One quiet line about what Steady could help with on this page, and the buttons that fit. For the panel to show when a page opens. Never spoken aloud.',
+  description: 'One quiet line about what Milo could help with on this page, and the buttons that fit. For the panel to show when a page opens. Never spoken aloud.',
   parameters: {},
   async run() {
     const s = await suggest();

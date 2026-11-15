@@ -1,4 +1,4 @@
-// Recorded tasks: a family member does a task once, and Steady keeps the steps.
+// Recorded tasks: a family member does a task once, and Milo keeps the steps.
 // It keeps WHERE to click, choose and type. It never keeps what was typed or chosen.
 // Owner: C. Shared because the relay carries tasks to the other computer and the panel lists them.
 
@@ -49,7 +49,7 @@ export interface RecordedTask {
   site: string;
   recordedAt: number;
   steps: TaskStep[];
-  /** Set when the task arrived from another computer, so Steady can always say so. */
+  /** Set when the task arrived from another computer, so Milo can always say so. */
   shared?: { at: number; said?: boolean; /** The first name of the linked helper who sent it, when it came that way. */ from?: string };
 }
 
@@ -71,7 +71,7 @@ function webOrigin(value: unknown): string | undefined {
 }
 
 /**
- * Check a task that came from somewhere else, and rebuild it from only the parts Steady knows.
+ * Check a task that came from somewhere else, and rebuild it from only the parts Milo knows.
  * Anything extra is dropped, so there is nowhere for someone's answers, or anything else, to ride along.
  * Null if it is not a task.
  */

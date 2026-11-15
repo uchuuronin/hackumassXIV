@@ -13,7 +13,7 @@
 /** Version of this shape. Bump when a field changes meaning, so recorded tasks can be checked. */
 export const PAGE_MAP_VERSION = 2 as const;
 
-/** Steady's own elements on a page carry this attribute on their host. The page map skips them. */
+/** Milo's own elements on a page carry this attribute on their host. The page map skips them. */
 export const STEADY_UI_ATTR = 'data-steady-ui';
 
 /** What kind of control an element is, simplified from tag + type + role. */
@@ -46,7 +46,7 @@ export type ElementKind =
 export type Protection = 'none' | 'pay' | 'delete' | 'submit';
 
 /**
- * Fields Steady never fills, never keeps in the trail and never reads out.
+ * Fields Milo never fills, never keeps in the trail and never reads out.
  * The helper says "type this yourself."
  */
 export type SecretKind =
@@ -171,7 +171,7 @@ export interface PageElement {
   /** Plain words: 'it says "Place order"', "it sends this form". */
   protectionReason?: string;
 
-  /** Set for fields Steady must never fill, keep or read out. */
+  /** Set for fields Milo must never fill, keep or read out. */
   secret?: SecretKind;
   /** Which "My details" entry fits this field. Never set together with `secret`. */
   fillAs?: FillKey;
@@ -205,7 +205,7 @@ export interface PageForm {
   /** Heading above the form, e.g. "Delivery address". */
   label: string;
   fieldIds: string[];
-  /** The button that sends it, if found. Steady points at it and stops. */
+  /** The button that sends it, if found. Milo points at it and stops. */
   submitId?: string;
   /** The form asks for card details. */
   takesPayment: boolean;
@@ -238,7 +238,7 @@ export interface PageAmount {
 /** A frame on the page. Adverts usually live in frames from another site. */
 export interface PageFrame {
   src: string;
-  /** False when the frame comes from another site. Steady can't see inside those. */
+  /** False when the frame comes from another site. Milo can't see inside those. */
   sameSite: boolean;
   title: string;
   visible: boolean;
@@ -302,7 +302,7 @@ export interface PageMapOptions {
   includeFrames?: boolean;
 }
 
-/** Answer to "may Steady click this without a real press?" */
+/** Answer to "may Milo click this without a real press?" */
 export interface AutoClickVerdict {
   allowed: boolean;
   /** Id of the button or link the click would land on, if there is one. */
@@ -334,6 +334,16 @@ export interface PageMapApi {
 export type PageChange = 'content' | 'address' | 'marks';
 
 // ---- Messages (side panel or background -> content script) ----
+
+/** The panel asks the page for the words Gemini may read (src/guide/pagewords.ts decides what those are). */
+export interface PageWordsRequest {
+  type: 'page/words';
+}
+export interface PageWordsResponse {
+  type: 'page/words';
+  words: string;
+  held?: 'private' | 'off';
+}
 
 export interface PageMapRequest {
   type: 'pagemap/get';
@@ -450,12 +460,12 @@ export function toModelSafe(map: PageMap): ModelSafeMap {
 
 // ---- Small helpers every lane can use ----
 
-/** True if Steady must not press this itself. */
+/** True if Milo must not press this itself. */
 export function needsRealPress(el: PageElement): boolean {
   return el.protection !== 'none' || el.marks.some((m) => m.kind === 'fake');
 }
 
-/** True if Steady may put a "My details" entry in this field. */
+/** True if Milo may put a "My details" entry in this field. */
 export function mayFill(el: PageElement): boolean {
   return !!el.fillAs && !el.secret && !el.disabled && el.visible;
 }

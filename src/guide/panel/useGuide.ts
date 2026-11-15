@@ -1,6 +1,6 @@
 // Joins the helper panel to the guide lane. Owner: C.
 //   - press(words): the person pressed a button. The words go to the page, which knows what they mean.
-//   - Sentences Steady says without being asked (the next box, the next step) arrive here as 'helper/answer'.
+//   - Sentences Milo says without being asked (the next box, the next step) arrive here as 'helper/answer'.
 //   - hint: one quiet line about the page that is open, so the panel can offer help before being asked.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -21,10 +21,10 @@ export interface Said {
 const TASKS_KEY = 'guide:tasks';
 const RECORDING_KEY = 'guide:recording';
 const CANT: Said = { said: 'I can\'t help on this page. Open the website you want, and I\'ll be right here.' };
-/** A website is open, but Steady's part of it isn't answering: the page was open before Steady was switched on or updated. */
+/** A website is open, but Milo's part of it isn't answering: the page was open before Milo was switched on or updated. */
 const LOST: Said = { said: 'I\'ve lost touch with this page. Load it again with the round arrow at the top of the window (or the F5 key), and I\'ll be right here.' };
 
-/** Why the page didn't answer: an ordinary website that needs loading again, or a page Steady can't work on at all. */
+/** Why the page didn't answer: an ordinary website that needs loading again, or a page Milo can't work on at all. */
 async function cantSay(): Promise<Said> {
   try {
     const tabId = await activeTabId();
@@ -65,14 +65,14 @@ const thenOf = (from: unknown): Said['then'] => {
 };
 
 /**
- * True while Steady is going through a page with her, one question at a time. Then anything she types
+ * True while Milo is going through a page with her, one question at a time. Then anything she types
  * or says is an answer in her own words, and goes to the page before it goes anywhere else.
  */
 let listening = false;
 
 /** How long each look stays before the face settles again. A concerned or reassuring look lingers; a glad one is brief. */
-const HOLD_MS: Record<Feeling, number> = { shocked: 6000, worried: 9000, reassuring: 10000, glad: 2500 };
-/** "!" is seen for at least this long before the face moves on to what Steady says next. */
+const HOLD_MS: Record<Feeling, number> = { shocked: 6000, worried: 9000, reassuring: 10000, glad: 2500, sending: 12000 };
+/** "!" is seen for at least this long before the face moves on to what Milo says next. */
 const SHOCK_MS = 1100;
 /** Set by the hook, so words that pass through `intent` can change the face. */
 let feel: (feeling: Feeling) => void = () => undefined;
@@ -135,7 +135,9 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
       setWorking(true);
       const stuck = words === "I'm stuck";
       const pressedAt = Date.now();
-      if (stuck) show('shocked'); // seen at once, before Steady has worked out what to say
+      if (stuck) show('shocked'); // seen at once, before Milo has worked out what to say
+      const posting = /^Yes, tell /.test(words) || words === 'Try again';
+      if (posting) show('sending'); // he holds up the letter while it goes
       try {
         const result = await runOnPage('guide_answer', { words });
         listening = (result?.data as { listening?: unknown } | undefined)?.listening === true;
@@ -143,6 +145,7 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
         const feeling = next === 'worried' || next === 'reassuring' || next === 'glad' ? next : null;
         if (stuck) show(feeling, Math.max(0, SHOCK_MS - (Date.now() - pressedAt)));
         else if (feeling) show(feeling);
+        else if (posting) show(null);
         // The note has just gone and she allows one back: look for it every few seconds for a while.
         if (feeling === 'reassuring' && (await browser.storage.local.get(REPLY_KEY))[REPLY_KEY] === true) void expectSoon(15);
         say.current(result ? { said: result.said, options: optionsOf(result), then: thenOf(result.data) } : await cantSay());
@@ -154,7 +157,7 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
     [refreshHint, show],
   );
 
-  // What Steady says as she goes along.
+  // What Milo says as she goes along.
   useEffect(() => {
     const onMessage = (message: unknown, sender: { tab?: unknown }) => {
       const walk = message as { type?: unknown; on?: unknown } | null;
@@ -188,7 +191,7 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
     };
   }, [refreshHint]);
 
-  // What a linked helper has sent, and notes that came back after "I'm stuck". Steady can only look while
+  // What a linked helper has sent, and notes that came back after "I'm stuck". Milo can only look while
   // this panel is open. Someone with no link and reply notes off never asks the relay at all.
   useEffect(() => {
     let stopped = false;

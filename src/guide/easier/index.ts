@@ -1,12 +1,12 @@
 // "Make this page easier". Owner: C.
 //
 // A website should be readable and usable by someone with weak eyes, weak hearing or an unsteady hand.
-// Many aren't. Steady can't make the site's owner fix it, but it can repair a good part of it from her
+// Many aren't. Milo can't make the site's owner fix it, but it can repair a good part of it from her
 // side, on any page, and say honestly what it could not repair.
 //
 // What it repairs (the WCAG rule the site broke is in brackets):
 //   - faint writing is made dark enough to read, keeping its colour (1.4.3)
-//   - buttons, links and boxes with no name get one, for a screen reader and for Steady's own notes (4.1.2, 3.3.2)
+//   - buttons, links and boxes with no name get one, for a screen reader and for Milo's own notes (4.1.2, 3.3.2)
 //   - the keyboard's place can always be seen (2.4.7)
 //   - things that keep moving are stopped, and adverts are dimmed (2.2.2)
 //   - a page that blocks zooming is unblocked (1.4.4); a page that hides its language is given one (3.1.1)

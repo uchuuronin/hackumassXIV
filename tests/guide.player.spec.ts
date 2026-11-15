@@ -1,5 +1,5 @@
-// Feature 5, the player: Steady walks her through a task a family member recorded, one step at a time.
-// She does every step herself. Steady shows where, says what, and moves on when she has done it.
+// Feature 5, the player: Milo walks her through a task a family member recorded, one step at a time.
+// She does every step herself. Milo shows where, says what, and moves on when she has done it.
 import { expect, test, type Page } from '@playwright/test';
 import { inject } from './helpers';
 
@@ -106,7 +106,7 @@ test('keeps its place when a step leads to another page', async ({ page }) => {
   expect(await litIs(page, '#email')).toBe(true);
 });
 
-test('a step that pays: says it is hers to press, and Steady never presses it', async ({ page }) => {
+test('a step that pays: says it is hers to press, and Milo never presses it', async ({ page }) => {
   const id = await recordShop(page);
   await page.goto('/shop/checkout.html');
   await inject(page);
@@ -331,7 +331,7 @@ async function recordWholeBooking(page: Page): Promise<{ id: string; firstName: 
   return { id: task.id, firstName: task.steps.findIndex((s) => s.locator.label === 'First name'), steps: task.steps.length };
 }
 
-test('boxes that are filled in already are skipped, and Steady says which', async ({ page }) => {
+test('boxes that are filled in already are skipped, and Milo says which', async ({ page }) => {
   const task = await recordWholeBooking(page);
   await page.fill('#first', 'Rose');
   await page.fill('#last', 'Marchetti');

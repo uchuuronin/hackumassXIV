@@ -1,4 +1,4 @@
-// Many sites swap content in place without reloading. This tells the rest of Steady,
+// Many sites swap content in place without reloading. This tells the rest of Milo,
 // a few times a second at most, that the map is out of date. It never slows the page:
 // the observer only sets a flag, and the map is rebuilt when somebody next asks for it.
 
@@ -57,7 +57,7 @@ export class PageWatcher {
     return () => this.listeners.delete(listener);
   }
 
-  /** For changes Steady makes itself, such as a new mark. */
+  /** For changes Milo makes itself, such as a new mark. */
   bump(why: PageChange): void {
     this.generation++;
     this.queue(why);
@@ -98,7 +98,7 @@ export class PageWatcher {
       try {
         listener(why);
       } catch (err) {
-        console.error('[Steady] page-change listener failed', err);
+        console.error('[Milo] page-change listener failed', err);
       }
     }
   }

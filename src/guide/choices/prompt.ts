@@ -1,4 +1,4 @@
-// What Gemini is asked when Steady has no words of its own for a button, and how its answer is read.
+// What Gemini is asked when Milo has no words of its own for a button, and how its answer is read.
 // B: the relay takes a prompt and returns text, so plugging this in is one line where the relay is called:
 //
 //     provide('model', modelVia((prompt) => askRelay(prompt)));   // askRelay returns Gemini's text

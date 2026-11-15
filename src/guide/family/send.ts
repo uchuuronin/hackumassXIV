@@ -14,10 +14,10 @@ export async function sendStuck(note: StuckNote): Promise<StuckSent> {
       body: JSON.stringify(note),
       signal: AbortSignal.timeout(20000),
     });
-    if (!r.ok) console.error('[Steady] the relay would not send the "I\'m stuck" note:', r.status);
+    if (!r.ok) console.error('[Milo] the relay would not send the "I\'m stuck" note:', r.status);
     return { type: 'stuck/sent', ok: r.ok };
   } catch (err) {
-    console.error('[Steady] could not reach the relay for the "I\'m stuck" note', err);
+    console.error('[Milo] could not reach the relay for the "I\'m stuck" note', err);
     return { type: 'stuck/sent', ok: false };
   }
 }

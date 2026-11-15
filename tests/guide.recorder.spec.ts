@@ -1,4 +1,4 @@
-// Features 5 and 12, the recorder: a family member does a task once, and Steady keeps the steps, not the answers.
+// Features 5 and 12, the recorder: a family member does a task once, and Milo keeps the steps, not the answers.
 import { expect, test, type Page } from '@playwright/test';
 import { getMap, inject } from './helpers';
 
@@ -142,7 +142,7 @@ test.describe('finding a recorded step again', () => {
     expect(await find(page, task.steps[1])).toEqual({ label: 'Go to checkout', confident: true });
     await page.goto('/shop/checkout.html?look=2');
     await getMap(page);
-    // "Place order" is now "Complete purchase". Steady offers it as its best guess and asks.
+    // "Place order" is now "Complete purchase". Milo offers it as its best guess and asks.
     expect(await find(page, task.steps[2])).toEqual({ label: 'Complete purchase', confident: false });
   });
 

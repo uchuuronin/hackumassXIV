@@ -1,4 +1,4 @@
-// The one email Steady may send for "I'm stuck". Owner: C.
+// The one email Milo may send for "I'm stuck". Owner: C.
 // Kept apart from the server so it can be checked without the server, and so the wording lives in one place.
 // The wording is fixed. The only things that vary are two first names, a task name and two numbers,
 // and each is cleaned and cut short, so this can't be used to send someone an arbitrary message.
@@ -43,13 +43,13 @@ export function stuckMessage(body: StuckBody, replyUrl?: string): { to: string; 
   const text = [
     `Hello ${helper},`,
     '',
-    `${from} pressed "I'm stuck" in Steady, the helper on their computer, and would like a hand.`,
+    `${from} pressed "I'm stuck" in Milo, the helper on their computer, and would like a hand.`,
     ...(where ? [where] : []),
     '',
     'A telephone call is usually the quickest way to help.',
-    ...(replyUrl ? ['', `To send ${them} a short note that appears in Steady, open this link:`, replyUrl, 'It works for 2 days.'] : []),
+    ...(replyUrl ? ['', `To send ${them} a short note that appears in Milo, open this link:`, replyUrl, 'It works for 2 days.'] : []),
     '',
-    'Steady sent only what you see here. It did not send the website, the page, or anything that was typed.',
+    'Milo sent only what you see here. It did not send the website, the page, or anything that was typed.',
   ].join('\n');
   return { to, subject: `${from} would like a hand`, text };
 }

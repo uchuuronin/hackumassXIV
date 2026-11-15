@@ -1,6 +1,6 @@
 // Feature 8, the timeout warning. Some websites count down quietly and then clear the page. The person
 // who types slowly and carefully is exactly who gets caught, and they think they did something wrong.
-//   - Steady notices the warning, says what it means in plain words, and shows the way to more time.
+//   - Milo notices the warning, says what it means in plain words, and shows the way to more time.
 //   - It offers to press "stay" for her, and presses it only after a yes. It is never a button that pays or sends.
 //   - If the page has already reset, it says that was the website, not her.
 // It reads only the warning itself, on this computer. Nothing leaves the page.

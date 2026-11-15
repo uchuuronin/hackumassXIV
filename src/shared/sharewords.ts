@@ -1,4 +1,4 @@
-// The words Steady uses to pass a task from one computer to another: three of them, said over the telephone.
+// The words Milo uses to pass a task from one computer to another: three of them, said over the telephone.
 // Everyday things, short, easy to hear and to spell. 128 words, so three of them make about two million
 // combinations. The relay has the same list (relay/src/shareWords.ts); tests/share.words.spec.ts checks they match.
 

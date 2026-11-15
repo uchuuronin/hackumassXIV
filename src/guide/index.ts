@@ -30,6 +30,7 @@ import { whereTool } from './trail';
 import { onListening } from './listening';
 import * as walk from './walk';
 import * as easier from './easier';
+import * as pagewords from './pagewords';
 import { easierTool } from './easier';
 import { timeoutTool } from './timeout';
 import type { HelperNote, StuckSend, StuckSent } from '@/shared/family';
@@ -73,7 +74,7 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
   const cleanups: Array<() => void> = [];
   if (!has('store')) provide('store', deviceStore);
   guideTools.forEach(registerTool);
-  // Things Steady says without being asked (moving to the next box, checking in after a long pause)
+  // Things Milo says without being asked (moving to the next box, checking in after a long pause)
   // go to the panel as B's 'helper/answer' message. B's voice can replace this with provide('speech', …).
   if (!has('speech')) {
     provide('speech', {
@@ -90,12 +91,13 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
     provide('clicks', clicks);
     cleanups.push(clicks.stop);
   }
-  // Gemini, for buttons Steady has no words of its own for. B's background worker holds the relay address.
+  // Gemini, for buttons Milo has no words of its own for. B's background worker holds the relay address.
   if (!has('model')) {
     provide(
       'model',
       modelVia(async (prompt, options) => {
-        const ask: GeminiAsk = { type: 'gemini/ask', prompt, ...(options?.search ? { search: true } : {}) };
+        // Every prompt the guide sends asks for JSON back, so it asks Gemini for strict JSON. A web search can't be strict, so not then.
+        const ask: GeminiAsk = { type: 'gemini/ask', prompt, ...(options?.search ? { search: true } : { json: true }) };
         const answer = (await browser.runtime.sendMessage(ask)) as GeminiAnswer | undefined;
         if (!answer?.ok) throw new Error('the relay did not answer');
         return answer.text;
@@ -127,12 +129,17 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
       sendResponse({ type: 'pagemap/result', map: pageMap.get(request.options) });
       return true;
     }
+    // The words Gemini may read, for answering a question about what the page says. See ./pagewords.ts for what is held back.
+    if ((message as { type?: unknown } | null)?.type === 'page/words') {
+      pagewords.forGemini().then((got) => sendResponse({ type: 'page/words', ...got } as never), () => sendResponse({ type: 'page/words', words: '' } as never));
+      return true;
+    }
     if (request?.type === 'pagemap/watch') {
       watched = request.on === true;
       sendResponse({ ok: true });
       return true;
     }
-    // A note her helper sent back. Only Steady's own panel sends this, when it collects one from the relay.
+    // A note her helper sent back. Only Milo's own panel sends this, when it collects one from the relay.
     // It is deliberately not a tool, so nothing Gemini says can ever make a "note from your helper" appear.
     const note = message as { type?: unknown; note?: HelperNote } | null;
     if (note?.type === 'family/note' && note.note) {

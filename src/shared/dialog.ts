@@ -1,4 +1,4 @@
-// What every pop-up Steady puts over a page owes a keyboard or screen-reader user (WCAG 2.4.3, 4.1.2).
+// What every pop-up Milo puts over a page owes a keyboard or screen-reader user (WCAG 2.4.3, 4.1.2).
 // Shared by Pay Pause (B) and Big Pick (A), so both behave the same way. Owner: C.
 //
 // A pop-up that says it is "modal" has to keep that promise: it is announced by name, Tab goes round

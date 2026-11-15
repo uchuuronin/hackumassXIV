@@ -1,5 +1,5 @@
 // Feature 5, sign-in guidance. Signing in is where people most often give up: two boxes, a password
-// nobody remembers, and sometimes a code. Steady says why the page is asking, goes box by box
+// nobody remembers, and sometimes a code. Milo says why the page is asking, goes box by box
 // (through "Fill in my details", so the same rules hold), and never touches the password.
 // The forgotten-password hint lives with the other gentle reminders in ../details.
 

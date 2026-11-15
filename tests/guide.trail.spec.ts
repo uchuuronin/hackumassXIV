@@ -1,4 +1,4 @@
-// Feature 8, "Where was I?". Steady keeps a private trail on this computer: the page, how far down it she was,
+// Feature 8, "Where was I?". Milo keeps a private trail on this computer: the page, how far down it she was,
 // and what she typed into ordinary boxes. Never a password, a card, an ID number or a date of birth.
 // When she comes back, or the page clears itself, it can put her back where she was.
 import { expect, test, type Page } from '@playwright/test';

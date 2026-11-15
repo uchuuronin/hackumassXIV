@@ -1,4 +1,4 @@
-// How Steady's face reads her mood from what she types or says. On the computer only: nothing is sent anywhere.
+// How Milo's face reads her mood from what she types or says. On the computer only: nothing is sent anywhere.
 import { expect, test } from '@playwright/test';
 import { feelingOf } from '../src/guide/panel/feeling';
 

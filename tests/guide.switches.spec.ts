@@ -1,4 +1,4 @@
-// The guide's own switches: each one turns off something Steady does without being asked, and nothing else.
+// The guide's own switches: each one turns off something Milo does without being asked, and nothing else.
 import { expect, test, type Page } from '@playwright/test';
 import { inject } from './helpers';
 import { ALL_ON, LIGHT, readSwitches } from '../src/shared/guideSwitches';
@@ -11,10 +11,10 @@ async function clinic(page: Page, switches: Record<string, boolean> = {}) {
   await set(page, switches);
 }
 
-test('everything is on unless she has turned it off, and "Keep it light" only quietens Steady', () => {
+test('everything is on unless she has turned it off, and "Keep it light" only quietens Milo', () => {
   expect(readSwitches(undefined)).toEqual(ALL_ON);
   expect(readSwitches({ walk: false, nonsense: true, trail: 'no' })).toEqual({ ...ALL_ON, walk: false });
-  expect(LIGHT).toEqual({ walk: false, hints: false, nudges: false, calm: true, trail: true, lastTime: true, timeout: true, motion: true });
+  expect(LIGHT).toEqual({ walk: false, hints: false, nudges: false, calm: true, trail: true, lastTime: true, timeout: true, motion: true, words: true });
 });
 
 test('"Go through pages with me" off: "What do I click?" only says what the buttons do', async ({ page }) => {
@@ -97,7 +97,7 @@ async function withQuietTools(page: Page) {
 }
 const quietCalls = (page: Page) => page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'tool').map((c) => c.method));
 
-test('the page is calmed while Steady goes through it with her, and put back when that ends', async ({ page }) => {
+test('the page is calmed while Milo goes through it with her, and put back when that ends', async ({ page }) => {
   await clinic(page);
   await withQuietTools(page);
   await page.evaluate(() => window.__steady.answer('What do I click?'));

@@ -1,0 +1,19 @@
+# HTTPS for the relay, with Caddy. Copy to /etc/caddy/Caddyfile and put the real name in.
+# Caddy gets and renews the certificate by itself. See relay/HTTPS.md for the steps around this file.
+
+# The new address. Everything the extension sends is encrypted from here on.
+api.YOUR-DOMAIN.TLD {
+	reverse_proxy 127.0.0.1:3000
+}
+
+# The landing page, if it lives on the same server (copy the repo's landing/ folder to /var/www/steady).
+YOUR-DOMAIN.TLD, www.YOUR-DOMAIN.TLD {
+	root * /var/www/steady
+	file_server
+}
+
+# The old address, kept answering on plain http so copies of the extension that still point at the
+# number go on working. Take this block out once nobody uses the number any more.
+http://64.177.52.26 {
+	reverse_proxy 127.0.0.1:3000
+}

@@ -1,4 +1,4 @@
-// The "My details" card: where the person, or a family member, types in what Steady may fill.
+// The "My details" card: where the person, or a family member, types in what Milo may fill.
 import { expect, test, type Page } from '@playwright/test';
 
 async function mount(page: Page) {
@@ -29,7 +29,7 @@ test('only name, address, phone and email: nowhere to put a card, a password or 
   await mount(page);
   const labels = await page.locator('label').allTextContents();
   expect(labels).toEqual(['First name', 'Last name', 'Email', 'Phone', 'Street address', 'Apartment or unit (if you have one)', 'Town or city', 'State', 'ZIP code', 'Country']);
-  await expect(page.getByText('Steady never saves card numbers or passwords.')).toBeVisible();
+  await expect(page.getByText('Milo never saves card numbers or passwords.')).toBeVisible();
 });
 
 test('clearing asks first, and can be backed out of', async ({ page }) => {

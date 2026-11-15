@@ -166,7 +166,7 @@ header nav a {
   border-radius:   6px;
   display:         inline-flex;
   align-items:     center;
-  min-height:      48px;      /* same floor as the buttons in Steady itself */
+  min-height:      48px;      /* same floor as the buttons in Milo itself */
 }
 
 header nav a:hover {

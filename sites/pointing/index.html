@@ -5,7 +5,7 @@
 <title>Pointing test</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Owner: A. The standard pointing test (ISO 9241-9): a ring of targets, clicked in a criss-cross order.
-     It counts missed clicks and time per target, so Steady can be measured with and without. -->
+     It counts missed clicks and time per target, so Milo can be measured with and without. -->
 <style>
   :root { --target: 56px; --ring: 380px; }
   body { margin: 0; font: 18px/1.4 system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; background: #f7f5ef; color: #222; }
@@ -41,7 +41,7 @@
     <tr><th>Missed clicks per 100 clicks</th><td id="r-err"></td></tr>
     <tr><th>Average time per target</th><td id="r-time"></td></tr>
   </table>
-  <p>Copy these numbers into the tracker's Proof table, with and without Steady.</p>
+  <p>Copy these numbers into the tracker's Proof table, with and without Milo.</p>
   <textarea id="r-json" readonly aria-label="Results as text"></textarea><br>
   <button id="again" type="button">Run again</button>
 </section>
@@ -122,7 +122,7 @@
     status.textContent = 'Done.';
   }
 
-  // Capture phase and the click event, so a click that Steady steers or a dwell click is counted too.
+  // Capture phase and the click event, so a click that Milo steers or a dwell click is counted too.
   document.addEventListener('click', (e) => {
     if (!running) return;
     const el = e.target instanceof Element ? e.target.closest('.t') : null;

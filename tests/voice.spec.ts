@@ -1,4 +1,4 @@
-// How Steady's words are handed to the voice: one sentence at a time, without tripping on "Dr." or "$12.99".
+// How Milo's words are handed to the voice: one sentence at a time, without tripping on "Dr." or "$12.99".
 import { expect, test } from '@playwright/test';
 import { sentencesOf, speak, TONE } from '../src/shared/voice';
 

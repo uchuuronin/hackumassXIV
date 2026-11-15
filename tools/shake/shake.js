@@ -1,5 +1,5 @@
 // Shakes the real mouse pointer, on top of whatever you do with the mouse. Owner: A. macOS only.
-// Used for the tremor demo and for the pointing-test numbers, so Steady off and on see the same shake.
+// Used for the tremor demo and for the pointing-test numbers, so Milo off and on see the same shake.
 //
 //   osascript -l JavaScript tools/shake/shake.js check              show the pointer position (a permission test)
 //   osascript -l JavaScript tools/shake/shake.js mild 60            shake for 60 seconds

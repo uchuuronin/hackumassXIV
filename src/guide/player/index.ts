@@ -1,6 +1,6 @@
-// Feature 5, the player. A family member recorded a task once; now Steady walks the person through it.
-//   - She does every step herself. Steady shows where, says what, and never clicks for her.
-//   - When she has done a step, Steady moves to the next one by itself.
+// Feature 5, the player. A family member recorded a task once; now Milo walks the person through it.
+//   - She does every step herself. Milo shows where, says what, and never clicks for her.
+//   - When she has done a step, Milo moves to the next one by itself.
 //   - It keeps its place from page to page, and remembers it if she stops.
 //   - It says plainly when a step can't be found, and never guesses silently.
 //   - If she is a long time on a step, or her clicks keep missing, it offers help. Once.
@@ -136,7 +136,7 @@ function skipNote(labels: string[]): string {
 async function present(): Promise<PlayState> {
   const r = run!;
   clearTimers();
-  // Don't ask for what is already there (she typed ahead, the website remembered it, or Steady filled it in).
+  // Don't ask for what is already there (she typed ahead, the website remembered it, or Milo filled it in).
   const skipped: string[] = [];
   while (r.task.steps[r.at] && alreadyDone(r.task.steps[r.at]!)) {
     skipped.push(r.task.steps[r.at]!.locator.label);
@@ -190,7 +190,7 @@ async function present(): Promise<PlayState> {
   }
 
   const stillHere = () => run === r && r.task.steps[r.at] === step && !details.isActive();
-  // Checking in can feel like being watched. It is a switch, and when it is off Steady simply waits.
+  // Checking in can feel like being watched. It is a switch, and when it is off Milo simply waits.
   const mayNudge = async () => stillHere() && (await isOn('nudges'));
   nudgeTimer = window.setTimeout(async () => (await mayNudge()) && need('speech').say(`Take your time. ${say}`, STEP_OPTIONS), pace.nudgeMs);
   helpTimer = window.setTimeout(
@@ -262,7 +262,7 @@ export async function lastChoices(): Promise<Record<string, Record<number, strin
 
 async function keepChoice(taskId: string, index: number, step: TaskStep, target: Element): Promise<void> {
   if (step.type !== 'choose' || step.locator.secret || step.locator.kind === 'checkbox') return;
-  if (!(await isOn('lastTime'))) return; // she has asked Steady not to keep what she picks
+  if (!(await isOn('lastTime'))) return; // she has asked Milo not to keep what she picks
   const words = chosenWords(target);
   if (!words) return;
   const all = await lastChoices();
@@ -553,7 +553,7 @@ export const playTaskTool: Tool = {
   name: 'play_task',
   owner: 'guide',
   description:
-    'Walk the person through a saved task, one step at a time. They do each step themselves; Steady shows where and moves on when it is done. Never clicks for them. The result\'s data.options are answers to show as buttons.',
+    'Walk the person through a saved task, one step at a time. They do each step themselves; Milo shows where and moves on when it is done. Never clicks for them. The result\'s data.options are answers to show as buttons.',
   parameters: { task: { type: 'string', description: 'The id or the name of the saved task', required: true } },
   run: async (args) => result(await start(String(args.task ?? ''))),
 };
@@ -577,7 +577,7 @@ export const playRepeatTool: Tool = {
 export const playStopTool: Tool = {
   name: 'play_stop',
   owner: 'guide',
-  description: 'Stop the saved task. Steady remembers the step, so it can be picked up again later.',
+  description: 'Stop the saved task. Milo remembers the step, so it can be picked up again later.',
   parameters: {},
   run: async () => result(await stop()),
 };

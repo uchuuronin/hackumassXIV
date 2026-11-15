@@ -1,4 +1,4 @@
-// Labels from Gemini, for buttons Steady has no words of its own for.
+// Labels from Gemini, for buttons Milo has no words of its own for.
 // Gemini sees button names only. Nothing it sends back is trusted until it passes `accept`.
 
 import type { PageElement, PageMap } from '@/shared/pagemap';
@@ -81,7 +81,7 @@ export async function askModel(buttons: PageElement[], map: PageMap): Promise<Ma
     }
     await store.set(key, cached);
   } catch (err) {
-    console.warn('[Steady] could not get labels from the helper', err);
+    console.warn('[Milo] could not get labels from the helper', err);
   }
   return out;
 }

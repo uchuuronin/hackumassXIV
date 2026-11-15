@@ -47,7 +47,7 @@ export interface FollowUp {
 
 export interface SpeechPort {
   /**
-   * For things Steady says without being asked: moving on to the next box, or checking in after a long pause.
+   * For things Milo says without being asked: moving on to the next box, or checking in after a long pause.
    * Shows the sentence in the panel, and speaks it if the voice is on. `options` are short answers to offer as buttons.
    */
   say(text: string, options?: string[], then?: FollowUp): void;

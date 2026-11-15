@@ -1,4 +1,4 @@
-// One look for everything Steady draws: notes on the page, the pause pop-up, the helper panel.
+// One look for everything Milo draws: notes on the page, the pause pop-up, the helper panel.
 // Proposed by C after the Saturday review. Change a colour here and it changes everywhere.
 //
 // The idea (from the "Accessible Colors 101" sheet C chose): deep navy words on soft pastel shapes,
@@ -23,7 +23,7 @@ export const theme = {
   /** The one main button on a screen, and the safe choice in a pop-up. Navy, like the words. */
   main: '#1f2b3a',
   onMain: '#ffffff',
-  /** Steady's own colour: the little helper in the panel, and small touches of cheer. */
+  /** Milo's own colour: the little helper in the panel, and small touches of cheer. */
   sun: '#ffd84a',
   teal: '#16808f',
   coral: '#e8605d',

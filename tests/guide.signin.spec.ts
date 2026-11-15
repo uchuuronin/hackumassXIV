@@ -1,5 +1,5 @@
 // Feature 5, sign-in guidance. Signing in is where people most often give up: two boxes, a password
-// nobody remembers, and sometimes a code. Steady says what each part is for, never touches the password,
+// nobody remembers, and sometimes a code. Milo says what each part is for, never touches the password,
 // and says what to do when it is forgotten.
 import { expect, test, type Page } from '@playwright/test';
 import { html, inject } from './helpers';

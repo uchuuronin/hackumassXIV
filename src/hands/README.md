@@ -77,7 +77,7 @@ The pointing test is the standard ISO 9241-9 task: nine circles in a ring, click
 
 1. `npm run sites`, then open http://localhost:4173/pointing/?label=off-strong&rounds=6 (`label` names the run; `n`, `w`, `d` and `rounds` change the targets).
 2. Shake the real pointer on top of your own movement with the script: `osascript -l JavaScript tools/shake/shake.js strong 180` (macOS; levels `mild`, `moderate`, `strong`; the first run needs Accessibility permission for Terminal).
-3. Do one run with Steady switched off at `chrome://extensions` and one with it on, at the same shake level and pace.
+3. Do one run with Milo switched off at `chrome://extensions` and one with it on, at the same shake level and pace.
 
 The shake is simulated. It is not a clinical test, and it is not a person with tremor.
 
@@ -86,7 +86,7 @@ The shake is simulated. It is not a clinical test, and it is not a person with t
 - Nothing steadies clicks inside another website's frame.
 - Some sites ignore synthetic clicks (the ones dwell click makes), and a dwell click that opens a new tab can be blocked as a pop-up.
 - Pay, delete and submit buttons get no highlight, no steering and no dwell, on purpose.
-- Reading filters sit on the page body so Steady's own bar keeps its place. A site's own fixed elements then scroll with the page.
+- Reading filters sit on the page body so Milo's own bar keeps its place. A site's own fixed elements then scroll with the page.
 - There is no dark contrast mode: the first version turned pages that were already dark light.
 - The page map's ids go stale when a page redraws.
 - Tested by simulated shake and by hand, not yet with older adults.

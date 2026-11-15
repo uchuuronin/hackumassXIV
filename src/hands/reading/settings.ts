@@ -99,7 +99,7 @@ const DARK_CANVAS = '#0b0b0b';
 /**
  * The style sheet for these settings. Size is not here: it is the browser's zoom.
  * The filter goes on the page body, not the whole page: a filter on the root makes it the anchor for every fixed
- * element, which threw Steady's own bar and labels off screen. Steady's pop-ups sit outside the body, so they
+ * element, which threw Milo's own bar and labels off screen. Milo's pop-ups sit outside the body, so they
  * keep their own colours and their place. `canvas` is the body's background colour, when it has one.
  */
 export function buildCss(s: ReadingSettings, canvas?: string, alreadyDark = false): string {

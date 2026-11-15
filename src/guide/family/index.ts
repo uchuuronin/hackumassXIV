@@ -19,7 +19,7 @@ export interface StuckState {
   status: 'offer' | 'sent' | 'failed' | 'declined' | 'no-helper' | 'need-email' | 'need-name';
   said: string;
   options?: string[];
-  /** How Steady's face should look while it says this. */
+  /** How Milo's face should look while it says this. */
   mood?: 'worried' | 'reassuring';
 }
 
@@ -81,7 +81,7 @@ export async function offer(): Promise<StuckState> {
   return { status: 'offer', mood: 'worried', said: `Want me to let ${name} know you'd like a hand${about}?`, options: [`Yes, tell ${helper.name}`, 'No, not yet'] };
 }
 
-/** She typed or said something while Steady is asking who to tell. */
+/** She typed or said something while Milo is asking who to tell. */
 export function heard(words: string): StuckState {
   if (asking?.step === 'email') {
     const email = words.trim().toLowerCase().replace(/[.,;!]+$/, '');

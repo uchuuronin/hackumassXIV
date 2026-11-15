@@ -12,7 +12,7 @@ interface Props {
 }
 
 const STEPS = [
-  { title: 'Hello. I am Steady.', body: 'I am a calm helper for the web. I can find buttons for you, fill in forms, and stop you before you pay. I only check and remind. I never pay or send anything for you.' },
+  { title: 'Hello. I am Milo.', body: 'I am a calm helper for the web. I can find buttons for you, fill in forms, and stop you before you pay. I only check and remind. I never pay or send anything for you.' },
   { title: 'You can talk to me', body: 'Press "Talk to me" and say what you need, instead of typing. I need your OK to use the microphone first.' },
   { title: 'Save your details once', body: 'Add your name and address, and I can fill in forms after asking you first. They stay on this computer.' },
   // The linking step, from the guide lane (C). Nobody is added or linked here: it only takes her to the place where she can do it.

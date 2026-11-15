@@ -1,6 +1,6 @@
 // Two small cards for the "My details" screen of the panel. Owner: C.
-//   - "Who helps you": the one person Steady may tell when she presses "I'm stuck".
-//   - TeachScreen: for that person, to record a task once so Steady can walk her through it.
+//   - "Who helps you": the one person Milo may tell when she presses "I'm stuck".
+//   - TeachScreen: for that person, to record a task once so Milo can walk her through it.
 
 import { useEffect, useState } from 'react';
 import { browser } from 'wxt/browser';
@@ -11,7 +11,7 @@ import { getCode, isHelping, isLinked, joinWith, sendLinked, stopHelping, unlink
 import { findTask, keepTask, sendTask } from '../family/share';
 import { runOnPage } from './useGuide';
 
-/** What Steady remembers from doing tasks, and the way to clear it. Sits under "My details". */
+/** What Milo remembers from doing tasks, and the way to clear it. Sits under "My details". */
 export function RememberCard() {
   const [status, setStatus] = useState('');
   const forget = async () => {
@@ -85,7 +85,7 @@ export function HelperCard() {
   };
   const unlink = async () => {
     const done = await unlinkAll();
-    setLinkStatus(done ? 'Unlinked. Their computer can no longer send anything here.' : "I couldn't reach Steady's server just now, so nothing has changed. Please try again.");
+    setLinkStatus(done ? 'Unlinked. Their computer can no longer send anything here.' : "I couldn't reach Milo's server just now, so nothing has changed. Please try again.");
     if (done) setLinked(false);
   };
 
@@ -121,13 +121,13 @@ export function HelperCard() {
         </>
       ) : (
         <>
-          <p>If they have Steady too, you can link the two computers. Then a task they make for you arrives here by itself.</p>
+          <p>If they have Milo too, you can link the two computers. Then a task they make for you arrives here by itself.</p>
           <button type="button" className="btn main" onClick={makeCode}>Get a code to read to them</button>
           {code && (
             <div className="words" role="status">
               <p>Read these three words to them:</p>
               <p className="three">{code.words}</p>
-              <p>They type them into their Steady, under <strong>For the person who helps</strong>. The words work once, for {code.minutes} minutes. Only give them to someone you know and trust.</p>
+              <p>They type them into their Milo, under <strong>For the person who helps</strong>. The words work once, for {code.minutes} minutes. Only give them to someone you know and trust.</p>
             </div>
           )}
         </>
@@ -139,7 +139,7 @@ export function HelperCard() {
 
 /**
  * The screen for the person who helps. Reached from "My details", so Rose never lands on it by accident.
- * It says the steps in order, shows while Steady is watching, and lists what is saved.
+ * It says the steps in order, shows while Milo is watching, and lists what is saved.
  */
 export function TeachScreen({ recording, tasks }: { recording: string | null; tasks: RecordedTask[] }) {
   const [name, setName] = useState('');
@@ -182,7 +182,7 @@ export function TeachScreen({ recording, tasks }: { recording: string | null; ta
     setStatus('Sending the steps…');
     if (helping) {
       const over = await sendLinked(task);
-      if (over.ok) return setStatus(`Sent "${task.name}" to their computer. It appears the next time Steady is open there. Only the steps were sent, never anyone's answers.`);
+      if (over.ok) return setStatus(`Sent "${task.name}" to their computer. It appears the next time Milo is open there. Only the steps were sent, never anyone's answers.`);
       if (!over.unlinked) return setStatus(over.said);
       setHelping(false); // they unlinked: fall back to three words
       setLinkStatus(over.said);
@@ -204,16 +204,16 @@ export function TeachScreen({ recording, tasks }: { recording: string | null; ta
   return (
     <>
       <section className="card">
-        <h2>Show Steady how to do a task</h2>
-        <p>This part is for the person who helps. You do a task once, such as booking an appointment, and Steady learns the way. Later it walks the person you help through the same steps, one at a time.</p>
+        <h2>Show Milo how to do a task</h2>
+        <p>This part is for the person who helps. You do a task once, such as booking an appointment, and Milo learns the way. Later it walks the person you help through the same steps, one at a time.</p>
         <ol className="how">
           <li>Sit at <strong>their</strong> computer. Tasks stay on the computer they were recorded on.</li>
           <li>Open the website, on the page where the task starts.</li>
           <li>Give the task a name they would use, and press <strong>Start watching</strong>.</li>
           <li>Do the task as you normally would, then come back here and press <strong>Finish and save</strong>.</li>
         </ol>
-        <p>Steady keeps where you clicked, chose and typed. It never keeps what you typed or which answer you picked, so they make their own choices every time.</p>
-        <p>Later, when they do the task themselves, Steady remembers what they picked last time (which doctor, which day) so it can mention it. That stays on this computer, and they can clear it in My details.</p>
+        <p>Milo keeps where you clicked, chose and typed. It never keeps what you typed or which answer you picked, so they make their own choices every time.</p>
+        <p>Later, when they do the task themselves, Milo remembers what they picked last time (which doctor, which day) so it can mention it. That stays on this computer, and they can clear it in My details.</p>
         {recording ? (
           <>
             <p className="status">I'm watching "{recording}". Do the task on the website now.</p>
@@ -255,7 +255,7 @@ export function TeachScreen({ recording, tasks }: { recording: string | null; ta
         <h2>Link to the person you help</h2>
         {helping ? (
           <>
-            <p>This computer is linked to theirs. A task you send arrives there by itself, and Steady tells them who it's from.</p>
+            <p>This computer is linked to theirs. A task you send arrives there by itself, and Milo tells them who it's from.</p>
             <button type="button" className="btn" onClick={leave}>Stop being linked</button>
           </>
         ) : (

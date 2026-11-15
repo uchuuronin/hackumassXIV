@@ -270,7 +270,7 @@ export function isCovered(el: Element): boolean {
   if (top.tagName === 'LABEL' && (top as HTMLLabelElement).control === el) return false;
   const hostChain = top.getRootNode();
   if (hostChain instanceof ShadowRoot && el.contains(hostChain.host)) return false;
-  // Steady's own notes let clicks through, so they never show up here. A Steady panel or pop-up that
+  // Milo's own notes let clicks through, so they never show up here. A Milo panel or pop-up that
   // takes clicks does cover what is under it: nothing should highlight, steer to or click a button behind it.
   return true;
 }

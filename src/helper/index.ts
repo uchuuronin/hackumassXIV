@@ -65,14 +65,14 @@ function manage(ctx: LaneContext, id: FeatureId, start: (c: LaneContext) => void
     running = false;
     const fs = stops;
     stops = [];
-    for (const f of fs) { try { f(); } catch (err) { console.error(`[Steady] stopping ${id}`, err); } }
+    for (const f of fs) { try { f(); } catch (err) { console.error(`[Milo] stopping ${id}`, err); } }
   };
   ctx.onStop(stop);
   return (on: boolean) => {
     if (on === running) return;
     if (!on) { stop(); return; }
     running = true;
-    Promise.resolve().then(() => start(sub)).catch((err) => console.error(`[Steady] ${id}`, err));
+    Promise.resolve().then(() => start(sub)).catch((err) => console.error(`[Milo] ${id}`, err));
   };
 }
 
@@ -105,8 +105,8 @@ export function startHelper(ctx: LaneContext): void {
   const onKey = async (e: KeyboardEvent) => {
     if (!(e.altKey && e.shiftKey && e.code === 'KeyH')) return;
     const first = pageMap.get().elements.find((el) => el.visible);
-    if (!first) return console.log('[Steady] helper: nothing visible');
-    console.log('[Steady] helper point_at', first.id, await getTool('point_at')!.run({ id: first.id }));
+    if (!first) return console.log('[Milo] helper: nothing visible');
+    console.log('[Milo] helper point_at', first.id, await getTool('point_at')!.run({ id: first.id }));
   };
   if (ctx.dev) window.addEventListener('keydown', onKey, true);
 

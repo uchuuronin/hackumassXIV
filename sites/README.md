@@ -1,6 +1,6 @@
 # Demo sites
 
-Made-up websites for showing Steady reliably. All data is fake. Nothing is bought, booked or sent.
+Made-up websites for showing Milo reliably. All data is fake. Nothing is bought, booked or sent.
 
 ```
 node sites/serve.mjs

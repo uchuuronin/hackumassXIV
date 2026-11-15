@@ -1,4 +1,4 @@
-// Steady is an accessibility tool, so its own screens have to pass too. These are the rules that can
+// Milo is an accessibility tool, so its own screens have to pass too. These are the rules that can
 // be checked without a person: text size, the focus ring, staying inside a pop-up, and stopping movement.
 // The full sweep (every screen, with axe) is tools/a11y-audit.mjs.
 import { expect, test } from '@playwright/test';
@@ -14,7 +14,7 @@ const walk = (dir: string): string[] =>
     return statSync(path).isDirectory() ? walk(path) : /\.(css|ts|tsx)$/.test(name) ? [path] : [];
   });
 
-/** Every text size written anywhere Steady draws something: `font-size: 17px`, `font: 600 17px/1.4 …`, `fontSize: 17`. */
+/** Every text size written anywhere Milo draws something: `font-size: 17px`, `font: 600 17px/1.4 …`, `fontSize: 17`. */
 function textSizes(source: string): number[] {
   const sizes: number[] = [];
   for (const m of source.matchAll(/font-size\s*:\s*([\d.]+)px/g)) sizes.push(Number(m[1]));
@@ -23,7 +23,7 @@ function textSizes(source: string): number[] {
   return sizes;
 }
 
-test('nothing Steady draws has words smaller than 18 px', () => {
+test('nothing Milo draws has words smaller than 18 px', () => {
   const small: string[] = [];
   for (const file of [...walk('src'), 'relay/src/family.ts', 'relay/src/stuckMessage.ts']) {
     for (const px of textSizes(readFileSync(file, 'utf8'))) if (px < 18) small.push(`${file}: ${px}px`);
@@ -44,13 +44,16 @@ const contrast = (a: string, b: string) => {
   return (hi! + 0.05) / (lo! + 0.05);
 };
 
-test('the keyboard focus ring can be seen on light ground and on the navy band', () => {
+test('the keyboard focus ring can be seen on light ground and on every sky the band can be', () => {
   // WCAG 1.4.11: a focus ring is a shape, so 3 to 1 against what is next to it.
   expect(contrast(theme.focus, theme.paper)).toBeGreaterThanOrEqual(3);
   expect(contrast(theme.focus, theme.card)).toBeGreaterThanOrEqual(3);
   expect(contrast(theme.focusOnInk, theme.ink)).toBeGreaterThanOrEqual(3);
-  const css = readFileSync('src/entrypoints/sidepanel/style.css', 'utf8');
-  expect(css, 'the band uses the ring made for dark ground').toMatch(/\.band [^{]*:focus-visible[^{]*\{[^}]*var\(--focus-on-ink\)/);
+  // The top band of the panel is a sky that changes with the dog's mood. The ring, and the words, must hold on every sky.
+  for (const sky of [theme.tones.info.soft, theme.tones.info.deep, theme.tones.careful.soft]) {
+    expect(contrast(theme.focus, sky), `ring on ${sky}`).toBeGreaterThanOrEqual(3);
+    expect(contrast(theme.ink, sky), `words on ${sky}`).toBeGreaterThanOrEqual(7);
+  }
 });
 
 test('the panel still fits when it is very narrow or zoomed in', () => {
@@ -63,7 +66,7 @@ test('the panel still fits when it is very narrow or zoomed in', () => {
   expect(css.match(/\.who \{([^}]*)\}/)?.[1] ?? '', 'the face and the name').toContain('flex-wrap: wrap');
 });
 
-test("Steady's own movement can be switched off, and Keep it light leaves that choice alone", () => {
+test("Milo's own movement can be switched off, and Keep it light leaves that choice alone", () => {
   // WCAG 2.2.2: anything that keeps moving by itself needs a way to stop it.
   expect(GUIDE_SWITCHES.map((s) => s.id)).toContain('motion');
   expect(ALL_ON.motion).toBe(true);
@@ -118,4 +121,34 @@ test('a pop-up says its name and gives focus back where it came from', async ({ 
   expect(await page.evaluate(() => document.getElementById('host')!.shadowRoot!.activeElement?.id)).toBe('a');
   await page.evaluate(() => (window as unknown as { close: () => void }).close());
   expect(await page.evaluate(() => document.activeElement?.id)).toBe('pay');
+});
+
+test('Milo can be opened from the keyboard', () => {
+  // WCAG 2.1.1: everything can be done without a mouse, and that has to include getting to Milo at all.
+  const manifest = readFileSync('wxt.config.ts', 'utf8');
+  expect(manifest).toMatch(/'open-steady':\s*\{\s*suggested_key:\s*\{\s*default:\s*'Alt\+M'/);
+  const worker = readFileSync('src/entrypoints/background.ts', 'utf8');
+  expect(worker).toMatch(/command !== 'open-steady'/);
+  expect(worker).toContain('sidePanel.open(');
+});
+
+test('every look the dog can have has its picture, and the extension has its icon in every size', () => {
+  const buddy = readFileSync('src/guide/panel/Buddy.tsx', 'utf8');
+  const faces = [...buddy.matchAll(/^\s+\w+: '([a-z]+)',/gm)].map((m) => m[1]!);
+  expect(faces.length).toBeGreaterThanOrEqual(15);
+  for (const face of faces) expect(statSync(`public/buddy/${face}.webp`).size, face).toBeGreaterThan(1000);
+  for (const size of [16, 32, 48, 96, 128]) expect(statSync(`public/icon/${size}.png`).size, `icon ${size}`).toBeGreaterThan(500);
+});
+
+test('the dog keeps still when she asks, and when her computer asks', () => {
+  const css = readFileSync('src/entrypoints/sidepanel/style.css', 'utf8');
+  const still = css.match(/\.app\.still [^{]*\{[^}]*animation: none/)?.[0] ?? '';
+  const reduced = css.match(/@media \(prefers-reduced-motion: reduce\) \{[^]*?\n\}/)?.[0] ?? '';
+  for (const part of ['.buddy-dog', '.field-cloud', '.dots i']) {
+    expect(still, `${part} when "Let my face move" is off`).toContain(part);
+    expect(reduced, `${part} with reduced motion`).toContain(part);
+  }
+  // Ducking down and coming up is movement too: with either setting he only fades.
+  expect(css).toMatch(/\.app\.still \.buddy-pose[^{]*\{[^}]*transform: none !important/);
+  expect(reduced).toMatch(/\.buddy-pose[^{]*\{[^}]*transform: none !important/);
 });

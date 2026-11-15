@@ -1,4 +1,4 @@
-// Pennywhistle Home: a made-up shop for the Steady demo. Fake products, fake prices. Nothing is bought.
+// Pennywhistle Home: a made-up shop for the Milo demo. Fake products, fake prices. Nothing is bought.
 (function () {
   const look2 = Demo.look === 2;
   const WORDS = look2
@@ -65,7 +65,7 @@
       <footer class="foot">
         <a href="#">Delivery</a><a href="#">Returns</a><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact us</a>
       </footer>
-      <p class="demo-note">Demo site for the Steady project at HackUMass. Pennywhistle Home is made up, the data is fake, and nothing is bought.</p>`;
+      <p class="demo-note">Demo site for the Milo project at HackUMass. Pennywhistle Home is made up, the data is fake, and nothing is bought.</p>`;
   }
 
   // ---- pages ----

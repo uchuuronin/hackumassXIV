@@ -1,8 +1,9 @@
 // How she seems to be feeling, from the words she types or says. Owner: C.
 // A short list of everyday words, matched on this computer. Nothing is sent anywhere, and nothing is kept:
-// it only changes Steady's face for a few seconds, so she can see it heard how she said it as well as what.
+// it only changes Milo's face for a few seconds, so she can see it heard how she said it as well as what.
 
-export type Feeling = 'worried' | 'glad' | 'shocked' | 'reassuring';
+/** 'sending' is the moment between her saying yes and the note to her helper having gone. */
+export type Feeling = 'worried' | 'glad' | 'shocked' | 'reassuring' | 'sending';
 
 const HARD =
   /\b(can'?t|cannot|confus\w*|frustrat\w*|don'?t (understand|know|get it)|do not understand|giv(e|ing) up|too (hard|much|difficult|fast|small)|so hard|difficult|lost|stuck|upset|annoy\w*|hate|stupid|scared|afraid|worried|nervous|ugh|oh no|oh dear|not good|not working|(doesn'?t|won'?t|didn'?t) work|went wrong|broke\w*)\b/;

@@ -1,4 +1,4 @@
-# Steady
+# Milo
 
 A Chrome extension that makes the web steadier and easier for older adults and people with tremor.
 
