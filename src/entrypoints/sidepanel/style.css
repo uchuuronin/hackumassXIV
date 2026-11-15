@@ -118,3 +118,12 @@ input::placeholder { color: var(--ink-quiet); }
   .dots i, .buddy-body, .buddy-eyes, .buddy-waves, .bubble { animation: none !important; }
   .btn, .tile { transition: none; }
 }
+
+/* Settings screen (B) */
+.switches { display: grid; gap: 14px; margin-top: 14px; }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 72px; padding: 14px 18px; font: inherit; text-align: left; color: var(--ink); background: var(--card); border: 2px solid var(--ink); border-radius: 14px; box-shadow: 0 var(--depth) 0 var(--ink); cursor: pointer; }
+.switch b { display: block; font-size: 22px; }
+.switch small { display: block; margin-top: 4px; font-size: 16px; font-weight: 400; color: var(--ink-quiet); }
+.switch .pill { flex: none; min-width: 76px; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 999px; background: var(--paper); font-weight: 700; text-align: center; }
+.switch[aria-checked="true"] .pill { background: var(--go); }
+.switch:focus-visible { outline: 4px solid var(--focus); outline-offset: 4px; }
