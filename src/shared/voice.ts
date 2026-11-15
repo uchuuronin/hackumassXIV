@@ -15,6 +15,8 @@ export const TONE = `How you talk: like a kind, unhurried person helping at a sh
 
 /** Warmest first. The names are the voices Chrome and Edge offer on Windows, macOS and ChromeOS. */
 const PREFERRED = [
+  /^Samantha$/i,
+  /Zira/i,
   /natural/i, // Microsoft's "Online (Natural)" voices, where the browser has them
   /^Google US English$/i,
   /Samantha|Ava|Allison/i, // macOS
