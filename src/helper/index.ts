@@ -9,6 +9,7 @@ import { startPause } from './pause';
 import { startFakeCheck } from './fake';
 import { startHomeTurf } from './sites';
 import { startOverAsk } from './overask';
+import { quiet, unquiet } from './quiet';
 import { loadFeatures, watchFeatures, type FeatureId } from './features';
 
 registerTool({
@@ -26,6 +27,32 @@ registerTool({
     getOverlay().show({ id: 'helper-point', where: () => pageMap.liveRect(id), label: typeof args.label === 'string' ? args.label : 'This one', tone: 'info' });
     setTimeout(() => getOverlay().hide('helper-point'), 10000);
     return { ok: true, said: 'Pointing at it.', data: { id, rect } };
+  },
+});
+
+registerTool({
+  name: 'quiet_page',
+  description: 'Calm the page: dim adverts and sales pop-ups, and pause videos that started by themselves. Nothing is removed.',
+  owner: 'helper',
+  parameters: {},
+  async run() {
+    const r = quiet();
+    if (!r.dimmed && !r.paused) return { ok: true, said: 'This page already looks calm. I did not find any adverts or pop-ups.' };
+    const parts: string[] = [];
+    if (r.dimmed) parts.push(`I dimmed ${r.dimmed} ${r.dimmed === 1 ? 'thing' : 'things'} that look like adverts or pop-ups`);
+    if (r.paused) parts.push(`I paused ${r.paused} ${r.paused === 1 ? 'video' : 'videos'} that started by itself`);
+    return { ok: true, said: `${parts.join(', and ')}. Nothing was removed.` };
+  },
+});
+
+registerTool({
+  name: 'unquiet_page',
+  description: 'Put the page back as it was after quieting it.',
+  owner: 'helper',
+  parameters: {},
+  async run() {
+    unquiet();
+    return { ok: true, said: 'The page is back as it was.' };
   },
 });
 
