@@ -81,6 +81,12 @@ export function wayForward(map: PageMap): { button: PageElement; todo: ToDo[] } 
   return button ? { button, todo: before(button, map) } : null;
 }
 
+/** The button or link that moves her on from this page (to the checkout, to the next step), if Steady is sure of one. */
+export function mainWay(map: PageMap): PageElement | null {
+  const basket = basketWord(map);
+  return candidates(map).find((el) => phraseFor(el, map, basket)?.tone === 'go') ?? null;
+}
+
 const START: Record<ToDo['how'], string> = {
   type: 'Start here. Type in this box.',
   list: 'Start here. Choose from this list.',

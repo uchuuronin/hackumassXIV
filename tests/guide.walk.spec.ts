@@ -231,3 +231,63 @@ test('"Show me" level: Steady says which choice is closest and leaves the pickin
   expect(reply.options).toEqual(WALKING);
   expect(await page.inputValue('#reason')).toBe(''); // nothing was chosen for her
 });
+
+// ---- The basket: it knows where she is, and asks what she wants to do next ----
+
+async function basket(page: Page) {
+  await page.goto('/shop/basket.html?reset=1');
+  await inject(page);
+  await page.evaluate(() => window.__steady.walk.setPace({ settleMs: 60 }));
+}
+
+test('in the basket it says what is in it and what it comes to, and asks whether she is ready to pay', async ({ page }) => {
+  await basket(page);
+  const reply = await press(page, 'What do I click?');
+  expect(reply.said).toBe('This is your basket. There are three things in it, and the total comes to $83.92. Are you ready to pay, or still looking?');
+  expect(reply.options).toEqual(["I'm ready to pay", "I'm still looking", 'No, just show me the buttons']);
+});
+
+test('"I\'m ready to pay": lights the real way on, warns about the advert dressed up as a button, and clicks nothing', async ({ page }) => {
+  await basket(page);
+  // The helper lane has flagged the advert (it does this by itself in the real extension).
+  await page.evaluate(() => {
+    const s = window.__steady;
+    const advert = s.api.get().elements.find((e) => e.kind === 'link' && e.label === 'Link') ?? s.api.get().elements.find((e) => /continue/i.test(e.label) && !/shopping/i.test(e.label));
+    if (advert) s.api.mark(s.api.elementFor(advert.id)!, 'fake', 'This is an advert, not part of this page.');
+  });
+  await press(page, 'What do I click?');
+  const reply = await press(page, "I'm ready to pay");
+  expect(reply.said).toBe(
+    'Then "Checkout" is the one to click. It takes you to the page for your address and payment, and nothing is paid until the very end. There\'s an advert on this page dressed up as a button. Leave that one alone.',
+  );
+  expect(await lit(page)).toBe('Checkout');
+  expect(page.url()).toContain('basket.html'); // still here: the click is hers
+});
+
+test('"I\'m still looking": no rush, and the notes on the buttons', async ({ page }) => {
+  await basket(page);
+  await press(page, 'What do I click?');
+  const reply = await press(page, "I'm still looking");
+  expect(reply.said).toMatch(/^No rush\. You can change how many of each, or take something out\. I'll show you the \d+ main buttons/);
+});
+
+test('after she clicks through to the checkout, Steady carries on there', async ({ page }) => {
+  await basket(page);
+  await press(page, 'What do I click?');
+  await press(page, "I'm ready to pay");
+  await page.click('#go-checkout');
+  await page.waitForURL('**/checkout.html');
+  await inject(page);
+  await page.evaluate(() => window.__steady.walk.setPace({ settleMs: 60 }));
+  await page.evaluate(() => window.__steady.walk.resume());
+  await expect.poll(async () => (await spoken(page)).at(-1)).toBe(
+    'Here\'s the next part: "Checkout". First, "Email for your receipt". Type it in, or press "Help me fill this in" and I\'ll do your name and address with you.',
+  );
+});
+
+test('a shop front does not offer to open the basket she can already see, and names the shop\'s own sections', async ({ page }) => {
+  await page.goto('/shop/?reset=1');
+  await inject(page);
+  const reply = await press(page, 'What do I click?');
+  expect(reply.said).toContain('From here you can search for something, look at Kitchen, Living room or Garden, or open your basket.');
+});

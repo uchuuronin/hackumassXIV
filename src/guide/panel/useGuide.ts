@@ -20,6 +20,19 @@ export interface Said {
 const TASKS_KEY = 'guide:tasks';
 const RECORDING_KEY = 'guide:recording';
 const CANT: Said = { said: 'I can\'t help on this page. Open the website you want, and I\'ll be right here.' };
+/** A website is open, but Steady's part of it isn't answering: the page was open before Steady was switched on or updated. */
+const LOST: Said = { said: 'I\'ve lost touch with this page. Load it again with the round arrow at the top of the window (or the F5 key), and I\'ll be right here.' };
+
+/** Why the page didn't answer: an ordinary website that needs loading again, or a page Steady can't work on at all. */
+async function cantSay(): Promise<Said> {
+  try {
+    const tabId = await activeTabId();
+    const url = tabId ? (await browser.tabs.get(tabId)).url ?? '' : '';
+    return /^https?:/.test(url) ? LOST : CANT;
+  } catch {
+    return CANT;
+  }
+}
 
 async function activeTabId(): Promise<number | undefined> {
   // For trying the panel in an ordinary tab: sidepanel.html?tab=123 talks to that tab.
@@ -127,7 +140,7 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
         const feeling = next === 'worried' || next === 'reassuring' || next === 'glad' ? next : null;
         if (stuck) show(feeling, Math.max(0, SHOCK_MS - (Date.now() - pressedAt)));
         else if (feeling) show(feeling);
-        say.current(result ? { said: result.said, options: optionsOf(result), then: thenOf(result.data) } : CANT);
+        say.current(result ? { said: result.said, options: optionsOf(result), then: thenOf(result.data) } : await cantSay());
       } finally {
         setWorking(false);
         void refreshHint();

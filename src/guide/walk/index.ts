@@ -13,7 +13,7 @@ import type { PageElement, PageMap } from '@/shared/pagemap';
 import { need, type FollowUp } from '@/shared/ports';
 import { HELPER_KEYS, type HelpLevel } from '@/shared/tools';
 import * as choices from '../choices';
-import { wayForward, type ToDo } from '../choices';
+import { mainWay, wayForward, type ToDo } from '../choices';
 import * as details from '../details';
 import { listen } from '../listening';
 import { pageMap } from '../map';
@@ -31,6 +31,8 @@ const FRESH_MS = 30 * 60 * 1000;
 export const YES_BOOK = 'Yes, help me book';
 export const YES = 'Yes, go through it with me';
 export const NO = 'No, just show me the buttons';
+export const READY = "I'm ready to pay";
+export const LOOKING = "I'm still looking";
 const WALKING = ['Show me again', 'Skip this one', 'Stop for now'];
 const FILL = 'Help me fill this in';
 
@@ -80,11 +82,11 @@ function describe(map: PageMap): string {
   if (map.forms.some((f) => f.isSearch)) can.push('search for something');
   const links = map.elements
     .filter((e) => e.kind === 'link' && e.region === 'header' && e.visible && e.labelConfident && e.label.length <= 22)
-    .filter((e) => !/sign|log ?in|account|basket|cart|bag|help|contact|español|home/i.test(e.label));
+    .filter((e) => !/sign|log ?in|account|basket|cart|bag|help|contact|español|home|orders?|store|gift|track|wish|bill|careers|about/i.test(e.label));
   const names = [...new Set(links.map((e) => e.label))].slice(0, 3);
   if (names.length) can.push(`look at ${names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`}`);
   const basket = map.elements.find((e) => e.kind === 'link' && e.visible && /\b(basket|cart|bag)\b/i.test(e.label));
-  if (basket) can.push(`open your ${/cart/i.test(basket.label) ? 'cart' : /bag/i.test(basket.label) ? 'bag' : 'basket'}`);
+  if (basket && map.stage.kind !== 'basket') can.push(`open your ${/cart/i.test(basket.label) ? 'cart' : /bag/i.test(basket.label) ? 'bag' : 'basket'}`);
   if (!can.length) return `This is "${title}". `;
   const list = can.length === 1 ? can[0] : `${can.slice(0, -1).join(', ')}, or ${can[can.length - 1]}`;
   return `This is "${title}". From here you can ${list}. `;
@@ -97,6 +99,19 @@ export async function start(): Promise<Reply> {
   const map = pageMap.get();
   // One conversation at a time, and a pop-up has to be dealt with before anything behind it.
   if (player.isPlaying() || details.isActive() || map.dialog) return choices.show();
+  // The basket: she can see what is in it. What she needs to know is what happens next.
+  if (map.stage.kind === 'basket') {
+    const things = map.elements.filter((e) => e.visible && e.protection === 'delete' && e.context).length;
+    const total = map.amounts.find((a) => a.kind === 'total' && !a.struck);
+    if (things && mainWay(map)) {
+      offered = true;
+      const count = things === 1 ? "There's one thing in it" : `There are ${COUNT[things] ?? things} things in it`;
+      return {
+        said: `This is your basket. ${count}${total ? `, and the total comes to ${total.text}` : ''}. Are you ready to pay, or still looking?`,
+        options: [READY, LOOKING, NO],
+      };
+    }
+  }
   const forward = wayForward(map);
   if (!forward) {
     const shown = await choices.show();
@@ -119,6 +134,29 @@ export async function start(): Promise<Reply> {
 export function no(): Promise<Reply> {
   offered = false;
   return choices.show();
+}
+
+/** In the basket: "I'm ready to pay." Show the real way on. The click is hers. */
+export async function ready(): Promise<Reply> {
+  offered = false;
+  const map = pageMap.get();
+  const way = mainWay(map);
+  if (!way) return choices.show();
+  // Kept going, so the checkout page carries on from here when she gets there.
+  begin({ wishes: [], skipped: [], part: [], heading: heading(map), atButton: true, told: false, thanked: 0 });
+  await spotlight.on(way.id, "This one, when you're ready.", { dim: false });
+  const advert = map.elements.some((e) => e.visible && e.marks.some((m) => m.kind === 'fake'));
+  return {
+    said: `Then "${way.label}" is the one to click. It takes you to the page for your address and payment, and nothing is paid until the very end.${advert ? " There's an advert on this page dressed up as a button. Leave that one alone." : ''}`,
+    options: ['Stop for now'],
+  };
+}
+
+/** In the basket: "I'm still looking." */
+export async function looking(): Promise<Reply> {
+  offered = false;
+  const shown = await choices.show();
+  return { said: `No rush. You can change how many of each, or take something out. ${shown.said}` };
 }
 
 /** "Yes." */

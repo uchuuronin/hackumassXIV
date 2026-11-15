@@ -61,6 +61,8 @@ export async function answer(words: string): Promise<Answer> {
   // "What do I click?" as a conversation: yes or no, then one question at a time.
   if (said === walk.YES_BOOK || said === walk.YES) return walk.yes();
   if (said === walk.NO) return walk.no();
+  if (said === walk.READY) return walk.ready();
+  if (said === walk.LOOKING) return walk.looking();
   if (walk.isActive()) {
     if (said === 'Show me again') return walk.repeat();
     if (said === 'Skip this one') return walk.skip();
