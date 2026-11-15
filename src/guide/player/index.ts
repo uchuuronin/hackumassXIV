@@ -12,6 +12,7 @@ import * as details from '../details';
 import { pageMap } from '../map';
 import { locate, tasks } from '../recorder';
 import * as spotlight from '../spotlight';
+import { isOn } from '../switches';
 
 const PLAYING = 'guide:playing';
 const PLACES = 'guide:places';
@@ -188,10 +189,12 @@ async function present(): Promise<PlayState> {
   }
 
   const stillHere = () => run === r && r.task.steps[r.at] === step && !details.isActive();
-  nudgeTimer = window.setTimeout(() => stillHere() && need('speech').say(`Take your time. ${say}`, STEP_OPTIONS), pace.nudgeMs);
+  // Checking in can feel like being watched. It is a switch, and when it is off Steady simply waits.
+  const mayNudge = async () => stillHere() && (await isOn('nudges'));
+  nudgeTimer = window.setTimeout(async () => (await mayNudge()) && need('speech').say(`Take your time. ${say}`, STEP_OPTIONS), pace.nudgeMs);
   helpTimer = window.setTimeout(
-    () =>
-      stillHere() &&
+    async () =>
+      (await mayNudge()) &&
       need('speech').say('Want to keep going, stop here for now, or ask someone for a hand? Nothing you\'ve done is lost.', ['Carry on', 'Stop for now', "I'm stuck"]),
     pace.offerHelpMs,
   );
@@ -258,6 +261,7 @@ export async function lastChoices(): Promise<Record<string, Record<number, strin
 
 async function keepChoice(taskId: string, index: number, step: TaskStep, target: Element): Promise<void> {
   if (step.type !== 'choose' || step.locator.secret || step.locator.kind === 'checkbox') return;
+  if (!(await isOn('lastTime'))) return; // she has asked Steady not to keep what she picks
   const words = chosenWords(target);
   if (!words) return;
   const all = await lastChoices();
@@ -266,7 +270,7 @@ async function keepChoice(taskId: string, index: number, step: TaskStep, target:
 
 /** Last time's choice for this step, if it is still on offer today. `id` is the option to point out. */
 async function lastFor(taskId: string, index: number, step: TaskStep, ids: string[]): Promise<{ words: string; id?: string } | null> {
-  if (step.type !== 'choose' || step.locator.secret) return null;
+  if (step.type !== 'choose' || step.locator.secret || !(await isOn('lastTime'))) return null;
   const words = (await lastChoices())[taskId]?.[index];
   if (!words) return null;
   const first = ids[0] ? pageMap.elementFor(ids[0]) : null;
@@ -348,7 +352,7 @@ function listen(): void {
     r.misses += 1;
     if (r.misses < pace.missesBeforeHelp) return;
     r.misses = 0;
-    need('speech').say('Those clicks didn\'t land on anything. It happens. Want me to show you the step again, or would you rather ask someone for a hand?', ['Show me again', "I'm stuck"]);
+    void isOn('nudges').then((on) => on && run === r && need('speech').say('Those clicks didn\'t land on anything. It happens. Want me to show you the step again, or would you rather ask someone for a hand?', ['Show me again', "I'm stuck"]));
   });
   const onChange = (e: Event) => {
     if (!(e.target instanceof Element)) return;

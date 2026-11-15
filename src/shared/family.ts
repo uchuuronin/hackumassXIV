@@ -62,3 +62,39 @@ export interface StuckSent {
   type: 'stuck/sent';
   ok: boolean;
 }
+
+// ---- The "Who helps you" form ----
+
+const isEmail = (text: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(text);
+const asRelation = (text: string): string => text.toLowerCase().replace(/^my\s+/, '').replace(/[^a-z' -]/g, '').trim().slice(0, 24);
+
+export type TidiedHelper = { ok: true; helper: Helper; /** The address was in the wrong box and has been put in the right one. */ moved: boolean } | { ok: false; said: string };
+
+/**
+ * What she typed into the three boxes, put right where it is plain what she meant. People expect
+ * "first name, last name, email", so the address often lands in the third box. It is moved, not refused.
+ */
+export function tidyHelper(typed: { name?: string; email?: string; relation?: string }): TidiedHelper {
+  let name = (typed.name ?? '').trim();
+  let email = (typed.email ?? '').trim();
+  let relation = (typed.relation ?? '').trim();
+  let moved = false;
+  if (!isEmail(email)) {
+    if (isEmail(relation)) {
+      // first name, last name, address
+      name = `${name} ${email}`.trim();
+      email = relation;
+      relation = '';
+      moved = true;
+    } else if (isEmail(name)) {
+      // the address first, then the name
+      [name, email] = [email, name];
+      moved = true;
+    }
+  }
+  if (!isEmail(email)) return { ok: false, said: 'I need their email address in the second box. It looks like name@example.com.' };
+  if (!name) return { ok: false, said: 'Please type their first name in the first box.' };
+  const helper: Helper = { name: name.slice(0, 40), email: email.toLowerCase() };
+  if (asRelation(relation)) helper.relation = asRelation(relation);
+  return { ok: true, helper, moved };
+}

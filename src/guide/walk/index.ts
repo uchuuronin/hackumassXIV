@@ -19,6 +19,7 @@ import { listen } from '../listening';
 import { pageMap } from '../map';
 import * as player from '../player';
 import * as spotlight from '../spotlight';
+import { isOn } from '../switches';
 
 export interface Reply {
   said: string;
@@ -99,6 +100,8 @@ export async function start(): Promise<Reply> {
   const map = pageMap.get();
   // One conversation at a time, and a pop-up has to be dealt with before anything behind it.
   if (player.isPlaying() || details.isActive() || map.dialog) return choices.show();
+  // She has asked Steady to keep it short: say what the buttons do, and leave the rest to her.
+  if (!(await isOn('walk'))) return choices.show();
   // The basket: she can see what is in it. What she needs to know is what happens next.
   if (map.stage.kind === 'basket') {
     const things = map.elements.filter((e) => e.visible && e.protection === 'delete' && e.context).length;

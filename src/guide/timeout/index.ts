@@ -5,6 +5,7 @@
 //   - If the page has already reset, it says that was the website, not her.
 // It reads only the warning itself, on this computer. Nothing leaves the page.
 
+import { isOn } from '../switches';
 import { STEADY_UI_ATTR, type PageElement } from '@/shared/pagemap';
 import { need } from '@/shared/ports';
 import type { Tool } from '@/shared/tools';
@@ -134,6 +135,7 @@ export function watch(): () => void {
     const notice = findNotice();
     if (!notice || told.get(notice.el) === notice.kind) return;
     told.set(notice.el, notice.kind);
+    if (!(await isOn('timeout'))) return; // switched off: the page's own warning speaks for itself
     const state = await check();
     if (state.status !== 'none') need('speech').say(state.said, state.options);
   };

@@ -1,6 +1,7 @@
 // So the panel can help without being asked: one quiet line about this page, and the buttons that fit it.
 // It never speaks aloud and never does anything. It only notices, from the page map, on this computer.
 
+import { isOn } from './switches';
 import type { Tool } from '@/shared/tools';
 import { STARTERS } from './answers';
 import { pageMap } from './map';
@@ -18,6 +19,8 @@ export interface Suggestion {
 
 export async function suggest(): Promise<Suggestion> {
   const at = player.where();
+  // Where she is in a task she started is always shown. Unasked-for suggestions can be switched off.
+  if (!at && !(await isOn('hints'))) return { said: '', options: [] };
   if (at) return { said: `We're on step ${at.step} of ${at.of} of "${at.task}".`, options: ['Show me again', 'Stop for now', STARTERS.stuck] };
 
   const map = pageMap.get();

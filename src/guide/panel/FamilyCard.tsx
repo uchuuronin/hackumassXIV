@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { browser } from 'wxt/browser';
 import { deviceStore } from '@/shared/device-store';
-import { HELPER_KEY, REPLY_KEY, type Helper } from '@/shared/family';
+import { HELPER_KEY, REPLY_KEY, tidyHelper, type Helper } from '@/shared/family';
 import type { RecordedTask } from '@/shared/tasks';
 import { getCode, isHelping, isLinked, joinWith, sendLinked, stopHelping, unlinkAll } from '../family/link';
 import { findTask, keepTask, sendTask } from '../family/share';
@@ -40,13 +40,13 @@ export function HelperCard() {
   }, []);
 
   const save = async () => {
-    const name = helper.name.trim();
-    const email = helper.email.trim();
-    if (!name) return setStatus('Please type their first name.');
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setStatus('That email address does not look finished. It needs an @ sign.');
-    const relation = (helper.relation ?? '').toLowerCase().replace(/^my\s+/, '').replace(/[^a-z' -]/g, '').trim().slice(0, 24);
-    await deviceStore.set(HELPER_KEY, relation ? { name, email, relation } : { name, email });
-    setStatus(`Saved. When you press "I'm stuck", I'll ask before I tell ${relation ? `your ${relation}, ${name}` : name}.`);
+    // Forgiving: an address typed into the wrong box is moved to the right one, and she is told.
+    const tidied = tidyHelper(helper);
+    if (!tidied.ok) return setStatus(tidied.said);
+    const { name, relation } = tidied.helper;
+    await deviceStore.set(HELPER_KEY, tidied.helper);
+    setHelper({ ...tidied.helper, relation: relation ?? '' });
+    setStatus(`${tidied.moved ? 'I put the email address in its own box. ' : ''}Saved. When you press "I'm stuck", I'll ask before I tell ${relation ? `your ${relation}, ${name}` : name}.`);
   };
   const remove = async () => {
     await deviceStore.remove(HELPER_KEY);
@@ -96,8 +96,8 @@ export function HelperCard() {
       <label htmlFor="helper-name">Their first name</label>
       <input id="helper-name" value={helper.name} autoComplete="off" onChange={(e) => setHelper({ ...helper, name: e.target.value })} />
       <label htmlFor="helper-email">Their email address</label>
-      <input id="helper-email" type="email" value={helper.email} autoComplete="off" onChange={(e) => setHelper({ ...helper, email: e.target.value })} />
-      <label htmlFor="helper-relation">Who are they to you? (you can leave this empty)</label>
+      <input id="helper-email" type="email" value={helper.email} autoComplete="off" placeholder="name@example.com" onChange={(e) => setHelper({ ...helper, email: e.target.value })} />
+      <label htmlFor="helper-relation">Who are they to you? A daughter, a friend… (you can leave this empty)</label>
       <input id="helper-relation" value={helper.relation ?? ''} autoComplete="off" placeholder="daughter" onChange={(e) => setHelper({ ...helper, relation: e.target.value })} />
       <div className="row">
         <button type="button" className="btn main" onClick={save}>Save</button>

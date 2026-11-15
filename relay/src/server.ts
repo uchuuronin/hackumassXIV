@@ -44,7 +44,8 @@ app.addHook('onRequest', async (req, reply) => {
   if (req.url === '/health' || !ALLOWED) return;
   // The reply page (owner: C) is opened from an email in an ordinary browser, so it has no extension origin.
   // It is guarded by a long secret in its address instead. See ./familyRoutes.ts.
-  if (req.url.startsWith('/reply/')) return;
+  // Only the exact shape of a reply link: /reply/ and its secret. Nothing with "..", an extra path or a query can ride along.
+  if (/^\/reply\/[a-f0-9]{32,64}$/.test(req.url)) return;
   if (req.headers.origin !== ALLOWED) {
     return reply.code(403).send({ error: 'forbidden' });
   }

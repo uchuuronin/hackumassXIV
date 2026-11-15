@@ -12,6 +12,7 @@ import { TONE } from '@/shared/voice';
 import { Buddy, type Mood } from '@/guide/panel/Buddy';
 import { GetTaskCard, HelperCard, RememberCard, TeachScreen } from '@/guide/panel/FamilyCard';
 import { Settings } from './Settings';
+import { GuideSwitches } from '@/guide/panel/GuideSwitches';
 import { Welcome } from './Welcome';
 import { MyDetailsCard } from '@/guide/panel/MyDetailsCard';
 import { intent, useGuide } from '@/guide/panel/useGuide';
@@ -272,6 +273,7 @@ export default function App() {
         </header>
         <main className="sheet">
           <Settings />
+          <GuideSwitches />
         </main>
       </div>
     );
