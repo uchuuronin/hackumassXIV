@@ -17,6 +17,7 @@ import { startKeyGuard } from './keys/startKeyGuard';
 import { startDwellClick, type DwellClick } from './dwell/dwellClick';
 import { pageObstacles } from './obstacles';
 import { startBigPick } from './bigpick';
+import { startReading, type Reading } from './reading';
 import { createOverlay } from './overlay';
 import { startPointer } from './pointer';
 import { startClickSteadying } from './steady/clickSteadying';
@@ -27,6 +28,12 @@ import { settingsFromReading, type TremorReading } from './fitting/analysis';
 let overlay: (Overlay & { destroy(): void; setVisible(visible: boolean): void }) | undefined;
 let dwell: DwellClick | undefined;
 let fitting: (() => Promise<FittingOutcome>) | undefined;
+let reading: Reading | undefined;
+
+/** The reading adjustments, once the hands lane has started. The helper and the panel use this to open the bar. */
+export function getReading(): Reading | undefined {
+  return reading;
+}
 
 export interface FittingOutcome {
   ran: boolean;
@@ -137,6 +144,10 @@ export function startHands(ctx: LaneContext): void {
   });
 
   // Big Pick: dropdowns, date fields and number boxes open as large buttons. On unless the person turned it off.
+  reading = startReading(ctx, pageMap);
+  ctx.onStop(() => {
+    reading = undefined;
+  });
   const bigPick = startBigPick(ctx, pageMap);
   getProfile<boolean>(BIG_PICK_KEY, true).then((on) => bigPick.setEnabled(on), () => bigPick.setEnabled(true));
   const onBigPickStorage = (changes: Record<string, { newValue?: unknown }>, area: string) => {
@@ -148,6 +159,13 @@ export function startHands(ctx: LaneContext): void {
 
   if (ctx.dev) {
     startTuning(ctx, getOverlay(), tracker);
+
+    // While building: Alt+Shift+R shows or hides the reading bar.
+    const onReadingKey = (event: KeyboardEvent) => {
+      if (event.altKey && event.shiftKey && event.code === 'KeyR') reading?.toggleBar();
+    };
+    window.addEventListener('keydown', onReadingKey, true);
+    ctx.onStop(() => window.removeEventListener('keydown', onReadingKey, true));
 
     // While building: Alt+Shift+B turns Big Pick on or off. It is remembered in the profile.
     const onBigPickKey = (event: KeyboardEvent) => {

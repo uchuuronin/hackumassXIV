@@ -28,7 +28,16 @@ export default defineBackground(() => {
     // Speaking lives here so the panel redrawing never interrupts the voice.
     if (msg?.type === 'tts/say') {
       browser.tts.stop();
-      browser.tts.speak(String(msg.text ?? ''), { rate: 0.9, lang: 'en-US' });
+      // `rate` is optional (A's read aloud sends the person's own speed).
+      const rate = Number((msg as { rate?: number }).rate);
+      browser.tts.speak(String(msg.text ?? ''), { rate: rate >= 0.5 && rate <= 2 ? rate : 0.9, lang: 'en-US' });
+      return undefined;
+    }
+    // Text size (owner: A): the browser's own zoom, so layouts reflow properly.
+    if (msg?.type === 'reading/zoom') {
+      const tabId = _sender.tab?.id;
+      const factor = Number((msg as { factor?: number }).factor);
+      if (tabId !== undefined && factor >= 0.5 && factor <= 3) browser.tabs.setZoom(tabId, factor).catch(() => undefined);
       return undefined;
     }
     if (msg?.type === 'tts/stop') {
