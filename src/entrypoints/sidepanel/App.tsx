@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
 import { toModelSafe, type PageMapResponse } from '@/shared/pagemap';
-import { HELPER_KEYS, type GeminiAnswer, type GeminiAsk, type ToolResultMsg } from '@/shared/tools';
+import { HELPER_KEYS, type GeminiAnswer, type GeminiAsk, type ToolResult, type ToolResultMsg } from '@/shared/tools';
 import { getProfile, setProfile } from '@/helper/profile';
 import { theme } from '@/shared/theme';
 import { Buddy, type Mood } from '@/guide/panel/Buddy';
@@ -13,14 +13,14 @@ import { HelperCard, TeachScreen } from '@/guide/panel/FamilyCard';
 import { MyDetailsCard } from '@/guide/panel/MyDetailsCard';
 import { intent, useGuide } from '@/guide/panel/useGuide';
 
-interface Reply { quiet?: boolean; said: string; point?: string; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean; /** A second, separate message under the first. */ then?: { said: string; options?: string[] } }
+interface Reply { quiet?: boolean; said: string; point?: string; tool?: { name: string; args: Record<string, unknown> }; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean; /** A second, separate message under the first. */ then?: { said: string; options?: string[] } }
 
 const RULES = `You are Steady, a patient helper for an older adult using a web page.
 Use plain, short, kind words. At most two sentences. No jargon.
 Answer the question directly. Only ask a question back if two different elements could both be right.
 To pay or check out, the person usually starts at the basket or cart: point at that element and say so.
 Use only the page data below. If an element has labelConfident false, say it might be that, never state it as fact.
-Reply with ONLY JSON: {"said": string, "point": id of the one element to point at (leave out if none), "options": up to 3 short choices (only if you must ask which one they mean)}.`;
+Reply with ONLY JSON: {"said": string, "point": id of the one element to point at (leave out if none), "options": up to 3 short choices (only if you must ask which one they mean), "tool": {"name": string, "args": object} (only if a TOOLS entry clearly fits what was asked; never to pay, send or submit)}.`;
 
 async function activeTabId(): Promise<number | undefined> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -36,6 +36,27 @@ async function readPage(tabId: number): Promise<string> {
   }
 }
 
+interface ToolInfo { name: string; description: string; parameters: Record<string, unknown>; owner?: string }
+
+/** Tools the page offers. C's are left out: C's own buttons and shortcuts run those. */
+async function listTools(tabId: number): Promise<ToolInfo[]> {
+  try {
+    const res = (await browser.tabs.sendMessage(tabId, { type: 'tool/list' })) as { tools?: ToolInfo[] } | undefined;
+    return (res?.tools ?? []).filter((t) => t.name !== 'point_at' && t.owner !== 'guide');
+  } catch {
+    return [];
+  }
+}
+
+async function runTool(tabId: number, name: string, args: Record<string, unknown>): Promise<ToolResult | undefined> {
+  try {
+    const res = (await browser.tabs.sendMessage(tabId, { type: 'tool/run', name, args })) as ToolResultMsg | undefined;
+    return res?.result;
+  } catch {
+    return undefined;
+  }
+}
+
 function parse(text: string): Reply {
   const m = text.match(/\{[\s\S]*\}/);
   if (m) {
@@ -45,6 +66,7 @@ function parse(text: string): Reply {
         return {
           said: j.said,
           point: typeof j.point === 'string' ? j.point : undefined,
+          tool: j.tool && typeof j.tool.name === 'string' ? { name: j.tool.name as string, args: (j.tool.args && typeof j.tool.args === 'object' ? j.tool.args : {}) as Record<string, unknown> } : undefined,
           options: Array.isArray(j.options) ? j.options.filter((o: unknown) => typeof o === 'string').slice(0, 3) : undefined,
         };
       }
@@ -139,15 +161,24 @@ export default function App() {
     setBusy(true);
     setReply(null);
     try {
+      // C's buttons and shortcuts ("help me fill this in", a saved task's name) work for the voice too.
+      const button = intent(q, guide.tasks);
+      if (button) { setText(''); guide.press(button); return; }
       const tabId = await activeTabId();
+      const tools = tabId ? await listTools(tabId) : [];
       const page = tabId ? await readPage(tabId) : '';
-      const prompt = `${RULES}\n\nPAGE:\n${page || '(could not read this page)'}\n\nPERSON: ${q}`;
+      const toolText = tools.length ? tools.map((t) => `- ${t.name}(${Object.keys(t.parameters).join(', ')}): ${t.description}`).join('\n') : '(none)';
+      const prompt = `${RULES}\n\nTOOLS:\n${toolText}\n\nPAGE:\n${page || '(could not read this page)'}\n\nPERSON: ${q}`;
       const msg: GeminiAsk = { type: 'gemini/ask', prompt };
       const ans = (await browser.runtime.sendMessage(msg)) as GeminiAnswer | undefined;
       if (!ans?.ok) {
         setReply({ said: "I couldn't reach my helper just now. Please try again.", quiet: true });
       } else {
         const r = parse(ans.text);
+        if (r.tool && tabId && tools.some((t) => t.name === r.tool!.name)) {
+          const out = await runTool(tabId, r.tool.name, r.tool.args);
+          if (out?.said) r.said = out.said;
+        }
         setReply(r);
         say(r.said);
         if (r.point && tabId) {
