@@ -190,3 +190,99 @@ test('what Gemini is told always fits what the relay accepts: on a big page the 
   const small = agentPrompt({ goal: 'q', level: 'for-me', tools: TOOLS, map: '[]', words, done: [], notes: [] });
   expect(small).toContain(words.trim()); // on an ordinary page nothing is cut
 });
+
+// ---- Looking things up, opening pictures, and seeing the screen ----
+
+function more(replies: string[], extra: Partial<Deps> = {}) {
+  const w = world(replies);
+  const asked: Array<{ prompt: string; picture?: string }> = [];
+  const ask = w.deps.ask;
+  w.deps.ask = async (prompt, picture) => {
+    asked.push({ prompt, picture });
+    return ask(prompt);
+  };
+  Object.assign(w.deps, extra);
+  return { ...w, asked };
+}
+
+test('a question about the world is looked up on the live web first, and the answer is used', async () => {
+  const searched: string[] = [];
+  const w = more(
+    [step('Let me look that up.', 'look_up', { question: 'small white dog breeds with big ears' }), JSON.stringify({ say: 'It might be a Papillon, a Chihuahua or a West Highland Terrier.', done: true })],
+    { async search(q) { searched.push(q); return 'Papillons are small, often white, with large butterfly ears.'; } },
+  );
+  const end = await new Run("I'm looking for a dog breed. White, short, really big ears", 'show', w.deps).next();
+  expect(searched).toEqual(['small white dog breeds with big ears']);
+  expect(w.asked[1]!.prompt).toContain('Papillons are small, often white, with large butterfly ears.');
+  expect(end).toMatchObject({ kind: 'done', said: 'It might be a Papillon, a Chihuahua or a West Highland Terrier.' });
+});
+
+test('pictures open in a new tab only after she says yes, at every level, and that ends the turn', async () => {
+  for (const level of ['show', 'with-me', 'for-me'] as const) {
+    const opened: string[] = [];
+    const w = more([step('Shall I open some pictures of Papillons?', 'show_pictures', { what: 'Papillon dog' })], { async open(url) { opened.push(url); return true; } });
+    const run = new Run('show me', level, w.deps);
+    const first = await run.next();
+    expect(first, level).toMatchObject({ kind: 'confirm', said: 'Shall I open some pictures of Papillons?' });
+    expect(opened).toEqual([]);
+    const end = await run.next('Yes, do it');
+    expect(opened).toEqual(['https://www.google.com/search?q=Papillon%20dog&udm=2']);
+    expect(end).toMatchObject({ kind: 'done', said: 'I\'ve opened pictures of "Papillon dog" in a new tab, next to your page.' });
+  }
+});
+
+test('a web search can be opened the same way, and "no" opens nothing', async () => {
+  const opened: string[] = [];
+  const w = more([step('Shall I search for that?', 'search_web', { what: 'bakery opening hours Amherst' })], { async open(url) { opened.push(url); return true; } });
+  const run = new Run('q', 'for-me', w.deps);
+  await run.next();
+  expect(await run.next('No thanks')).toMatchObject({ kind: 'stopped' });
+  expect(opened).toEqual([]);
+});
+
+test('"What is this?" sends a picture of her screen with the question', async () => {
+  const w = more([JSON.stringify({ say: 'It is a photo of a brass reading lamp.', done: true })], { async look() { return { picture: 'JPEGDATA' }; } });
+  const end = await new Run('what is this picture?', 'for-me', w.deps, { look: true }).next();
+  expect(w.asked[0]!.picture).toBe('JPEGDATA');
+  expect(w.asked[0]!.prompt).toContain('A PICTURE OF HER SCREEN IS ATTACHED');
+  expect(end.said).toBe('It is a photo of a brass reading lamp.');
+});
+
+test('Gemini can ask to look at the screen itself, and gets the picture on its next turn', async () => {
+  const w = more([step('Let me look.', 'look_at_screen', {}), JSON.stringify({ say: 'Those three icons are search, your basket and your account.', done: true })], { async look() { return { picture: 'JPEGDATA' }; } });
+  const end = await new Run('what are those little pictures at the top?', 'for-me', w.deps).next();
+  expect(w.asked[0]!.picture).toBeUndefined();
+  expect(w.asked[1]!.picture).toBe('JPEGDATA');
+  expect(end.said).toBe('Those three icons are search, your basket and your account.');
+});
+
+test('it never looks at a private page, and says so plainly instead of guessing', async () => {
+  const w = more([], { async look() { return { held: 'private' as const }; } });
+  const end = await new Run('what am I looking at?', 'for-me', w.deps, { look: true }).next();
+  expect(end).toMatchObject({ kind: 'answer', said: "I don't look at pages for signing in, paying, your bank or your health. I can tell you what the buttons say instead." });
+  expect(w.asked.length).toBe(0); // nothing went to Gemini
+  const off = more([], { async look() { return { held: 'off' as const }; } });
+  expect((await new Run('what is this?', 'for-me', off.deps, { look: true }).next()).said).toBe('Looking at the screen is switched off in Settings.');
+});
+
+test('after a step changes the page, the old picture is not sent again', async () => {
+  const w = more([step('Opening it.', 'click', { id: 's1' }), JSON.stringify({ say: 'Done.', done: true })], { async look() { return { picture: 'OLD' }; } });
+  await new Run('what is this? open it', 'for-me', w.deps, { look: true }).next();
+  expect(w.asked[0]!.picture).toBe('OLD');
+  expect(w.asked[1]!.picture).toBeUndefined();
+});
+
+test('what was said a moment ago is remembered, so "no, smaller than that" keeps the thread', async () => {
+  const w = more([JSON.stringify({ say: 'Then perhaps a Chihuahua.', done: true })]);
+  await new Run('no, smaller than that', 'for-me', w.deps, { earlier: [{ she: 'a white dog with big ears', milo: 'It might be a Papillon.' }] }).next();
+  expect(w.asked[0]!.prompt).toContain('She said: "a white dog with big ears". You said: "It might be a Papillon."');
+});
+
+test('the built-in tools are offered only when Milo can do them', async () => {
+  const w = more([JSON.stringify({ say: 'Hi.', done: true })]);
+  await new Run('hi', 'for-me', w.deps).next();
+  expect(w.asked[0]!.prompt).not.toContain('look_up(');
+  const v = more([JSON.stringify({ say: 'Hi.', done: true })], { async search() { return ''; }, async open() { return true; }, async look() { return {}; } });
+  await new Run('hi', 'for-me', v.deps).next();
+  for (const tool of ['look_up(question)', 'show_pictures(what)', 'search_web(what)', 'look_at_screen()']) expect(v.asked[0]!.prompt).toContain(tool);
+});

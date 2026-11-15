@@ -28,8 +28,8 @@ export interface ToolInfo {
 }
 
 export interface Deps {
-  /** One question to Gemini. Null when it can't be reached. */
-  ask(prompt: string): Promise<string | null>;
+  /** One question to Gemini, with a picture of her screen if there is one. Null when it can't be reached. */
+  ask(prompt: string, picture?: string): Promise<string | null>;
   /** The page as Gemini may see it right now: the stripped map, and the words she can read. */
   page(): Promise<{ map: string; words: string }>;
   tools(): Promise<ToolInfo[]>;
@@ -43,6 +43,17 @@ export interface Deps {
   settle(): Promise<void>;
   /** How Milo speaks (src/shared/voice.ts), added to what Gemini is told. */
   tone?: string;
+  /** Ask Gemini with Google Search behind it, for questions about the world. Its answer, or null. */
+  search?(question: string): Promise<string | null>;
+  /** A picture of her screen, or why there is none. Never taken on a private page. */
+  look?(): Promise<{ picture?: string; held?: 'private' | 'off' | 'failed' }>;
+  /** Open an address in a new tab beside her page. */
+  open?(url: string): Promise<boolean>;
+}
+
+export interface Earlier {
+  she: string;
+  milo: string;
 }
 
 export interface Step {
@@ -89,13 +100,34 @@ export const STOP = 'Stop';
 /** Steps between checks with her. */
 const STEPS_AT_A_TIME = 6;
 /** Tools that only change what she is looking at. In "Do it for me" these need no yes. Anything else is asked about. */
+/** Milo's own tools, done here rather than on the page. Offered only when the panel can do them. */
+const BUILT_IN: Record<string, { needs: keyof Deps; info: ToolInfo }> = {
+  look_up: { needs: 'search', info: { name: 'look_up', description: 'Look something up on the live web, for questions about the world rather than this page: what something is, opening hours, news, how to do something. Use it before answering any such question; never guess facts.', parameters: { question: {} } } },
+  look_at_screen: { needs: 'look', info: { name: 'look_at_screen', description: 'See a picture of her screen, for questions about something she can see that has no words: a photo, an icon, a chart, a sign, or "what am I looking at?".', parameters: {} } },
+  show_pictures: { needs: 'open', info: { name: 'show_pictures', description: 'Open Google Images in a new tab, so she can see pictures of something (a dog breed, a plant, a place). Ask her first, in "say".', parameters: { what: {} } } },
+  search_web: { needs: 'open', info: { name: 'search_web', description: 'Open a Google search in a new tab, when she wants to see the results herself. Ask her first, in "say".', parameters: { what: {} } } },
+};
+/** Built-in tools that open something for her. Always asked about first, at every level, and they end the turn. */
+const OPENS = new Set(['show_pictures', 'search_web']);
+
+export function searchUrl(tool: string, what: string): string {
+  const q = encodeURIComponent(what.trim().slice(0, 120));
+  return tool === 'show_pictures' ? `https://www.google.com/search?q=${q}&udm=2` : `https://www.google.com/search?q=${q}`;
+}
+
+const HELD: Record<'private' | 'off' | 'failed', string> = {
+  private: "I don't look at pages for signing in, paying, your bank or your health. I can tell you what the buttons say instead.",
+  off: 'Looking at the screen is switched off in Settings.',
+  failed: "I couldn't take a picture of this page. Some pages, like Chrome's own settings, can't be pictured.",
+};
+
 const NEEDS_NO_YES = new Set(['click', 'fill', 'reading_set', 'reading_open_bar', 'reading_read_aloud', 'reading_stop', 'quiet_page', 'unquiet_page', 'label_choices', 'hide_choice_labels']);
 
 const LOST = "I couldn't reach my helper just now. Please try again.";
 /** The longest prompt sent. The relay's own limit is 20,000 characters. */
 const MOST = 19500;
 
-export function agentPrompt(o: { goal: string; level: Level; tools: ToolInfo[]; map: string; words: string; done: Done[]; notes: string[]; tone?: string }): string {
+export function agentPrompt(o: { goal: string; level: Level; tools: ToolInfo[]; map: string; words: string; done: Done[]; notes: string[]; tone?: string; picture?: boolean }): string {
   const tools = o.tools.map((t) => `- ${t.name}(${Object.keys(t.parameters).join(', ')}): ${t.description}`).join('\n') || '(none)';
   const done = o.done.map((d, i) => `${i + 1}. ${d.tool} ${JSON.stringify(d.args)} -> ${d.ok ? '' : 'REFUSED: '}${d.result}`).join('\n') || '(nothing yet)';
   const build = (words: string) => [
@@ -120,6 +152,10 @@ export function agentPrompt(o: { goal: string; level: Level; tools: ToolInfo[]; 
     '- If a step was REFUSED, do not try another way round it. Stop and tell her.',
     '- If an element has labelConfident false, say it might be that, never state it as fact.',
     '- To pay or check out she usually starts at the basket or cart: point at it and say so.',
+    '- For a question about the world, not this page, use look_up first if it is in TOOLS. Then answer in two or three short lines.',
+    '- When pictures would help her (a dog breed, a plant, a place), offer show_pictures with a short search, asking in "say".',
+    '- For something on her screen that has no words, use look_at_screen if it is in TOOLS and no picture is attached.',
+    o.picture ? '- A PICTURE OF HER SCREEN IS ATTACHED. Use it to answer what she can see. Describe only what matters to her question, in two plain sentences.' : '',
     o.level === 'show' ? '- She chose "Show me": she does the pressing. Give the next step as usual; it will be explained to her, not taken.' : '',
     '',
     `TOOLS:\n${tools}`,
@@ -178,8 +214,14 @@ export class Run {
   private asked: string | null = null;
   private halted = false;
   private since = 0;
+  /** A picture of her screen, sent with each question until a step changes the page. */
+  private picture: string | undefined;
+  private wantLook: boolean;
 
-  constructor(private goal: string, private level: Level, private deps: Deps) {}
+  constructor(private goal: string, private level: Level, private deps: Deps, options: { look?: boolean; earlier?: Earlier[] } = {}) {
+    this.wantLook = !!options.look && !!deps.look;
+    for (const e of options.earlier ?? []) this.notes.push(`A moment ago. She said: "${e.she}". You said: "${e.milo}".`);
+  }
 
   /** True while it is waiting for her: a yes or no, an answer to its question, or "carry on". */
   get waiting(): boolean {
@@ -209,14 +251,27 @@ export class Run {
     return this.loop();
   }
 
+  private offered(tools: ToolInfo[]): ToolInfo[] {
+    const own = Object.values(BUILT_IN).filter((b) => typeof this.deps[b.needs] === 'function').map((b) => b.info);
+    return [...tools.filter((t) => !BUILT_IN[t.name]), ...own];
+  }
+
   private async loop(): Promise<Outcome> {
+    // "What is this?": a picture of her screen goes with the first question.
+    if (this.wantLook) {
+      this.wantLook = false;
+      const seen = await this.deps.look!();
+      if (!seen.picture) return { kind: 'answer', said: HELD[seen.held ?? 'failed'] };
+      this.picture = seen.picture;
+    }
     for (;;) {
       if (this.halted) return { kind: 'stopped', said: "I've stopped. Nothing else will be pressed." };
       if (this.since >= STEPS_AT_A_TIME) {
         return { kind: 'limit', said: `I've done ${this.since} things so far. Shall I carry on?`, options: [CARRY_ON, STOP] };
       }
-      const [page, tools] = await Promise.all([this.deps.page(), this.deps.tools()]);
-      const text = await this.deps.ask(agentPrompt({ goal: this.goal, level: this.level, tools, map: page.map, words: page.words, done: this.done, notes: this.notes, tone: this.deps.tone }));
+      const [page, pageTools] = await Promise.all([this.deps.page(), this.deps.tools()]);
+      const tools = this.offered(pageTools);
+      const text = await this.deps.ask(agentPrompt({ goal: this.goal, level: this.level, tools, map: page.map, words: page.words, done: this.done, notes: this.notes, tone: this.deps.tone, picture: !!this.picture }), this.picture);
       const turn = text === null ? null : readTurn(text, tools.map((t) => t.name));
       if (!turn) return { kind: 'lost', said: LOST };
       if (this.halted) return { kind: 'stopped', said: "I've stopped. Nothing else will be pressed." };
@@ -226,6 +281,17 @@ export class Run {
         return { kind: 'asked', said: turn.ask, options: turn.options };
       }
       if (!turn.step) return { kind: this.done.length ? 'done' : 'answer', said: turn.say, point: turn.point, options: turn.options };
+
+      // Milo's own tools. Looking something up or looking at the screen changes nothing for her, so needs no yes.
+      if (turn.step.tool === 'look_up' || turn.step.tool === 'look_at_screen') {
+        await this.own(turn.step);
+        continue;
+      }
+      // Opening a page for her: always a question first, at every level.
+      if (OPENS.has(turn.step.tool)) {
+        this.pending = turn;
+        return { kind: 'confirm', said: asQuestion(turn.say), options: [YES, NO] };
+      }
 
       const id = typeof turn.step.args.id === 'string' ? turn.step.args.id : undefined;
       // "Show me": she does the pressing. Say it and point; never act.
@@ -243,9 +309,35 @@ export class Run {
     }
   }
 
+  /** Looks something up, or looks at the screen. What it found goes under DONE SO FAR for the next turn. */
+  private async own(step: Step): Promise<void> {
+    this.since += 1;
+    if (step.tool === 'look_up') {
+      const question = String(step.args.question ?? this.goal).slice(0, 300);
+      this.deps.progress('Let me look that up.');
+      const found = await this.deps.search!(question);
+      this.done.push({ ...step, ok: !!found, result: found ? `Found on the web: ${found.slice(0, 1500)}` : "The web search didn't work just now." });
+      return;
+    }
+    if (this.picture) {
+      this.done.push({ ...step, ok: true, result: 'The picture is already attached.' });
+      return;
+    }
+    this.deps.progress('Let me have a look.');
+    const seen = await this.deps.look!();
+    this.picture = seen.picture;
+    this.done.push({ ...step, ok: !!seen.picture, result: seen.picture ? 'A picture of her screen is now attached.' : HELD[seen.held ?? 'failed'] });
+  }
+
   /** Takes one step. Returns how it ended if that was the end, otherwise nothing and the loop goes on. */
   private async take(turn: Turn): Promise<Outcome | null> {
     const step = turn.step!;
+    if (OPENS.has(step.tool)) {
+      const what = String(step.args.what ?? this.goal);
+      const ok = await this.deps.open!(searchUrl(step.tool, what));
+      const said = !ok ? "I couldn't open a new tab just now." : step.tool === 'show_pictures' ? `I've opened pictures of "${what}" in a new tab, next to your page.` : `I've opened a search for "${what}" in a new tab, next to your page.`;
+      return { kind: ok ? 'done' : 'lost', said };
+    }
     const id = typeof step.args.id === 'string' ? step.args.id : undefined;
     this.deps.progress(turn.say);
     if (id) this.deps.point(id);
@@ -253,6 +345,7 @@ export class Run {
     if (!result) return { kind: 'lost', said: "I can't reach this page just now. Try refreshing it, then ask me again." };
     this.done.push({ ...step, ok: result.ok, result: result.said ?? (result.ok ? 'Done.' : 'It did not work.') });
     this.since += 1;
+    this.picture = undefined; // the page has changed: that picture is out of date
     if (!result.ok) {
       // Refused: a button only she may press, a private box, or something that has gone. It stops here, with the thing marked.
       const why = result.said ?? 'That one needs a real press from you.';

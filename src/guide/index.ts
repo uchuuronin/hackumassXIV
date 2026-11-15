@@ -130,6 +130,11 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
       return true;
     }
     // The words Gemini may read, for answering a question about what the page says. See ./pagewords.ts for what is held back.
+    // May Milo take a picture of the screen? Asked by the panel before every picture. See ./pagewords.ts.
+    if ((message as { type?: unknown } | null)?.type === 'page/may-look') {
+      pagewords.mayLook().then((got) => sendResponse(got as never), () => sendResponse({ ok: false, held: 'private' } as never));
+      return true;
+    }
     if ((message as { type?: unknown } | null)?.type === 'page/words') {
       pagewords.forGemini().then((got) => sendResponse({ type: 'page/words', ...got } as never), () => sendResponse({ type: 'page/words', words: '' } as never));
       return true;

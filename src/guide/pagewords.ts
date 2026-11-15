@@ -92,6 +92,13 @@ export function read(): PageWords {
   return { words };
 }
 
+/** May Milo take a picture of her screen now? Never on a private page, and not if she has switched it off. */
+export async function mayLook(): Promise<{ ok: true } | { ok: false; held: 'private' | 'off' }> {
+  if (!(await isOn('sight'))) return { ok: false, held: 'off' };
+  if (isPrivate()) return { ok: false, held: 'private' };
+  return { ok: true };
+}
+
 /** What may go to Gemini right now: nothing if she has switched reading off. */
 export async function forGemini(): Promise<PageWords> {
   if (!(await isOn('words'))) return { words: '', held: 'off' };

@@ -28,3 +28,21 @@ export function configFor(t: Try): Record<string, unknown> | undefined {
   if (t.json) return { responseMimeType: 'application/json' };
   return undefined;
 }
+
+/** A picture of her screen is sent beside the words. Without one, the words alone, as before. */
+export function contentsFor(prompt: string, picture?: string): unknown {
+  if (!picture) return prompt;
+  return [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: 'image/jpeg', data: picture } }] }];
+}
+
+/** The largest picture accepted, in base64 characters (about 4.5 MB of image). Milo sends about 200 KB. */
+const MOST_PICTURE = 6_000_000;
+
+/** A picture from the extension, checked: base64 only, not too big. Undefined when none was sent; null when one was sent but is unusable. */
+export function tidyPicture(value: unknown): string | null | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value !== 'string') return null;
+  const data = value.replace(/^data:image\/jpeg;base64,/, '');
+  if (data.length > MOST_PICTURE || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return null;
+  return data;
+}

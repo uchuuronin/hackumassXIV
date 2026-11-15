@@ -46,5 +46,5 @@ export interface ToolResultMsg { type: 'tool/result'; result: ToolResult }
 export type Msg = HelperAsk | HelperAnswer | ToolRun | ToolResultMsg;
 
 /** Ask Gemini through the relay. Sent to the background worker, which holds the relay URL. */
-export interface GeminiAsk { type: 'gemini/ask'; prompt: string; /** Let Gemini search the web for this one (the relay decides whether it can). */ search?: boolean; /** Ask for a strict JSON answer. Not used together with search. An older relay ignores it. */ json?: boolean }
-export interface GeminiAnswer { type: 'gemini/answer'; ok: boolean; text: string }
+export interface GeminiAsk { type: 'gemini/ask'; prompt: string; /** Let Gemini search the web for this one (the relay decides whether it can). */ search?: boolean; /** Ask for a strict JSON answer. Not used together with search. An older relay ignores it. */ json?: boolean; /** A picture of her screen, base64 JPEG (guide lane). */ image?: string }
+export interface GeminiAnswer { type: 'gemini/answer'; ok: boolean; text: string; /** When a picture was sent: true only if the relay really passed it to Gemini. */ saw?: boolean }

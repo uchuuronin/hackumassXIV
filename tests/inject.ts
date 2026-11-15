@@ -16,6 +16,7 @@ import * as trail from '@/guide/trail';
 import * as walk from '@/guide/walk';
 import * as easier from '@/guide/easier';
 import * as words from '@/guide/pagewords';
+import * as hear from '@/shared/hear';
 import { registerTool } from '@/helper/registry';
 import { keepFocusInside, openDialog } from '@/shared/dialog';
 import * as spotlight from '@/guide/spotlight';
@@ -100,6 +101,7 @@ const steady = {
   walk,
   easier,
   words,
+  hear,
   /** Tests stand in for another lane's tools (the helper's quiet_page, for one). */
   registerTool,
   /** The saved-data stand-in, for tests that need to put something there directly. */

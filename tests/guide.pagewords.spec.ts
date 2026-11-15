@@ -81,3 +81,13 @@ test('a price and its crossed-out old price are kept apart, and the old one is m
   expect(got).toContain('$34.00 (was $42.00)');
   expect(got).toContain('In stock today.');
 });
+
+test('a picture of the screen is allowed on an ordinary page, never on a private one, and not when she has switched it off', async ({ page }) => {
+  await html(page, '<main><p>The red kettle costs $24.</p></main>');
+  expect(await page.evaluate(() => window.__steady.words.mayLook())).toEqual({ ok: true });
+  await page.evaluate(() => window.__steady.store.set('guide:switches', { sight: false }));
+  expect(await page.evaluate(() => window.__steady.words.mayLook())).toEqual({ ok: false, held: 'off' });
+  await page.goto('/shop/checkout.html?reset=1');
+  await inject(page);
+  expect(await page.evaluate(() => window.__steady.words.mayLook())).toEqual({ ok: false, held: 'private' });
+});

@@ -4,7 +4,7 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { GoogleGenAI } from '@google/genai';
 import { registerFamily } from './familyRoutes';
-import { configFor, triesFor } from './geminiTries';
+import { configFor, contentsFor, tidyPicture, triesFor } from './geminiTries';
 import { registerStuck } from './stuck';
 import { registerTasks } from './tasks';
 
@@ -29,13 +29,14 @@ const withTimeout = <T>(p: Promise<T>, ms: number) =>
 //
 // `json` (also from the guide lane): the main model is told to answer in strict JSON. Same promise: if that
 // try fails, the prompt is asked again plainly. The order of tries is in ./geminiTries.ts, with its tests.
-async function ask(prompt: string, search = false, json = false) {
+// `image` (also from the guide lane): a picture of her screen, sent beside the words. Never with a web search.
+async function ask(prompt: string, search = false, json = false, image?: string) {
   let lastErr: unknown = new Error('no model is set');
-  for (const t of triesFor({ main: MODEL, fallback: FALLBACK, search, json })) {
+  for (const t of triesFor({ main: MODEL, fallback: FALLBACK, search: search && !image, json })) {
     try {
       const config = configFor(t);
-      const r = await withTimeout(ai.models.generateContent({ model: t.model, contents: prompt, ...(config ? { config } : {}) }), 20000);
-      return { text: r.text ?? '', model: t.model, searched: t.search, json: t.json };
+      const r = await withTimeout(ai.models.generateContent({ model: t.model, contents: contentsFor(prompt, image) as never, ...(config ? { config } : {}) }), 20000);
+      return { text: r.text ?? '', model: t.model, searched: t.search, json: t.json, saw: !!image };
     } catch (e) {
       lastErr = e;
     }
@@ -68,13 +69,16 @@ registerTasks(app);
 // Linking a helper by a short code, tasks that arrive by themselves, and reply notes (owner: C). See ./familyRoutes.ts.
 registerFamily(app);
 
-app.post<{ Body: { prompt: string; search?: boolean; json?: boolean } }>('/gemini', async (req, reply) => {
+// A picture makes the request bigger than the usual 1 MB limit, so this one route allows 8 MB.
+app.post<{ Body: { prompt: string; search?: boolean; json?: boolean; image?: string } }>('/gemini', { bodyLimit: 8 * 1024 * 1024 }, async (req, reply) => {
   const prompt = req.body?.prompt;
   if (typeof prompt !== 'string' || !prompt || prompt.length > 20000) {
     return reply.code(400).send({ error: 'bad prompt' });
   }
   try {
-    return await ask(prompt, req.body?.search === true, req.body?.json === true);
+    const image = tidyPicture(req.body?.image);
+    if (image === null) return reply.code(400).send({ error: 'bad image' });
+    return await ask(prompt, req.body?.search === true, req.body?.json === true, image);
   } catch (e) {
     req.log.error(e);
     return reply.code(502).send({ error: 'gemini failed' });

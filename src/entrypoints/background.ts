@@ -1,5 +1,6 @@
 // Owner: B (background worker and messages).
 import { askRelay } from '@/helper/relay';
+import { takePicture } from '@/guide/sight';
 import { sendStuck } from '@/guide/family/send';
 import type { StuckSend } from '@/shared/family';
 import type { GeminiAsk } from '@/shared/tools';
@@ -26,7 +27,15 @@ export default defineBackground(() => {
 
     // Everything that needs Gemini goes through here, so the relay URL lives in one place.
     if (msg?.type === 'gemini/ask') {
-      askRelay(String((msg as GeminiAsk).prompt ?? ''), (msg as GeminiAsk).search === true, (msg as GeminiAsk).json === true).then(sendResponse);
+      const ask = msg as GeminiAsk;
+      askRelay(String(ask.prompt ?? ''), ask.search === true, ask.json === true, typeof ask.image === 'string' ? ask.image : undefined).then(sendResponse);
+      return true;
+    }
+
+    // A picture of the screen, for "What is this?" (owner: C). The panel has already asked the page whether it is private.
+    if (msg?.type === 'screen/look') {
+      const windowId = Number((message as { windowId?: unknown }).windowId);
+      takePicture((id) => browser.tabs.captureVisibleTab(id, { format: 'jpeg', quality: 80 }), windowId).then(sendResponse);
       return true;
     }
 

@@ -6,7 +6,7 @@
 
 export const GUIDE_SWITCH_KEY = 'guide:switches';
 
-export type GuideSwitchId = 'walk' | 'hints' | 'nudges' | 'calm' | 'trail' | 'lastTime' | 'timeout' | 'motion' | 'words';
+export type GuideSwitchId = 'walk' | 'hints' | 'nudges' | 'calm' | 'trail' | 'lastTime' | 'timeout' | 'motion' | 'words' | 'sight';
 export type GuideSwitches = Record<GuideSwitchId, boolean>;
 
 export const GUIDE_SWITCHES: Array<{ id: GuideSwitchId; label: string; hint: string }> = [
@@ -18,11 +18,12 @@ export const GUIDE_SWITCHES: Array<{ id: GuideSwitchId; label: string; hint: str
   { id: 'lastTime', label: 'Mention what I picked last time', hint: 'In a saved task, such as which doctor and which day. Off: nothing is kept, and what I had is forgotten.' },
   { id: 'timeout', label: 'Warn me before a page times out', hint: 'Some pages log you out if you take a while. I say so when I see the warning.' },
   { id: 'words', label: 'Read the page to answer my questions', hint: 'So I can answer things like "which one is cheapest?", I read the words on the page, the way you do. I never read what you type, and I never read a page for signing in, paying, your bank or your health. Off: I only know the names of the buttons.' },
+  { id: 'sight', label: 'Look at the screen when I ask', hint: 'When you ask "What is this?" or "What am I looking at?", I take a picture of the page and ask Gemini about it. Never on a page for signing in, paying, your bank or your health. Off: I only read the words.' },
   // Anything that keeps moving by itself needs a way to stop it (WCAG 2.2.2). This is that way, for the panel.
   { id: 'motion', label: 'Let my face move', hint: 'My face breathes and blinks, and the little lights along the top twinkle. Off: everything in this panel keeps still. My face still changes, without moving.' },
 ];
 
-export const ALL_ON: GuideSwitches = { walk: true, hints: true, nudges: true, calm: true, trail: true, lastTime: true, timeout: true, motion: true, words: true };
+export const ALL_ON: GuideSwitches = { walk: true, hints: true, nudges: true, calm: true, trail: true, lastTime: true, timeout: true, motion: true, words: true, sight: true };
 /**
  * "Keep it light": for someone who wants Milo there when asked and quiet otherwise. It stops the talking,
  * not the remembering or the warnings.

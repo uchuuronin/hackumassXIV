@@ -9,7 +9,8 @@ import { HELPER_KEYS, type GeminiAnswer, type GeminiAsk, type HelpLevel, type To
 import { getProfile, setProfile } from '@/helper/profile';
 import { theme } from '@/shared/theme';
 import { TONE } from '@/shared/voice';
-import { Run, STOP, type Outcome } from '@/guide/agent/loop';
+import { Run, STOP, type Earlier, type Outcome } from '@/guide/agent/loop';
+import { listen as hear } from '@/shared/hear';
 import { Buddy, Field, useRest, type Mood } from '@/guide/panel/Buddy';
 import { GetTaskCard, HelperCard, RememberCard, TeachScreen } from '@/guide/panel/FamilyCard';
 import { Settings } from './Settings';
@@ -106,6 +107,9 @@ export default function App() {
   const inFlight = useRef(false);
   // The step-by-step helper for what she asks in her own words (guide lane, C: src/guide/agent/loop.ts).
   const agent = useRef<Run | null>(null);
+  /** The last few things said, so a follow-up ("no, smaller than that") keeps the thread. Forgotten after ten minutes. */
+  const talk = useRef<Array<Earlier & { at: number }>>([]);
+  const saidAt = useRef(0);
   const [progress, setProgress] = useState<string | null>(null);
   const lastAsk = useRef(0);
   const voiceRef = useRef(true);
@@ -126,7 +130,7 @@ export default function App() {
     say(r.then ? `${r.said} ${r.then.said}` : r.said);
     setGlad(true);
     window.setTimeout(() => setGlad(false), 1600);
-  }, () => setReply(null));
+  }, () => { if (Date.now() - saidAt.current > 5000) setReply(null); }); // a new tab Milo just opened keeps what Milo just said about it
 
   useEffect(() => {
     getProfile(HELPER_KEYS.voiceOn, true).then((v) => { voiceRef.current = v; setVoiceOn(v); });
@@ -148,38 +152,32 @@ export default function App() {
     if (!next) browser.runtime.sendMessage({ type: 'tts/stop' }).catch(() => undefined);
   }
 
-  async function listen() {
+  // Listening (guide lane, C: src/shared/hear.ts). It starts at once; it used to wait for a download first.
+  const hearing = useRef<{ stop(): void } | null>(null);
+  function listen() {
     const w = window as any;
     const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!SR) { setMicError('not-supported'); return; }
-    try {
-      const opts = { langs: ['en-US'], processLocally: true };
-      if ((await SR.available?.(opts)) !== 'available') await SR.install?.(opts);
-    } catch { /* try anyway */ }
-    const rec = new SR();
-    rec.lang = 'en-US';
-    rec.processLocally = true;
-    rec.continuous = true;
-    rec.interimResults = true;
-    let heard = '';
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    rec.onresult = (e: any) => {
-      heard = Array.from(e.results).map((r: any) => r[0].transcript).join(' ').trim();
-      setText(heard);
-      clearTimeout(timer);
-      timer = setTimeout(() => { rec.stop(); ask(heard); }, 1800);
-    };
-    rec.onerror = (e: any) => {
-      setMicError(String(e.error));
-      setListening(false);
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') setMicProblem(true);
-    };
-    rec.onend = () => setListening(false);
+    if (listening) { hearing.current?.stop(); return; }
     setMicProblem(false);
     setMicError('');
     setListening(true);
     browser.runtime.sendMessage({ type: 'tts/stop' }).catch(() => undefined);
-    rec.start();
+    hearing.current = hear(SR, {
+      lang: 'en-US',
+      onWords: (words) => setText(words),
+      onDone: (words) => {
+        setListening(false);
+        hearing.current = null;
+        void ask(words);
+      },
+      onError: (code) => {
+        setListening(false);
+        hearing.current = null;
+        setMicError(code);
+        if (code === 'not-allowed' || code === 'service-not-allowed') setMicProblem(true);
+      },
+    });
   }
 
   function openMicPage() {
@@ -187,12 +185,14 @@ export default function App() {
   }
 
   /** Runs the helper until it ends or needs her, and shows how it ended. */
-  async function drive(go: () => Promise<Outcome>, tabId?: number) {
+  async function drive(go: () => Promise<Outcome>, tabId?: number, she?: string) {
     inFlight.current = true;
     setBusy(true);
     try {
       const end = await go();
       setReply({ said: end.said, options: end.options, point: end.point, quiet: end.kind === 'lost', agent: true });
+      if (she) talk.current = [...talk.current, { she, milo: end.said, at: Date.now() }].slice(-3);
+      saidAt.current = Date.now();
       say(end.said);
       if (end.point && tabId) {
         const run = { type: 'tool/run', name: 'point_at', args: { id: end.point } };
@@ -215,15 +215,43 @@ export default function App() {
     if (button) { setText(''); guide.press(button); return; }
     const tabId = await activeTabId();
     // She is answering a question the helper asked ("Which day?"), in her own words.
-    if (agent.current?.waiting) { setText(''); return drive(() => agent.current!.next(q), tabId); }
+    if (agent.current?.waiting) { setText(''); return drive(() => agent.current!.next(q), tabId, q); }
     setReply(null);
     const saved = await getProfile<HelpLevel>(HELPER_KEYS.level, 'with-me');
+    // "What is this?", "What am I looking at?": a picture of her screen goes with the question.
+    const look = /\bwhat('?s| is| are) (this|that|these|those)\b|\bwhat am i (looking at|seeing)\b|\b(describe|explain) (this|the) (picture|photo|image|screen|page)\b|\bwhat does (this|that|the) (picture|photo|image|icon|sign|chart|symbol) (show|say|mean)\b/i.test(q);
+    const earlier = talk.current.filter((t) => Date.now() - t.at < 10 * 60_000);
     agent.current = new Run(q, saved === 'show' ? 'show' : saved === 'do-it' ? 'for-me' : 'with-me', {
       tone: TONE,
-      async ask(prompt) {
-        const msg: GeminiAsk = { type: 'gemini/ask', prompt, json: true }; // the rules ask for JSON, so ask Gemini for strict JSON
+      async ask(prompt, picture) {
+        const msg: GeminiAsk = { type: 'gemini/ask', prompt, json: true, ...(picture ? { image: picture } : {}) }; // the rules ask for JSON, so ask Gemini for strict JSON
         const ans = (await browser.runtime.sendMessage(msg).catch(() => undefined)) as GeminiAnswer | undefined;
-        return ans?.ok ? ans.text : null;
+        if (!ans?.ok) return null;
+        // A relay that hasn't been updated drops the picture. Milo must not answer as if it had looked.
+        if (picture && !ans.saw) return JSON.stringify({ say: "I can't look at pictures just yet. My helper on the internet needs an update first. I can tell you what the buttons and words on this page say.", done: true });
+        return ans.text;
+      },
+      // Questions about the world: Gemini with Google Search behind it, through the relay.
+      async search(question) {
+        const msg: GeminiAsk = { type: 'gemini/ask', prompt: `Answer for an older adult, in at most five short plain lines, using what you find on the web today. Name the source if it matters.\n\nQUESTION: ${question}`, search: true };
+        const ans = (await browser.runtime.sendMessage(msg).catch(() => undefined)) as GeminiAnswer | undefined;
+        return ans?.ok && ans.text.trim() ? ans.text.trim() : null;
+      },
+      // A picture of the screen: only after the page says it is not a private one.
+      async look() {
+        if (!tabId) return { held: 'failed' as const };
+        const may = (await browser.tabs.sendMessage(tabId, { type: 'page/may-look' }).catch(() => undefined)) as { ok?: boolean; held?: 'private' | 'off' } | undefined;
+        if (!may?.ok) return { held: may?.held ?? ('failed' as const) };
+        const tab = await browser.tabs.get(tabId).catch(() => undefined);
+        if (!tab?.windowId) return { held: 'failed' as const };
+        const shot = (await browser.runtime.sendMessage({ type: 'screen/look', windowId: tab.windowId }).catch(() => undefined)) as { ok?: boolean; image?: string } | undefined;
+        return shot?.ok && shot.image ? { picture: shot.image } : { held: 'failed' as const };
+      },
+      // Pictures or a search, in a new tab beside her page, so she doesn't lose her place.
+      async open(url) {
+        const tab = tabId ? await browser.tabs.get(tabId).catch(() => undefined) : undefined;
+        const made = await browser.tabs.create({ url, active: true, ...(tab ? { index: tab.index + 1, windowId: tab.windowId } : {}) }).catch(() => undefined);
+        return !!made;
       },
       async page() {
         return tabId ? { map: await readPage(tabId), words: await readWords(tabId) } : { map: '', words: '(not read)' };
@@ -253,8 +281,8 @@ export default function App() {
         }
         await new Promise((r) => window.setTimeout(r, 400));
       },
-    });
-    return drive(() => agent.current!.next(), tabId);
+    }, { look, earlier });
+    return drive(() => agent.current!.next(), tabId, q);
   }
 
   // The guide's hook knows how the conversation is going (src/guide/panel/useGuide.ts): surprise shows at once, the rest when Milo isn't busy.
@@ -446,8 +474,8 @@ export default function App() {
           <input id="q" value={text} onChange={(e) => setText(e.target.value)} placeholder="For example: where do I pay?" autoFocus />
           <div className="row">
             <button type="submit" className="btn main" disabled={busy}>{busy ? 'Looking…' : 'Ask'}</button>
-            <button type="button" className="btn" onClick={listen} disabled={busy || listening}>
-              <Icon name="mic" /> {listening ? 'Listening…' : 'Talk to me'}
+            <button type="button" className="btn" onClick={listen} disabled={busy} aria-pressed={listening}>
+              <Icon name="mic" /> {listening ? 'Listening… (press to stop)' : 'Talk to me'}
             </button>
           </div>
         </form>

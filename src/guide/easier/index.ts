@@ -455,7 +455,7 @@ function report(done: Done): Answer {
   said.push(did.length ? `Done. I ${list(did)}.` : "I looked this page over and it reads well already. I've made sure you can always see where the keyboard is.");
   if (done.left) said.push(`There ${done.left === 1 ? "is 1 button I couldn't work out, so I've left it" : `are ${done.left} buttons I couldn't work out, so I've left them`} as ${done.left === 1 ? 'it is' : 'they are'}.`);
   if (videos) said.push(`There's a video here with no captions. I can't add those, but Chrome can: it's called Live Caption, in Chrome's settings under Accessibility.`);
-  if (pictures) said.push(`${many(pictures, 'picture has', 'pictures have')} no description, and I can't describe pictures.`);
+  if (pictures) said.push(`${many(pictures, 'picture has', 'pictures have')} no description. Ask me "What is this?" and I'll look at it for you.`);
   if (small) said.push('The writing here is small. I can make it bigger.');
   const changed = did.length > 0 || done.left > 0 || videos > 0 || pictures > 0 || small;
   const options = changed ? [...(small ? [BIGGER] : []), ALWAYS, UNDO] : [];
