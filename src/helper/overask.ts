@@ -5,7 +5,7 @@ import type { LaneContext } from '@/shared/lanes';
 import type { StageKind } from '@/shared/pagemap';
 
 const SHOP: StageKind[] = ['basket', 'checkout', 'payment'];
-const LABEL = 'This asks for an ID number. A shop does not need it to sell you something. Leave it empty.';
+const LABEL = 'This asks for an ID number. A shop rarely needs this. If you are not sure, leave it empty and ask someone you trust.';
 
 export function startOverAsk(ctx: LaneContext): void {
   const shown = new Set<string>();

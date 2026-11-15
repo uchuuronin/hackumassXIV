@@ -40,9 +40,9 @@ function describeRisk(el: PageElement): { title: string; lines: string[]; go: st
     ? total ? `This will take ${total.text} from you.` : 'This will take money from you.'
     : 'This will remove something, and you may not be able to get it back.');
   for (const a of map.amounts.filter((x) => x.recurring && !x.struck)) {
-    lines.push(`Careful: this repeats (${String(a.recurring)}): ${a.text}.`);
+    lines.push(`Careful: this renews. ${a.text} ${String(a.recurring)}.`);
   }
-  const giftField = ['checkout', 'payment'].includes(map.stage.kind) && map.elements.some((e) => e.secret === 'gift-card' && e.visible);
+  const giftField = false;
   const risks = pay && isOn('scam') ? findRisks(pageText(), giftField) : [];
   if (risks.length) {
     return {
@@ -147,6 +147,17 @@ export function startPause(ctx: LaneContext): void {
     if (!target || target.closest(`[${STEADY_UI_ATTR}]`)) return;
     const el = pageMap.describe(target);
     if (!el || (!el.marks.some((m) => m.kind === 'fake') && el.protection !== 'pay' && el.protection !== 'delete')) return;
+    const now = pageMap.get();
+    // Pay: only where money is really being taken. "Buy now" on a product page or a basket's Checkout button is not that.
+    if (el.protection === 'pay' && !el.marks.some((m) => m.kind === 'fake')) {
+      // "Checkout" and "Continue to payment" only lead to the page where money is taken.
+      if (now.stage.kind !== 'payment' && /^\s*((proceed|continue|go) to )?(secure )?check ?out\s*$|^\s*(proceed|continue|go) to payment\s*$/i.test(el.label)) return;
+      const sure = ['checkout', 'payment'].includes(now.stage.kind)
+        || (now.stage.kind !== 'basket' && now.amounts.some((a) => a.kind === 'total' && !a.struck));
+      if (!sure) return;
+    }
+    // Taking an item out of a basket is not "cannot be undone".
+    if (el.protection === 'delete' && !el.marks.some((m) => m.kind === 'fake') && now.stage.kind === 'basket') return;
     e.preventDefault();
     e.stopImmediatePropagation();
     showPause(el, target);
