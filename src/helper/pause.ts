@@ -7,17 +7,22 @@ import type { LaneContext } from '@/shared/lanes';
 import { HELPER_KEYS } from '@/shared/tools';
 import { getProfile } from './profile';
 import { siteLines } from './sites';
+import { findRisks } from './risk';
 
 let bypass = false;
 let open: HTMLElement | null = null;
+let timer: number | undefined;
+
+const pageText = () => (document.body?.innerText ?? '').slice(0, 30000);
 
 function closePause() {
+  window.clearInterval(timer);
   open?.remove();
   open = null;
   browser.runtime.sendMessage({ type: 'tts/stop' }).catch(() => undefined);
 }
 
-function describeRisk(el: PageElement): { title: string; lines: string[]; go: string } {
+function describeRisk(el: PageElement): { title: string; lines: string[]; go: string; wait?: number } {
   const fake = el.marks.find((m) => m.kind === 'fake');
   if (fake) return { title: 'Careful. This is an advert.', lines: [fake.reason], go: 'Open it anyway' };
   const pay = el.protection === 'pay';
@@ -30,6 +35,16 @@ function describeRisk(el: PageElement): { title: string; lines: string[]; go: st
     : 'This will remove something, and you may not be able to get it back.');
   for (const a of map.amounts.filter((x) => x.recurring && !x.struck)) {
     lines.push(`Careful: this repeats (${String(a.recurring)}): ${a.text}.`);
+  }
+  const giftField = ['checkout', 'payment'].includes(map.stage.kind) && map.elements.some((e) => e.secret === 'gift-card' && e.visible);
+  const risks = pay ? findRisks(pageText(), giftField) : [];
+  if (risks.length) {
+    return {
+      title: 'Stop. This may be a scam.',
+      lines: [...risks.map((r) => r.line), ...lines, 'Please call someone you trust before you pay.'],
+      go: 'Go on anyway',
+      wait: 10,
+    };
   }
   return {
     title: pay ? 'Wait. This is a payment.' : 'Wait. This cannot be undone.',
@@ -59,6 +74,7 @@ function showPause(el: PageElement, target: Element) {
     button:active { transform: translateY(${theme.depth}px); box-shadow: 0 0 0 ${theme.ink}; }
     .stop { background: ${theme.main}; color: ${theme.onMain}; }
     .stop:hover { background: ${theme.teal}; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
     button:focus-visible { outline: 4px solid ${theme.focus}; outline-offset: 4px; }
     @media (prefers-reduced-motion: reduce) { button { transition: none; } }
     ${gentleCss}
@@ -90,6 +106,17 @@ function showPause(el: PageElement, target: Element) {
     (target as HTMLElement).click();
     bypass = false;
   };
+  if (risk.wait) {
+    let n = risk.wait;
+    go.disabled = true;
+    const tick = () => {
+      go.textContent = n > 0 ? `${risk.go} (${n})` : risk.go;
+      if (n <= 0) { go.disabled = false; window.clearInterval(timer); }
+      n -= 1;
+    };
+    timer = window.setInterval(tick, 1000);
+    tick();
+  }
   box.append(stop, go);
   back.append(box);
   root.append(style, back);

@@ -8,6 +8,7 @@ import { getTool, listTools, registerTool } from './registry';
 import { startPause } from './pause';
 import { startFakeCheck } from './fake';
 import { startHomeTurf } from './sites';
+import { startOverAsk } from './overask';
 
 registerTool({
   name: 'point_at',
@@ -31,6 +32,7 @@ export function startHelper(ctx: LaneContext): void {
   startPause(ctx);
   startFakeCheck(ctx);
   startHomeTurf(ctx).catch((err) => console.error('[Steady] home turf', err));
+  startOverAsk(ctx);
   const onMessage = (message: unknown, _sender: unknown, sendResponse: (r: unknown) => void) => {
     const raw = message as { type?: string } | null;
     if (raw?.type === 'tool/list') {
