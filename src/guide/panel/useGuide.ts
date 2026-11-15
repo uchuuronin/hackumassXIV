@@ -90,6 +90,8 @@ export function intent(text: string, tasks: RecordedTask[]): string | null {
   if (/\b(i'?m|i am|im) stuck\b|\bask (my |someone|for help)|\bcall my\b|\bneed (some )?help from\b/.test(said)) return "I'm stuck";
   if (/\b(fill|type) (this|it|that|them|these|the form|my (name|address|details))\b|\bfill (this |it )?in\b/.test(said)) return 'Help me fill this in';
   if (/\bwhat (do|should|can) i (click|press)\b|\bwhich button\b|\bwhat do (these|the) buttons do\b/.test(said)) return 'What do I click?';
+  if (/\bput (the|this) page back\b|\bhow it was\b/.test(said)) return 'Put the page back';
+  if (/\b(hard|difficult|tough) to (read|see|make out)\b|\bcan'?t (read|see|make out) (this|that|it|the|any)\b|\bmake (this|the|it) (page )?(easier|clearer|simpler)\b|\btoo (faint|pale|busy|flashy|much going on)\b|\bstop (it|that|things|everything) (moving|flashing)\b/.test(said)) return 'Make this page easier';
   if (listening) return text.trim();
   return null;
 }

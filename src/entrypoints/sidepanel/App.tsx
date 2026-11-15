@@ -369,6 +369,9 @@ export default function App() {
           <button type="button" className="tile info" onClick={() => guide.press('Help me fill this in')}>
             <Icon name="pencil" /><span>Help me fill this in<small>Your name and address, box by box</small></span>
           </button>
+          <button type="button" className="tile" onClick={() => guide.press('Make this page easier')}>
+            <Icon name="eye" /><span>Make this page easier<small>Darker words, named buttons, less movement</small></span>
+          </button>
           {guide.tasks.map((t) => (
             <button key={t.id} type="button" className="tile sun" onClick={() => guide.press(t.name)}>
               <Icon name="steps" /><span>{t.name}<small>{t.steps.length === 1 ? '1 step' : `${t.steps.length} steps, one at a time`}{t.shared ? ' · sent to you' : ''}</small></span>
@@ -445,6 +448,7 @@ const ICONS: Record<string, string> = {
   mute: 'M4 10v4h3l5 4V6L7 10H4zm12 0l4 4m0-4l-4 4',
   person: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0',
   back: 'M14 6l-6 6 6 6',
+  eye: 'M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12zm9.5 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
 };
 
 function Icon({ name }: { name: keyof typeof ICONS | string }) {

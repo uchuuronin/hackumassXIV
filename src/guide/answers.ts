@@ -5,6 +5,7 @@
 import { need, type FollowUp } from '@/shared/ports';
 import { HELPER_KEYS, type HelpLevel, type Tool } from '@/shared/tools';
 import * as details from './details';
+import * as easier from './easier';
 import * as family from './family';
 import { isListening } from './listening';
 import * as player from './player';
@@ -25,7 +26,7 @@ export interface Answer {
 }
 
 /** The things she can ask for at any time. */
-export const STARTERS = { click: 'What do I click?', fill: 'Help me fill this in', stuck: "I'm stuck", where: 'Where was I?' } as const;
+export const STARTERS = { click: 'What do I click?', fill: 'Help me fill this in', stuck: "I'm stuck", where: 'Where was I?', easier: easier.MAKE } as const;
 
 /**
  * A reply from "Help me fill this in". If that was the end of the filling and a saved task is under way,
@@ -57,6 +58,13 @@ export async function answer(words: string): Promise<Answer> {
   if (said === STARTERS.stuck || said === 'Ask for help') return family.offer();
   if (said === SIGN_IN) return signin.start();
   if (said === STARTERS.where) return trail.where();
+
+  // "Make this page easier": repairing what the website got wrong, and putting it back.
+  if (said === easier.MAKE) return easier.start();
+  if (said === easier.UNDO) return easier.undo();
+  if (said === easier.ALWAYS) return easier.always();
+  if (said === easier.NOT_ALWAYS) return easier.notAlways();
+  if (said === easier.BIGGER) return easier.bigger();
 
   // "What do I click?" as a conversation: yes or no, then one question at a time.
   if (said === walk.YES_BOOK || said === walk.YES) return walk.yes();

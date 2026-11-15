@@ -1,6 +1,6 @@
 # Demo sites
 
-Two made-up websites for showing Steady reliably. All data is fake. Nothing is bought, booked or sent.
+Made-up websites for showing Steady reliably. All data is fake. Nothing is bought, booked or sent.
 
 ```
 node sites/serve.mjs
@@ -11,6 +11,7 @@ node sites/serve.mjs
 | http://localhost:4173/shop/ | Pennywhistle Home, a small shop: home, basket, checkout, thank-you |
 | http://localhost:4173/clinic/ | Fernbrook Family Clinic: home, sign in with a code, a four-step booking |
 | http://localhost:4174/ | The adverts, on a second address so they count as "another website" |
+| http://localhost:4173/hard/ | Maple Street Gazette, a news page that is hard to read on purpose: faint grey writing, icon-only buttons, a scrolling line of news, a flashing banner, a video with no captions, no language set and zoom blocked. For "Make this page easier" |
 
 ## What is on them, and which feature it is for
 

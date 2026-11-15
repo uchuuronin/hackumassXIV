@@ -9,6 +9,7 @@ import { tasks } from './recorder';
 import * as player from './player';
 import { SIGN_IN } from './signin';
 import * as trail from './trail';
+import * as easier from './easier';
 
 export interface Suggestion {
   /** One short sentence, or '' when there is nothing worth saying. */
@@ -41,6 +42,8 @@ export async function suggest(): Promise<Suggestion> {
   if (boxes.filter((e) => e.fillAs).length >= 2 || boxes.some((e) => e.secret)) {
     return { said: 'There are boxes to fill in here. I can help with those.', options: [STARTERS.fill, STARTERS.click, ...names] };
   }
+  // A page that is hard to read: offer to repair it. Only when it is, so the offer means something.
+  if (easier.worth()) return { said: 'Some of this page is hard to read. I can make it easier.', options: [STARTERS.easier, STARTERS.click, ...names] };
   if (names.length) return { said: names.length === 1 ? "There's a saved task for this website." : 'There are saved tasks for this website.', options: [...names, STARTERS.click] };
   return { said: '', options: [STARTERS.click] };
 }

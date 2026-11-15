@@ -90,8 +90,3 @@ The shake is simulated. It is not a clinical test, and it is not a person with t
 - There is no dark contrast mode: the first version turned pages that were already dark light.
 - The page map's ids go stale when a page redraws.
 - Tested by simulated shake and by hand, not yet with older adults.
-
-## Ideas borrowed
-
-- Nori (guidance and recorder): https://devpost.com/software/loopie-t8srv1 , https://github.com/Matteo567/Hackcamp_MMVN_2026
-- Accessify (reading adjustments): https://devpost.com/software/accessify-cjgil7 , https://github.com/PhoneThantTayza/HackCamp. That repository has no licence file, so it was used for ideas only and nothing was copied.

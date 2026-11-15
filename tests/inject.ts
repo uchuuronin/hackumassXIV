@@ -14,6 +14,7 @@ import { suggest } from '@/guide/suggest';
 import * as timeout from '@/guide/timeout';
 import * as trail from '@/guide/trail';
 import * as walk from '@/guide/walk';
+import * as easier from '@/guide/easier';
 import { registerTool } from '@/helper/registry';
 import { keepFocusInside, openDialog } from '@/shared/dialog';
 import * as spotlight from '@/guide/spotlight';
@@ -96,6 +97,7 @@ const steady = {
   timeout,
   trail,
   walk,
+  easier,
   /** Tests stand in for another lane's tools (the helper's quiet_page, for one). */
   registerTool,
   /** The saved-data stand-in, for tests that need to put something there directly. */

@@ -29,6 +29,8 @@ import * as trail from './trail';
 import { whereTool } from './trail';
 import { onListening } from './listening';
 import * as walk from './walk';
+import * as easier from './easier';
+import { easierTool } from './easier';
 import { timeoutTool } from './timeout';
 import type { HelperNote, StuckSend, StuckSent } from '@/shared/family';
 
@@ -64,6 +66,7 @@ export const guideTools: Tool[] = [
   recordStopTool,
   timeoutTool,
   whereTool,
+  easierTool,
 ];
 
 export async function startGuide(ctx: LaneContext): Promise<void> {
@@ -165,6 +168,9 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
   onListening((on) => void browser.runtime.sendMessage({ type: 'guide/listening', on }).catch(() => undefined));
   cleanups.push(() => onListening(() => undefined));
   if (!playing) await walk.resume();
+
+  // "Make this page easier", if she asked for it on every page. Quiet, and never in the way of the rest.
+  void easier.resume().catch(() => undefined);
 
   ctx.onStop(() => {
     browser.runtime.onMessage.removeListener(onMessage);
