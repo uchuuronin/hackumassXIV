@@ -10,32 +10,34 @@
 </head>
 <body>
 
-  <!-- Skip link: first focusable element on the page -->
+  <!-- First focusable element: skip to content -->
   <a class="skip-link" href="#main-content">Skip to main content</a>
 
-  <!-- ══════════════════════════════════
+  <!-- ══════════════════════════════════════════
        HEADER
-  ══════════════════════════════════ -->
+  ══════════════════════════════════════════ -->
   <header>
     <div class="header-wrap">
 
       <div class="brand">
-        <!-- Decorative logo mark: shaky line → steady line inside a circle -->
+        <!-- Logo mark: shaky → steady line, rose palette -->
         <svg class="brand-mark" viewBox="0 0 48 48" width="36" height="36"
              aria-hidden="true" focusable="false">
-          <circle cx="24" cy="24" r="22" fill="#d6eeec"/>
+          <circle cx="24" cy="24" r="22" fill="#fce4ec"/>
           <path d="M 5 24
                    C 9 15, 13 33, 17 24
                    C 19 19, 21 29, 23 24
                    L 43 24"
-                stroke="#065754" stroke-width="3.5" fill="none"
+                stroke="#c2385a" stroke-width="3.5" fill="none"
                 stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span class="brand-name">Milo</span>
       </div>
 
       <nav aria-label="Page sections">
+        <a href="#who">Who it's for</a>
         <a href="#features">Features</a>
+        <a href="#screenshots">See&nbsp;it</a>
         <a href="#privacy">Privacy</a>
         <a href="#built">About</a>
       </nav>
@@ -43,12 +45,12 @@
     </div>
   </header>
 
-  <!-- ══════════════════════════════════
+  <!-- ══════════════════════════════════════════
        MAIN
-  ══════════════════════════════════ -->
+  ══════════════════════════════════════════ -->
   <main id="main-content">
 
-    <!-- ── 1 · HERO ── -->
+    <!-- ── 1 · HERO ─────────────────────────── -->
     <section class="hero" aria-labelledby="h-hero">
       <div class="container hero-inner">
 
@@ -60,50 +62,131 @@
           </p>
           <div class="hero-btns">
             <a href="DEMO_VIDEO_URL" class="btn btn-solid">Watch the demo</a>
-            <a href="https://github.com/uchuuronin/hackumassXIV" class="btn btn-outline">See the code</a>
+            <a href="https://github.com/uchuuronin/hackumassXIV"
+               class="btn btn-outline">See it on GitHub</a>
           </div>
         </div>
 
-        <!-- Decorative illustration: oscillating line smooths to flat -->
-        <div class="hero-art" aria-hidden="true">
-          <svg viewBox="0 0 200 200" width="200" height="200"
-               aria-hidden="true" focusable="false">
-            <circle cx="100" cy="100" r="92" fill="#d6eeec"/>
-            <path d="M 12 100
-                     C 22 60,  33 140, 44 100
-                     C 55 60,  66 140, 77 100
-                     C 84 72,  91 128, 98 100
-                     L 188 100"
-                  stroke="#065754" stroke-width="5.5" fill="none"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="188" cy="100" r="7" fill="#065754"/>
-          </svg>
+        <!-- Real screenshot in a soft rounded frame -->
+        <div class="hero-preview">
+          <img src="img/scam-card.png"
+               alt="Milo stopping a payment with the message 'Stop. This may be a scam.'"
+               class="hero-screenshot">
         </div>
 
       </div>
     </section>
 
-    <!-- ── 2 · THE PROBLEM ── -->
-    <section id="problem" class="bg-alt" aria-labelledby="h-problem">
+    <!-- ── 2 · QUICK BENEFIT CARDS ───────────── -->
+    <section class="benefits-section" aria-labelledby="h-benefits">
+      <div class="container">
+        <!-- Visually hidden heading for screen-reader context -->
+        <h2 id="h-benefits" class="sr-only">What Milo does for you</h2>
+        <ul class="benefit-cards" role="list">
+
+          <li class="benefit-card" role="listitem">
+            <div class="benefit-icon" aria-hidden="true">
+              <!-- Pause circle -->
+              <svg viewBox="0 0 48 48" width="36" height="36"
+                   aria-hidden="true" focusable="false">
+                <circle cx="24" cy="24" r="20" fill="#fce4ec"
+                        stroke="#c2385a" stroke-width="2.5"/>
+                <rect x="15" y="15" width="7" height="18" rx="2.5" fill="#c2385a"/>
+                <rect x="26" y="15" width="7" height="18" rx="2.5" fill="#c2385a"/>
+              </svg>
+            </div>
+            <strong class="benefit-title">Stops risky payments</strong>
+            <p>A pause before every payment so you can check who is paid and how much.</p>
+          </li>
+
+          <li class="benefit-card" role="listitem">
+            <div class="benefit-icon" aria-hidden="true">
+              <!-- Magnifying glass -->
+              <svg viewBox="0 0 48 48" width="36" height="36"
+                   aria-hidden="true" focusable="false">
+                <circle cx="20" cy="20" r="13" fill="#fce4ec"
+                        stroke="#c2385a" stroke-width="2.5"/>
+                <line x1="29.5" y1="29.5" x2="43" y2="43"
+                      stroke="#c2385a" stroke-width="3.5" stroke-linecap="round"/>
+                <circle cx="20" cy="20" r="4" fill="#c2385a"/>
+              </svg>
+            </div>
+            <strong class="benefit-title">Labels fake buttons</strong>
+            <p>Marks adverts that look like buttons so you do not click the wrong thing.</p>
+          </li>
+
+          <li class="benefit-card" role="listitem">
+            <div class="benefit-icon" aria-hidden="true">
+              <!-- Shield -->
+              <svg viewBox="0 0 48 48" width="36" height="36"
+                   aria-hidden="true" focusable="false">
+                <path d="M 24 4 L 43 11 L 43 27
+                         Q 43 41 24 46
+                         Q 5 41 5 27 L 5 11 Z"
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="24" y1="17" x2="24" y2="29"
+                      stroke="#c2385a" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="24" cy="35" r="2.3" fill="#c2385a"/>
+              </svg>
+            </div>
+            <strong class="benefit-title">Warns about scams</strong>
+            <p>Slows down when a page asks for gift-card codes or wire transfers.</p>
+          </li>
+
+          <li class="benefit-card" role="listitem">
+            <div class="benefit-icon" aria-hidden="true">
+              <!-- Hand -->
+              <svg viewBox="0 0 48 48" width="36" height="36"
+                   aria-hidden="true" focusable="false">
+                <path d="M 22 38 L 22 20
+                         Q 22 16 25 16 Q 28 16 28 20 L 28 25
+                         Q 29.5 23 31.5 24 L 31.5 30
+                         Q 33 28 35.5 29 L 35.5 38
+                         Q 35.5 44 27 44 L 20 44 Z"
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <strong class="benefit-title">Steadies shaky clicks</strong>
+            <p>Helps when a hand tremor means you click the wrong place.</p>
+          </li>
+
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── 3 · WHO IT IS FOR ──────────────────── -->
+    <section id="who" class="bg-alt" aria-labelledby="h-who">
+      <div class="container who-inner">
+        <h2 id="h-who">Who it is for</h2>
+        <p>Milo is for older adults and for people with hand tremor. It is for anyone
+           who gets confused by pages that move, or is not sure which button is safe
+           to press. You do not need to know anything about computers to use it.</p>
+      </div>
+    </section>
+
+    <!-- ── 4 · THE PROBLEM ───────────────────── -->
+    <section id="problem" aria-labelledby="h-problem">
       <div class="container">
         <h2 id="h-problem">Why the web is hard</h2>
 
-        <ul class="problem-list">
+        <ul class="problem-list" role="list">
 
-          <li>
+          <li role="listitem">
             <span class="prob-icon" aria-hidden="true">
-              <!-- Monitor with an exclamation mark -->
+              <!-- Monitor with exclamation -->
               <svg viewBox="0 0 48 48" width="48" height="48"
                    aria-hidden="true" focusable="false">
                 <rect x="5" y="8" width="38" height="24" rx="4"
-                      fill="#d6eeec" stroke="#065754" stroke-width="2.5"/>
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"/>
                 <line x1="19" y1="32" x2="29" y2="32"
-                      stroke="#065754" stroke-width="2.5" stroke-linecap="round"/>
+                      stroke="#c2385a" stroke-width="2.5" stroke-linecap="round"/>
                 <line x1="24" y1="32" x2="24" y2="37"
-                      stroke="#065754" stroke-width="2.5" stroke-linecap="round"/>
+                      stroke="#c2385a" stroke-width="2.5" stroke-linecap="round"/>
                 <line x1="24" y1="13" x2="24" y2="22"
-                      stroke="#065754" stroke-width="2.5" stroke-linecap="round"/>
-                <circle cx="24" cy="26" r="1.7" fill="#065754"/>
+                      stroke="#c2385a" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="24" cy="26" r="1.7" fill="#c2385a"/>
               </svg>
             </span>
             <div class="prob-text">
@@ -112,7 +195,7 @@
             </div>
           </li>
 
-          <li>
+          <li role="listitem">
             <span class="prob-icon" aria-hidden="true">
               <!-- Hand with tremor squiggles -->
               <svg viewBox="0 0 48 48" width="48" height="48"
@@ -122,13 +205,13 @@
                          Q 29.5 23 31.5 24 L 31.5 30
                          Q 33 28 35.5 29 L 35.5 38
                          Q 35.5 44 27 44 L 20 44 Z"
-                      fill="#d6eeec" stroke="#065754" stroke-width="2.5"
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"
                       stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M 9 18 Q 11 13 13 18 Q 15 23 17 18"
-                      stroke="#065754" stroke-width="2" fill="none"
+                      stroke="#c2385a" stroke-width="2" fill="none"
                       stroke-linecap="round"/>
                 <path d="M 7 27 Q 9 23 11 27"
-                      stroke="#065754" stroke-width="2" fill="none"
+                      stroke="#c2385a" stroke-width="2" fill="none"
                       stroke-linecap="round"/>
               </svg>
             </span>
@@ -137,22 +220,22 @@
             </div>
           </li>
 
-          <li>
+          <li role="listitem">
             <span class="prob-icon" aria-hidden="true">
-              <!-- Gift card with a warning mark -->
+              <!-- Gift card with warning -->
               <svg viewBox="0 0 48 48" width="48" height="48"
                    aria-hidden="true" focusable="false">
                 <rect x="6" y="13" width="36" height="24" rx="3"
-                      fill="#d6eeec" stroke="#065754" stroke-width="2.5"/>
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"/>
                 <line x1="6" y1="22" x2="42" y2="22"
-                      stroke="#065754" stroke-width="2.5"/>
+                      stroke="#c2385a" stroke-width="2.5"/>
                 <path d="M 24 13 Q 20 7 15 9 Q 10 11 24 13
                                    Q 38 11 33 9 Q 28 7 24 13"
-                      fill="none" stroke="#065754" stroke-width="2"
+                      fill="none" stroke="#c2385a" stroke-width="2"
                       stroke-linecap="round" stroke-linejoin="round"/>
                 <line x1="24" y1="27" x2="24" y2="31"
-                      stroke="#065754" stroke-width="2.5" stroke-linecap="round"/>
-                <circle cx="24" cy="33.5" r="1.5" fill="#065754"/>
+                      stroke="#c2385a" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="24" cy="33.5" r="1.5" fill="#c2385a"/>
               </svg>
             </span>
             <div class="prob-text">
@@ -164,8 +247,8 @@
       </div>
     </section>
 
-    <!-- ── 3 · WHAT STEADY DOES ── -->
-    <section id="features" aria-labelledby="h-features">
+    <!-- ── 5 · WHAT MILO DOES ────────────────── -->
+    <section id="features" class="bg-alt" aria-labelledby="h-features">
       <div class="container">
         <h2 id="h-features">What Milo does</h2>
 
@@ -180,7 +263,7 @@
                 <path d="M 7 9 Q 7 5 11 5 L 37 5 Q 41 5 41 9
                          L 41 27 Q 41 31 37 31 L 20 31
                          L 11 40 L 13 31 Q 7 31 7 27 Z"
-                      fill="#d6eeec" stroke="#065754" stroke-width="2.5"
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"
                       stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
@@ -191,15 +274,15 @@
           <!-- Card 2 -->
           <article class="card">
             <div class="card-icon" aria-hidden="true">
-              <!-- Clipboard with checkmark -->
+              <!-- Clipboard with check -->
               <svg viewBox="0 0 48 48" width="40" height="40"
                    aria-hidden="true" focusable="false">
                 <rect x="10" y="8" width="28" height="34" rx="3"
-                      fill="#d6eeec" stroke="#065754" stroke-width="2.5"/>
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"/>
                 <rect x="18" y="4" width="12" height="8" rx="2"
-                      fill="#d6eeec" stroke="#065754" stroke-width="2.5"/>
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"/>
                 <path d="M 17 25 L 21 30 L 32 19"
-                      stroke="#065754" stroke-width="3" fill="none"
+                      stroke="#c2385a" stroke-width="3" fill="none"
                       stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
@@ -214,9 +297,9 @@
               <svg viewBox="0 0 48 48" width="40" height="40"
                    aria-hidden="true" focusable="false">
                 <circle cx="24" cy="24" r="20"
-                        fill="#d6eeec" stroke="#065754" stroke-width="2.5"/>
-                <rect x="15" y="15" width="7" height="18" rx="2.5" fill="#065754"/>
-                <rect x="26" y="15" width="7" height="18" rx="2.5" fill="#065754"/>
+                        fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"/>
+                <rect x="15" y="15" width="7" height="18" rx="2.5" fill="#c2385a"/>
+                <rect x="26" y="15" width="7" height="18" rx="2.5" fill="#c2385a"/>
               </svg>
             </div>
             <h3>Pay Pause</h3>
@@ -232,11 +315,11 @@
                 <path d="M 24 4 L 43 11 L 43 27
                          Q 43 41 24 46
                          Q 5 41 5 27 L 5 11 Z"
-                      fill="#d6eeec" stroke="#065754" stroke-width="2.5"
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"
                       stroke-linecap="round" stroke-linejoin="round"/>
                 <line x1="24" y1="17" x2="24" y2="29"
-                      stroke="#065754" stroke-width="3" stroke-linecap="round"/>
-                <circle cx="24" cy="35" r="2.3" fill="#065754"/>
+                      stroke="#c2385a" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="24" cy="35" r="2.3" fill="#c2385a"/>
               </svg>
             </div>
             <h3>Scam warning</h3>
@@ -246,17 +329,17 @@
           <!-- Card 5 -->
           <article class="card">
             <div class="card-icon" aria-hidden="true">
-              <!-- Magnifying glass -->
+              <!-- Magnifying glass with eye -->
               <svg viewBox="0 0 48 48" width="40" height="40"
                    aria-hidden="true" focusable="false">
                 <circle cx="20" cy="20" r="13"
-                        fill="#d6eeec" stroke="#065754" stroke-width="2.5"/>
+                        fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"/>
                 <line x1="29.5" y1="29.5" x2="43" y2="43"
-                      stroke="#065754" stroke-width="3.5" stroke-linecap="round"/>
+                      stroke="#c2385a" stroke-width="3.5" stroke-linecap="round"/>
                 <path d="M 11 20 Q 20 11 29 20 Q 20 29 11 20 Z"
-                      fill="none" stroke="#065754" stroke-width="2"
+                      fill="none" stroke="#c2385a" stroke-width="2"
                       stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="20" cy="20" r="3" fill="#065754"/>
+                <circle cx="20" cy="20" r="3" fill="#c2385a"/>
               </svg>
             </div>
             <h3>Fake-button check</h3>
@@ -270,9 +353,9 @@
               <svg viewBox="0 0 48 48" width="40" height="40"
                    aria-hidden="true" focusable="false">
                 <rect x="5" y="11" width="38" height="28" rx="3"
-                      fill="#d6eeec" stroke="#065754" stroke-width="2.5"/>
+                      fill="#fce4ec" stroke="#c2385a" stroke-width="2.5"/>
                 <path d="M 5 13 L 24 27 L 43 13"
-                      stroke="#065754" stroke-width="2.5" fill="none"
+                      stroke="#c2385a" stroke-width="2.5" fill="none"
                       stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
@@ -289,10 +372,11 @@
       </div>
     </section>
 
-    <!-- ── 3b · SEE IT IN ACTION ── -->
-    <section id="screenshots" class="bg-alt" aria-labelledby="h-screenshots">
+    <!-- ── 6 · SEE IT IN ACTION ──────────────── -->
+    <section id="screenshots" aria-labelledby="h-screenshots">
       <div class="container">
         <h2 id="h-screenshots">See it in action</h2>
+
         <div class="screenshot-row">
 
           <figure class="screenshot-card">
@@ -313,13 +397,48 @@
       </div>
     </section>
 
-    <!-- ── 4 · HONEST LIMITS ── -->
+    <!-- ── 7 · HOW IT WORKS ──────────────────── -->
+    <section id="how" class="bg-alt" aria-labelledby="h-how">
+      <div class="container">
+        <h2 id="h-how">How it works</h2>
+
+        <ol class="steps" role="list">
+
+          <li class="step" role="listitem">
+            <span class="step-num" aria-hidden="true">1</span>
+            <div class="step-body">
+              <h3>Milo reads the page</h3>
+              <p>It looks at the words and buttons on the page you are visiting.</p>
+            </div>
+          </li>
+
+          <li class="step" role="listitem">
+            <span class="step-num" aria-hidden="true">2</span>
+            <div class="step-body">
+              <h3>You ask a question</h3>
+              <p>Type or speak. No special words needed.</p>
+            </div>
+          </li>
+
+          <li class="step" role="listitem">
+            <span class="step-num" aria-hidden="true">3</span>
+            <div class="step-body">
+              <h3>Milo answers in plain words</h3>
+              <p>It points at the button you need and tells you what it does.</p>
+            </div>
+          </li>
+
+        </ol>
+      </div>
+    </section>
+
+    <!-- ── 8 · HONEST LIMITS ─────────────────── -->
     <section id="limits" class="limits-wrap" aria-labelledby="h-limits">
       <div class="container">
         <div class="limits-box">
 
           <div class="limits-icon" aria-hidden="true">
-            <!-- Circle with exclamation -->
+            <!-- Circle with exclamation, amber -->
             <svg viewBox="0 0 48 48" width="48" height="48"
                  aria-hidden="true" focusable="false">
               <circle cx="24" cy="24" r="21"
@@ -332,40 +451,52 @@
 
           <div>
             <h2 id="h-limits">Honest limits</h2>
-            <p>
-              Milo only checks and reminds. It does not block anything and cannot promise you are safe.
-              It never presses pay, send or submit for you, and never fills passwords, card numbers or codes.
-            </p>
+            <p>Milo only checks and reminds. It does not block anything and cannot promise
+               you are safe. It never presses pay, send or submit for you, and never fills
+               passwords, card numbers or codes.</p>
           </div>
 
         </div>
       </div>
     </section>
 
-    <!-- ── 5 · PRIVACY ── -->
+    <!-- ── 9 · PRIVACY ───────────────────────── -->
     <section id="privacy" class="bg-alt" aria-labelledby="h-privacy">
       <div class="container">
         <h2 id="h-privacy">Your privacy</h2>
+
         <p>Your saved details and your list of sites stay on your device.
-          The only thing Milo sends out by itself is one short "I'm stuck" email,
-          and only when you press the button.
-          It contains two first names, the task name and the step number, nothing else.</p>
-        <p>
-          When you ask a question, it goes to Google Gemini through our relay.
-          We send the names of the buttons and the words you can read on the page, so Milo can answer questions about it.
-          We never send what you type. Pages for signing in or paying, and pages that look like your bank or your health records, are not read at all.
-          You can switch reading off in Settings.
-          When you ask "What is this?", Milo sends a picture of the page with your question, and never on those private pages.
-          When you talk to Milo, Chrome turns your voice into words: on your computer when it can, otherwise with Google's speech service.
-        </p>
+           The only thing Milo sends out by itself is one short "I'm stuck" email,
+           and only when you press the button.
+           It contains two first names, the task name and the step number, nothing else.</p>
+
+        <p>When you ask a question, it goes to Google Gemini through our relay.
+           We send the names of the buttons and the words you can read on the page,
+           so Milo can answer questions about it.
+           We never send what you type.
+           Pages for signing in or paying, and pages that look like your bank or your
+           health records, are not read at all.
+           You can switch reading off in Settings.</p>
+
+        <p>Most of the time Milo works from the words and buttons on the page.
+           If you ask Milo to look at the page and it cannot tell from the words alone,
+           it can send a picture of what is on your screen to the helper that answers you.
+           It only does this when you ask, and it tells you when it has looked at a picture.</p>
+
+        <p>When you talk to Milo, Chrome turns your voice into words: on your computer
+           when it can, otherwise with Google's speech service.</p>
+
         <p>Nothing is sold. No account needed.</p>
       </div>
     </section>
 
-    <!-- ── 6 · HOW IT WAS BUILT ── -->
+    <!-- ── 10 · HOW IT WAS BUILT ─────────────── -->
     <section id="built" aria-labelledby="h-built">
       <div class="container">
-        <h2 id="h-built">How it was built <span class="label-small">(for judges)</span></h2>
+        <h2 id="h-built">
+          How it was built
+          <span class="label-small">(for judges)</span>
+        </h2>
 
         <dl class="built-grid">
           <div class="built-cell">
@@ -386,36 +517,57 @@
           </div>
           <div class="built-cell built-cell--team">
             <dt>Team</dt>
-            <dd>TEAM_NAMES</dd>
+            <dd>Janice D'Cruz, &lt;NAME OF A&gt;, &lt;NAME OF C&gt;</dd>
           </div>
         </dl>
 
       </div>
     </section>
 
-    <!-- ── 7 · WHAT'S NEXT ── -->
+    <!-- ── 11 · WHAT'S NEXT ──────────────────── -->
     <section id="next" class="bg-alt" aria-labelledby="h-next">
       <div class="container">
         <h2 id="h-next">What's next</h2>
-        <ul class="next-list">
-          <li>Family linking by code, so only someone you choose can get your "I'm stuck" note.</li>
-          <li>More languages.</li>
-          <li>More sites tested with real users.</li>
+        <ul class="next-list" role="list">
+          <li role="listitem">Family linking by code, so only someone you choose can get your "I'm stuck" note.</li>
+          <li role="listitem">More languages.</li>
+          <li role="listitem">More sites tested with real users.</li>
         </ul>
       </div>
     </section>
 
   </main>
 
-  <!-- ══════════════════════════════════
+  <!-- ══════════════════════════════════════════
        FOOTER
-  ══════════════════════════════════ -->
+  ══════════════════════════════════════════ -->
   <footer>
     <div class="container footer-inner">
-      <nav aria-label="External links">
+
+      <div class="footer-brand-block">
+        <div class="footer-brand">
+          <svg viewBox="0 0 48 48" width="26" height="26"
+               aria-hidden="true" focusable="false">
+            <circle cx="24" cy="24" r="22" fill="#fce4ec"/>
+            <path d="M 5 24 C 9 15, 13 33, 17 24 C 19 19, 21 29, 23 24 L 43 24"
+                  stroke="#c2385a" stroke-width="3.5" fill="none"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="footer-name">Milo</span>
+        </div>
+        <p class="footer-byline">36 hours · HackUMass XIV</p>
+        <p class="footer-team">
+          Janice D'Cruz, &lt;NAME OF A&gt;, &lt;NAME OF C&gt;
+        </p>
+      </div>
+
+      <nav aria-label="External links" class="footer-nav">
         <a href="https://github.com/uchuuronin/hackumassXIV">GitHub</a>
         <a href="DEVPOST_URL">Devpost</a>
       </nav>
+
+    </div>
+    <div class="container footer-bottom">
       <p class="footer-note">Demo site is fake. Nothing is bought.</p>
     </div>
   </footer>
