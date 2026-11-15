@@ -1,0 +1,548 @@
+/*
+ * STEADY · landing/styles.css
+ *
+ * Colour tokens
+ * ─────────────────────────────────────────
+ * --bg        #faf8f4   warm off-white (background)
+ * --bg-alt    #ede9e1   warmer grey (alternating sections, cards)
+ * --ink       #1c1f26   very dark navy (body text)
+ * --teal-d    #065754   dark teal (headings, links, buttons)
+ *                       contrast on --bg  : ~8.0 : 1  → WCAG AAA ✓
+ *                       contrast on --bg-alt: ~7.1 : 1  → WCAG AAA ✓
+ * --teal-m    #0a7c76   mid teal (accents, decorative only)
+ * --teal-l    #d6eeec   pale teal (SVG fills, card borders)
+ * --amber-bg  #fef8e7   warm yellow (limits box background)
+ * --amber-bd  #c4790a   amber       (limits box border)
+ * --amber-ink #3d2800   very dark brown on amber
+ *                       contrast on --amber-bg: ~13.3 : 1 → WCAG AAA ✓
+ * ─────────────────────────────────────────
+ */
+
+:root {
+  --bg:        #faf8f4;
+  --bg-alt:    #ede9e1;
+  --ink:       #1c1f26;
+  --teal-d:    #065754;
+  --teal-m:    #0a7c76;
+  --teal-l:    #d6eeec;
+  --amber-bg:  #fef8e7;
+  --amber-bd:  #c4790a;
+  --amber-ink: #3d2800;
+  --radius:    12px;
+  --max:       900px;
+  --space:     clamp(2rem, 5vw, 3.5rem);
+}
+
+/* ── Reset ────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Reduced motion: disable ALL animation by default ── */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration:        0.01ms !important;
+    animation-iteration-count: 1      !important;
+    transition-duration:       0.01ms !important;
+    scroll-behavior:           auto   !important;
+  }
+}
+
+/* ── Base ─────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+               'Segoe UI', Arial, sans-serif;
+  font-size:   1.25rem;   /* 20 px */
+  line-height: 1.65;
+  color:       var(--ink);
+  background:  var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  display:   block;
+  max-width: 100%;
+}
+
+/* ── Skip link ───────────────────────────── */
+
+.skip-link {
+  position:      absolute;
+  top:           -120%;
+  left:          1rem;
+  z-index:       9999;
+  padding:       0.75rem 1.5rem;
+  background:    var(--teal-d);
+  color:         #fff;
+  font-size:     1rem;
+  font-weight:   700;
+  text-decoration: none;
+  border-radius: var(--radius);
+  border:        3px solid #fff;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* ── Focus outline (visible for keyboard users) ── */
+
+:focus-visible {
+  outline:        3px solid var(--teal-d);
+  outline-offset: 4px;
+  border-radius:  4px;
+}
+
+/* ── Container ───────────────────────────── */
+
+.container {
+  max-width: var(--max);
+  margin:    0 auto;
+  padding:   0 1.25rem;
+}
+
+/* ── Header ──────────────────────────────── */
+
+header {
+  position:      sticky;
+  top:           0;
+  z-index:       100;
+  background:    var(--bg);
+  border-bottom: 2px solid var(--teal-l);
+}
+
+.header-wrap {
+  max-width:       var(--max);
+  margin:          0 auto;
+  padding:         0.8rem 1.25rem;
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             1rem;
+  flex-wrap:       wrap;
+}
+
+.brand {
+  display:     flex;
+  align-items: center;
+  gap:         0.6rem;
+}
+
+.brand-name {
+  font-size:      1.5rem;
+  font-weight:    900;
+  color:          var(--teal-d);
+  letter-spacing: -0.02em;
+}
+
+header nav {
+  display:   flex;
+  gap:       1.25rem;
+  flex-wrap: wrap;
+}
+
+header nav a {
+  color:           var(--teal-d);
+  font-size:       1rem;
+  font-weight:     600;
+  text-decoration: none;
+  padding:         0.3rem 0.5rem;
+  border-radius:   6px;
+}
+
+header nav a:hover {
+  text-decoration: underline;
+}
+
+/* ── Typography ──────────────────────────── */
+
+h1 {
+  font-size:      clamp(3.5rem, 10vw, 5.5rem);
+  font-weight:    900;
+  line-height:    1.0;
+  color:          var(--teal-d);
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  font-size:   clamp(1.9rem, 4.5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 1.25rem;
+}
+
+h3 {
+  font-size:     1.4rem;
+  font-weight:   700;
+  line-height:   1.3;
+  margin-bottom: 0.5rem;
+}
+
+p + p {
+  margin-top: 0.9rem;
+}
+
+a {
+  color: var(--teal-d);
+}
+
+a:hover {
+  color: var(--ink);
+}
+
+/* ── Buttons ─────────────────────────────── */
+
+.btn {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  min-height:      56px;      /* minimum touch / click target */
+  padding:         0.5rem 1.75rem;
+  font-size:       1.1rem;
+  font-weight:     700;
+  border-radius:   var(--radius);
+  text-decoration: none;
+  border:          3px solid var(--teal-d);
+  cursor:          pointer;
+  white-space:     nowrap;
+}
+
+.btn-solid {
+  background: var(--teal-d);
+  color:      #fff;           /* contrast ~8.0 : 1 on --teal-d → AAA ✓ */
+}
+
+.btn-solid:hover {
+  background:   var(--ink);
+  border-color: var(--ink);
+  color:        #fff;
+}
+
+.btn-outline {
+  background: transparent;
+  color:      var(--teal-d);
+}
+
+.btn-outline:hover {
+  background: var(--teal-d);
+  color:      #fff;
+}
+
+/* ── Sections ────────────────────────────── */
+
+section {
+  padding: var(--space) 0;
+}
+
+.bg-alt {
+  background: var(--bg-alt);
+}
+
+/* ── Hero ────────────────────────────────── */
+
+.hero {
+  padding: clamp(2.5rem, 7vw, 5rem) 0;
+}
+
+.hero-inner {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             2.5rem;
+  flex-wrap:       wrap;
+}
+
+.hero-text {
+  flex:      1;
+  min-width: 280px;
+}
+
+.tagline {
+  font-size:   clamp(1.15rem, 2.5vw, 1.4rem);
+  line-height: 1.55;
+  margin:      1rem 0 2rem;
+  color:       var(--ink);
+}
+
+.hero-btns {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       1rem;
+}
+
+.hero-art {
+  flex-shrink: 0;
+}
+
+/* ── Problem list ────────────────────────── */
+
+.problem-list {
+  list-style:     none;
+  display:        flex;
+  flex-direction: column;
+  gap:            1.75rem;
+  margin-top:     0.5rem;
+}
+
+.problem-list li {
+  display:     flex;
+  align-items: flex-start;
+  gap:         1rem;
+  font-size:   1.05rem;
+  line-height: 1.6;
+}
+
+.prob-icon {
+  flex-shrink: 0;
+  margin-top:  0.15rem;
+}
+
+.prob-text strong {
+  display: inline;
+}
+
+/* ── Feature cards ───────────────────────── */
+
+.cards {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap:                   1.1rem;
+  margin-bottom:         1.5rem;
+}
+
+.card {
+  background:    var(--bg-alt);
+  border:        2px solid var(--teal-l);
+  border-radius: var(--radius);
+  padding:       1.5rem;
+}
+
+.card-icon {
+  margin-bottom: 0.75rem;
+}
+
+.card p {
+  font-size:   1rem;
+  line-height: 1.6;
+  color:       var(--ink);
+}
+
+.side-note {
+  font-size:   1rem;
+  font-weight: 700;
+  color:       var(--teal-d);
+  border-left: 4px solid var(--teal-m);
+  padding:     0.5rem 0 0.5rem 1rem;
+}
+
+/* ── Screenshot row ─────────────────────── */
+
+.screenshot-row {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap:                   1.5rem;
+  margin-top:            0.5rem;
+}
+
+.screenshot-card {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.6rem;
+}
+
+.screenshot-img {
+  width:         100%;
+  height:        auto;
+  border-radius: var(--radius);
+  border:        2px solid var(--teal-l);
+  display:       block;
+}
+
+.screenshot-card figcaption {
+  font-size:   1rem;
+  line-height: 1.5;
+  color:       var(--ink);
+}
+
+/* ── Honest limits box ───────────────────── */
+
+.limits-wrap {
+  background:    var(--amber-bg);
+  border-top:    3px solid var(--amber-bd);
+  border-bottom: 3px solid var(--amber-bd);
+}
+
+.limits-box {
+  display:     flex;
+  align-items: flex-start;
+  gap:         1.25rem;
+}
+
+.limits-icon {
+  flex-shrink: 0;
+  margin-top:  0.4rem;
+}
+
+.limits-box h2 {
+  color: var(--amber-ink);  /* ~13.3 : 1 on amber bg → AAA ✓ */
+}
+
+.limits-box p {
+  color:       var(--amber-ink);
+  font-size:   1.05rem;
+  line-height: 1.65;
+}
+
+/* ── How it was built ────────────────────── */
+
+.label-small {
+  font-size:   1rem;
+  font-weight: 400;
+  color:       var(--teal-d);
+  opacity:     0.75;
+}
+
+.built-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap:                   0.9rem;
+  margin-top:            1rem;
+}
+
+.built-cell {
+  background:    var(--teal-l);
+  border-radius: var(--radius);
+  padding:       1rem 1.25rem;
+}
+
+.built-cell--team {
+  grid-column: 1 / -1;
+  background:  var(--bg-alt);
+  border:      2px solid var(--teal-l);
+}
+
+.built-cell dt {
+  font-size:      0.82rem;
+  font-weight:    800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color:          var(--teal-d);
+  margin-bottom:  0.3rem;
+}
+
+.built-cell dd {
+  font-size: 1rem;
+  color:     var(--ink);
+}
+
+/* ── What's next list ────────────────────── */
+
+.next-list {
+  list-style:     none;
+  margin-top:     0.5rem;
+  display:        flex;
+  flex-direction: column;
+  gap:            0.75rem;
+}
+
+.next-list li {
+  font-size:     1.05rem;
+  line-height:   1.6;
+  padding:       0.9rem 1.1rem;
+  background:    var(--bg);
+  border-radius: var(--radius);
+  border-left:   4px solid var(--teal-m);
+}
+
+/* ── Footer ──────────────────────────────── */
+
+footer {
+  background: var(--ink);
+  color:      var(--teal-l);
+  padding:    2rem 0;
+}
+
+.footer-inner {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  flex-wrap:       wrap;
+  gap:             0.75rem;
+}
+
+footer nav {
+  display: flex;
+  gap:     1.5rem;
+}
+
+footer nav a {
+  color:           var(--teal-l);
+  font-weight:     700;
+  font-size:       1rem;
+  text-decoration: underline;
+}
+
+footer nav a:hover {
+  color: #fff;
+}
+
+.footer-note {
+  font-size: 0.9rem;
+  color:     #aac8c6;
+}
+
+/* ── Responsive: 600 px and below ────────── */
+
+@media (max-width: 600px) {
+  /* Unstick the header on small screens — saves vertical space */
+  header {
+    position: static;
+  }
+
+  /* Hide the decorative SVG illustration */
+  .hero-art {
+    display: none;
+  }
+
+  /* Stack hero buttons full-width for large touch targets */
+  .hero-btns {
+    flex-direction: column;
+    align-items:    stretch;
+  }
+  .btn {
+    width:      100%;
+    text-align: center;
+  }
+
+  /* Stack limits box vertically */
+  .limits-box {
+    flex-direction: column;
+  }
+
+  /* Team cell spans only its column on narrow grids */
+  .built-cell--team {
+    grid-column: unset;
+  }
+
+  /* Stack footer */
+  .footer-inner {
+    flex-direction: column;
+    align-items:    flex-start;
+  }
+}
