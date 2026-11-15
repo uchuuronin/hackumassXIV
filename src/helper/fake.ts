@@ -22,18 +22,29 @@ function outer(n: Element): Element | null {
 }
 
 /** True if the node sits inside something that calls itself an advert. */
-function inAdvert(node: Element): boolean {
+export function advertAround(node: Element): Element | null {
   for (let n: Element | null = node; n; n = outer(n)) {
     // A small "Ad" or "Sponsored" tag inside the box.
     for (const c of Array.from(n.children)) {
-      if (c.children.length === 0 && AD_TAG.test((c.textContent ?? '').trim())) return true;
+      if (c.children.length === 0 && AD_TAG.test((c.textContent ?? '').trim())) return n;
     }
     if (n.tagName === 'BODY' || n.tagName === 'HTML') continue;
     const className = typeof n.className === 'string' ? n.className : '';
     const words = `${n.id} ${className} ${n.getAttribute('aria-label') ?? ''} ${n.getAttribute('title') ?? ''}`;
-    if (AD_WORDS.test(words) || AD_COMPOUND.test(words) || n.hasAttribute('data-ad') || n.hasAttribute('data-ad-slot')) return true;
+    if (AD_WORDS.test(words) || AD_COMPOUND.test(words) || n.hasAttribute('data-ad') || n.hasAttribute('data-ad-slot')) return n;
   }
-  return false;
+  return null;
+}
+
+function inAdvert(node: Element): boolean {
+  return advertAround(node) !== null;
+}
+
+/** The iframe for a cross-site frame that looks like an advert, or null. */
+export function advertFrame(f: { src: string; sameSite: boolean; visible: boolean }): HTMLIFrameElement | null {
+  if (f.sameSite || !f.visible) return null;
+  const iframe = Array.from(document.querySelectorAll('iframe')).find((x) => x.src === f.src);
+  return iframe && (inAdvert(iframe) || AD_SRC.test(f.src)) ? iframe : null;
 }
 
 export function startFakeCheck(ctx: LaneContext): void {
