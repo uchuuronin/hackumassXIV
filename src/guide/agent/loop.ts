@@ -37,8 +37,8 @@ export interface Deps {
   run(name: string, args: Record<string, unknown>): Promise<{ ok: boolean; said?: string } | undefined>;
   /** Mark something on the page so she can see what is about to be pressed, or what is hers to press. */
   point(id: string): void;
-  /** Say what is happening now, while it is working. */
-  progress(said: string): void;
+  /** Show what is happening now, while it is working. `speak: false` shows it without reading it out (it was just said). */
+  progress(said: string, speak?: boolean): void;
   /** Wait for the page to finish changing after a step. */
   settle(): Promise<void>;
   /** How Milo speaks (src/shared/voice.ts), added to what Gemini is told. */
@@ -90,6 +90,10 @@ export interface Outcome {
   said: string;
   options?: string[];
   point?: string;
+  /** A picture of her screen went to Gemini for this answer. The panel says so. */
+  looked?: boolean;
+  /** Already read out (as the question, or while doing the step). Shown, not said again. */
+  spoken?: boolean;
 }
 
 export const YES = 'Yes, do it';
@@ -216,6 +220,8 @@ export class Run {
   private since = 0;
   /** A picture of her screen, sent with each question until a step changes the page. */
   private picture: string | undefined;
+  /** True once any picture of her screen has been sent in this run. */
+  private sent = false;
   private wantLook: boolean;
 
   constructor(private goal: string, private level: Level, private deps: Deps, options: { look?: boolean; earlier?: Earlier[] } = {}) {
@@ -234,12 +240,17 @@ export class Run {
 
   /** Start, or go on with what she just said or pressed. */
   async next(answer?: string): Promise<Outcome> {
+    const end = await this.step(answer);
+    return this.sent ? { ...end, looked: true } : end;
+  }
+
+  private async step(answer?: string): Promise<Outcome> {
     this.halted = false;
     if (this.pending) {
       const turn = this.pending;
       this.pending = null;
-      if (answer !== YES) return { kind: 'stopped', said: 'All right. I will leave it there.' };
-      const end = await this.take(turn);
+      if (answer !== YES) return { kind: 'stopped', said: "All right. I'll pause here for now." };
+      const end = await this.take(turn, true);
       if (end) return end;
     } else if (this.asked) {
       this.notes.push(`You asked "${this.asked}" and she said: ${answer ?? ''}`);
@@ -271,6 +282,7 @@ export class Run {
       }
       const [page, pageTools] = await Promise.all([this.deps.page(), this.deps.tools()]);
       const tools = this.offered(pageTools);
+      if (this.picture) this.sent = true;
       const text = await this.deps.ask(agentPrompt({ goal: this.goal, level: this.level, tools, map: page.map, words: page.words, done: this.done, notes: this.notes, tone: this.deps.tone, picture: !!this.picture }), this.picture);
       const turn = text === null ? null : readTurn(text, tools.map((t) => t.name));
       if (!turn) return { kind: 'lost', said: LOST };
@@ -330,7 +342,7 @@ export class Run {
   }
 
   /** Takes one step. Returns how it ended if that was the end, otherwise nothing and the loop goes on. */
-  private async take(turn: Turn): Promise<Outcome | null> {
+  private async take(turn: Turn, confirmed = false): Promise<Outcome | null> {
     const step = turn.step!;
     if (OPENS.has(step.tool)) {
       const what = String(step.args.what ?? this.goal);
@@ -339,7 +351,7 @@ export class Run {
       return { kind: ok ? 'done' : 'lost', said };
     }
     const id = typeof step.args.id === 'string' ? step.args.id : undefined;
-    this.deps.progress(turn.say);
+    this.deps.progress(turn.say, !confirmed); // after a yes, the step was just read out as the question
     if (id) this.deps.point(id);
     const result = await this.deps.run(step.tool, step.args);
     if (!result) return { kind: 'lost', said: "I can't reach this page just now. Try refreshing it, then ask me again." };
@@ -351,7 +363,10 @@ export class Run {
       const why = result.said ?? 'That one needs a real press from you.';
       return { kind: 'yours', said: `${why} I've marked it, so you can press it when you're ready.`, point: id };
     }
-    if (turn.done) return { kind: 'done', said: result.said && step.tool !== 'click' && step.tool !== 'fill' ? result.said : turn.say };
+    if (turn.done) {
+      const own = result.said && step.tool !== 'click' && step.tool !== 'fill' ? result.said : '';
+      return own ? { kind: 'done', said: own } : { kind: 'done', said: turn.say, spoken: true };
+    }
     await this.deps.settle();
     return null;
   }

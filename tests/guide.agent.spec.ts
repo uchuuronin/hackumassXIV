@@ -31,8 +31,8 @@ function world(replies: string[], results: Record<string, { ok: boolean; said: s
     point(id) {
       log.push(`point ${id}`);
     },
-    progress(said) {
-      log.push(`say ${said}`);
+    progress(said, speak) {
+      log.push(speak === false ? `show ${said}` : `say ${said}`);
     },
     async settle() {
       log.push('settle');
@@ -86,7 +86,7 @@ test('"Do it with me": it asks before every step, and does nothing on a no', asy
   expect(log).toContain('click {"id":"s1"}');
   expect(second.kind).toBe('confirm'); // and asks again for the next one
   const end = await run.next('No thanks');
-  expect(end).toMatchObject({ kind: 'stopped', said: 'All right. I will leave it there.' });
+  expect(end).toMatchObject({ kind: 'stopped', said: "All right. I'll pause here for now." });
   expect(log.some((l) => l.startsWith('fill'))).toBe(false);
 });
 
@@ -285,4 +285,40 @@ test('the built-in tools are offered only when Milo can do them', async () => {
   const v = more([JSON.stringify({ say: 'Hi.', done: true })], { async search() { return ''; }, async open() { return true; }, async look() { return {}; } });
   await new Run('hi', 'for-me', v.deps).next();
   for (const tool of ['look_up(question)', 'show_pictures(what)', 'search_web(what)', 'look_at_screen()']) expect(v.asked[0]!.prompt).toContain(tool);
+});
+
+test('when a picture of her screen went to Gemini, the answer says so, and only then', async () => {
+  const seen = more([JSON.stringify({ say: 'It is a lamp.', done: true })], { async look() { return { picture: 'JPEGDATA' }; } });
+  expect((await new Run('what is this?', 'for-me', seen.deps, { look: true }).next()).looked).toBe(true);
+  const asked = more([step('Let me look.', 'look_at_screen', {}), JSON.stringify({ say: 'Search, basket, account.', done: true })], { async look() { return { picture: 'JPEGDATA' }; } });
+  expect((await new Run('what are those icons?', 'for-me', asked.deps).next()).looked).toBe(true);
+  const not = more([JSON.stringify({ say: 'Hello.', done: true })], { async look() { return { picture: 'JPEGDATA' }; } });
+  expect((await new Run('hello', 'for-me', not.deps).next()).looked).toBeFalsy();
+  const held = more([], { async look() { return { held: 'private' as const }; } });
+  expect((await new Run('what is this?', 'for-me', held.deps, { look: true }).next()).looked).toBeFalsy();
+});
+
+
+test('nothing is said twice: after "Yes, do it" the step is shown but not said again, and the end is not repeated', async () => {
+  const w = world([step('I will change the date to Tuesday the 17th.', 'fill', { id: 's2', value: 'Tue' }, true)]);
+  const run = new Run('make it tuesday', 'with-me', w.deps);
+  const ask = await run.next();
+  expect(ask.said).toBe('I will change the date to Tuesday the 17th. Shall I do that?'); // said once, here
+  const end = await run.next('Yes, do it');
+  expect(w.log.filter((l) => l.startsWith('say '))).toEqual([]); // not said again while doing it
+  expect(w.log).toContain('show I will change the date to Tuesday the 17th.'); // still shown
+  expect(end).toMatchObject({ kind: 'done', spoken: true }); // and the panel doesn't read it out a third time
+});
+
+test('"Do it for me": a step said while doing it is not read out again when it was the last one', async () => {
+  const w = world([step('Opening a new event.', 'click', { id: 's1' }, true)]);
+  const end = await new Run('new event', 'for-me', w.deps).next();
+  expect(w.log.filter((l) => l.startsWith('say '))).toEqual(['say Opening a new event.']);
+  expect(end).toMatchObject({ kind: 'done', said: 'Opening a new event.', spoken: true });
+});
+
+test('a new answer after the steps is still read out', async () => {
+  const w = world([step('Opening a new event.', 'click', { id: 's1' }), JSON.stringify({ say: 'It is open. Type a title, then press Save.', done: true })]);
+  const end = await new Run('new event', 'for-me', w.deps).next();
+  expect(end.spoken).toBeFalsy();
 });

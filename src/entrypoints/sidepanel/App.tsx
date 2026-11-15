@@ -21,7 +21,7 @@ import { intent, useGuide } from '@/guide/panel/useGuide';
 import { useScreenFocus } from '@/guide/panel/useScreenFocus';
 import { useStill } from '@/guide/panel/useStill';
 
-interface Reply { quiet?: boolean; said: string; point?: string; /** From the step-by-step helper: its buttons go back to it. */ agent?: boolean; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean; /** A second, separate message under the first. */ then?: { said: string; options?: string[] } }
+interface Reply { quiet?: boolean; said: string; point?: string; /** A picture of her screen went to Gemini for this answer. */ looked?: boolean; /** From the step-by-step helper: its buttons go back to it. */ agent?: boolean; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean; /** A second, separate message under the first. */ then?: { said: string; options?: string[] } }
 
 async function activeTabId(): Promise<number | undefined> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -190,10 +190,10 @@ export default function App() {
     setBusy(true);
     try {
       const end = await go();
-      setReply({ said: end.said, options: end.options, point: end.point, quiet: end.kind === 'lost', agent: true });
+      setReply({ said: end.said, options: end.options, point: end.point, quiet: end.kind === 'lost', agent: true, looked: end.looked });
       if (she) talk.current = [...talk.current, { she, milo: end.said, at: Date.now() }].slice(-3);
       saidAt.current = Date.now();
-      say(end.said);
+      if (!end.spoken) say(end.said); // never read the same words out twice
       if (end.point && tabId) {
         const run = { type: 'tool/run', name: 'point_at', args: { id: end.point } };
         (browser.tabs.sendMessage(tabId, run) as Promise<ToolResultMsg>).catch(() => undefined);
@@ -267,9 +267,9 @@ export default function App() {
         const run = { type: 'tool/run', name: 'point_at', args: { id } };
         (browser.tabs.sendMessage(tabId, run) as Promise<ToolResultMsg>).catch(() => undefined);
       },
-      progress(said) {
+      progress(said, speak) {
         setProgress(said);
-        say(said);
+        if (speak !== false) say(said);
       },
       // After a step the page may redraw or move to another address. Wait for it, then a moment more for Milo to start there.
       async settle() {
@@ -424,6 +424,9 @@ export default function App() {
         </div>
         <section aria-live="polite" className="talk">
           <p className={`bubble${reply?.quiet ? ' quiet' : ''}`} key={words}>{words}</p>
+          {reply?.looked && !busy && (
+            <p className="looked"><Icon name="eye" /> I looked at a picture of this page to answer.</p>
+          )}
           {answers.length > 0 && (
             <div className="answers">
               {answers.map((o, i) => (

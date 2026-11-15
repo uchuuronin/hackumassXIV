@@ -82,6 +82,9 @@ button.buddy:active .buddy-dog { animation: none; transform: scale(1.04, .95); }
 @keyframes heart { 0% { opacity: 0; transform: translateY(22px) scale(.6); } 25% { opacity: 1; transform: translateY(6px) scale(1.06); } 70% { opacity: 1; transform: translateY(-6px) scale(1); } 100% { opacity: 0; transform: translateY(-16px) scale(1); } }
 
 .talk { margin-top: 0; }
+/* "I looked at a picture of this page": said every time a picture of her screen went to Gemini. Navy on the sky, 18px. */
+.looked { display: flex; align-items: center; gap: 8px; margin: 10px 2px 0; font-size: 18px; font-weight: 600; color: var(--ink); }
+.looked .icon { flex: none; width: 22px; height: 22px; }
 .bubble { position: relative; margin: 0; padding: 14px 16px; background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 16px; font-size: 20px; font-weight: 600;
   animation: rise 260ms cubic-bezier(.22, 1, .36, 1) both; }
 .bubble.quiet { background: var(--care); }
