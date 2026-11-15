@@ -3,12 +3,12 @@ import type { GeminiAnswer } from '@/shared/tools';
 
 export const RELAY_URL = 'http://64.177.52.26'; // becomes https://api.<domain> once DNS is set
 
-export async function askRelay(prompt: string): Promise<GeminiAnswer> {
+export async function askRelay(prompt: string, search = false): Promise<GeminiAnswer> {
   try {
     const r = await fetch(`${RELAY_URL}/gemini`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(search ? { prompt, search: true } : { prompt }),
       signal: AbortSignal.timeout(35000),
     });
     if (!r.ok) {

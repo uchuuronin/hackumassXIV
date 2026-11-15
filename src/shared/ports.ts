@@ -69,6 +69,11 @@ export interface ChoiceLabelReply {
 export interface ModelPort {
   /** One plain sentence per button, starting "Click this to". Unsure? Say so with confident: false. */
   labelChoices(request: ChoiceLabelRequest): Promise<ChoiceLabelReply>;
+  /**
+   * A prompt in, Gemini's text out. For the guide's walk-through, which matches what the person said to the
+   * choices on the page. Whoever calls it builds the prompt from page-map data that is safe to send.
+   */
+  ask?(prompt: string, options?: { /** Let Gemini look things up on the web for this one. */ search?: boolean }): Promise<string>;
 }
 
 // ---- Store (owner: B). Saved on this device only. Each lane prefixes its own keys. ----

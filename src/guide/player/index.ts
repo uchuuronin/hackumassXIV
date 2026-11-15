@@ -8,6 +8,7 @@
 import { need } from '@/shared/ports';
 import type { RecordedTask, TaskStep } from '@/shared/tasks';
 import type { Tool, ToolResult } from '@/shared/tools';
+import * as details from '../details';
 import { pageMap } from '../map';
 import { locate, tasks } from '../recorder';
 import * as spotlight from '../spotlight';
@@ -105,9 +106,41 @@ async function find(step: TaskStep): Promise<{ id: string; confident: boolean } 
   return null;
 }
 
+/**
+ * A step that needs nothing more from her: a box that already has something in it, a date of birth with all
+ * its parts chosen, a list that "Help me fill this in" has set. Only whether it is empty is looked at, never
+ * what is in it. A click is never counted as done, and neither is a choice that is hers to make each time.
+ */
+function alreadyDone(step: TaskStep): boolean {
+  if (step.type === 'click' || !onThisPage(step)) return false;
+  const found = locate(step);
+  if (!found?.confident) return false;
+  const el = pageMap.elementFor(found.id);
+  const data = el && pageMap.describe(el);
+  if (!el || !data?.visible) return false;
+  if (step.type === 'type') return ((el as HTMLInputElement).value ?? '').trim() !== '';
+  if (step.locator.secret === 'date-of-birth') return idsFor(step, found.id).every((id) => !!(pageMap.elementFor(id) as HTMLSelectElement | null)?.value);
+  if (data.kind === 'select' && data.fillAs) return !!(el as HTMLSelectElement).value;
+  return false;
+}
+
+function skipNote(labels: string[]): string {
+  const names = [...new Set(labels)].map(quoted);
+  if (names.length === 1) return `${names[0]} is filled in already, so we'll skip it.`;
+  if (names.length <= 3) return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} are filled in already, so we'll skip those.`;
+  return `${names.length} boxes are filled in already, so we'll skip those.`;
+}
+
 async function present(): Promise<PlayState> {
   const r = run!;
   clearTimers();
+  // Don't ask for what is already there (she typed ahead, the website remembered it, or Steady filled it in).
+  const skipped: string[] = [];
+  while (r.task.steps[r.at] && alreadyDone(r.task.steps[r.at]!)) {
+    skipped.push(r.task.steps[r.at]!.locator.label);
+    r.at += 1;
+  }
+  if (skipped.length) r.lead = `${r.lead ? `${r.lead} ` : ''}${skipNote(skipped)}`;
   const step = r.task.steps[r.at];
   if (!step) return finish();
   const of = r.task.steps.length;
@@ -154,7 +187,7 @@ async function present(): Promise<PlayState> {
     lastTimeTimer = window.setTimeout(clearLastTime, pace.lastTimeMs);
   }
 
-  const stillHere = () => run === r && r.task.steps[r.at] === step;
+  const stillHere = () => run === r && r.task.steps[r.at] === step && !details.isActive();
   nudgeTimer = window.setTimeout(() => stillHere() && need('speech').say(`Take your time. ${say}`, STEP_OPTIONS), pace.nudgeMs);
   helpTimer = window.setTimeout(
     () =>
@@ -295,7 +328,7 @@ function advanceFrom(index: number): void {
   // If the next step is on another page, the page is probably on its way. Give it time before saying anything.
   const delay = pace.advanceMs + (next && !onThisPage(next) ? 2500 : 0);
   advanceTimer = window.setTimeout(async () => {
-    if (run !== r) return;
+    if (run !== r || details.isActive()) return; // the form is being filled in: wait, and catch up after
     const state = await present();
     need('speech').say(state.said, state.options);
   }, delay);
@@ -305,6 +338,7 @@ function listen(): void {
   detach?.();
   const clicks = need('clicks');
   const offClick = clicks.onClick((target) => {
+    if (details.isActive()) return;
     const done = stepDone(target, 'click');
     if (done >= 0) advanceFrom(done);
   });
@@ -318,6 +352,8 @@ function listen(): void {
   });
   const onChange = (e: Event) => {
     if (!(e.target instanceof Element)) return;
+    // While "Help me fill this in" is working, several boxes change at once. The task waits (see catchUp).
+    if (details.isActive()) return;
     const done = stepDone(e.target, 'change');
     if (done < 0) return;
     if (run) void keepChoice(run.task.id, done, run.task.steps[done]!, e.target);
@@ -402,6 +438,18 @@ export async function resume(): Promise<PlayState | null> {
 }
 
 /** "Go on" or "Skip this step": move to the next step without doing this one. Nothing is clicked. */
+/** "Help me fill this in" was pressed in the middle of a task: say nothing until it has finished. */
+export function hush(): void {
+  if (run) clearTimers();
+}
+
+/** The filling-in has finished: skip what is now filled, and show the first step that is still to do. */
+export async function catchUp(): Promise<PlayState | null> {
+  if (!run) return null;
+  run.lead = '';
+  return present();
+}
+
 export async function next(): Promise<PlayState> {
   if (!run) return idle();
   run.at += 1;

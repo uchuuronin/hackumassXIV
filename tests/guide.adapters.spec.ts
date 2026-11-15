@@ -1,6 +1,6 @@
 // The guide lane draws through A's overlay. This checks the small piece that joins the two.
 import { expect, test } from '@playwright/test';
-import { html, one } from './helpers';
+import { html, inject, one } from './helpers';
 
 test("labels and the spotlight are passed to A's overlay, follow their button, and are taken down again", async ({ page }) => {
   const map = await html(page, `<button style="margin:200px">Checkout</button>`);
@@ -81,5 +81,29 @@ test('a spotlight on a set of choices covers all of them', async ({ page }) => {
     const [a, b] = ids.map((id) => window.__steady.api.liveRect(id)!);
     return lit!.y <= a!.y && lit!.y + lit!.height >= b!.y + b!.height;
   }, ids);
+  expect(covered).toBe(true);
+});
+
+test('a set of choices is lit as whole cards, names included, not only the little circles', async ({ page }) => {
+  await page.goto('/clinic/book.html?reset=1');
+  await inject(page);
+  const covered = await page.evaluate(() => {
+    const ids = window.__steady.api
+      .get()
+      .elements.filter((e) => e.kind === 'radio')
+      .map((e) => e.id);
+    let lit: { x: number; y: number; width: number; height: number } | null = null;
+    const port = window.__steady.adaptOverlay(() => ({
+      show: () => undefined,
+      hide: () => undefined,
+      clear: () => undefined,
+      setCursor: () => undefined,
+      setDwell: () => undefined,
+      setSpotlight: (where) => (lit = where === null ? null : (where as () => typeof lit)()),
+    }));
+    port.spotlight({ targetId: ids[0]!, group: ids });
+    const cards = [...document.querySelectorAll('label.doctor')].map((c) => c.getBoundingClientRect());
+    return cards.every((c) => lit!.x <= c.left + 1 && lit!.y <= c.top + 1 && lit!.x + lit!.width >= c.right - 1 && lit!.y + lit!.height >= c.bottom - 1);
+  });
   expect(covered).toBe(true);
 });

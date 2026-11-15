@@ -42,8 +42,9 @@ export function HelperCard() {
     const email = helper.email.trim();
     if (!name) return setStatus('Please type their first name.');
     if (!/^\S+@\S+\.\S+$/.test(email)) return setStatus('That email address does not look finished. It needs an @ sign.');
-    await deviceStore.set(HELPER_KEY, { name, email });
-    setStatus(`Saved. When you press "I'm stuck", I'll ask before I tell ${name}.`);
+    const relation = (helper.relation ?? '').toLowerCase().replace(/^my\s+/, '').replace(/[^a-z' -]/g, '').trim().slice(0, 24);
+    await deviceStore.set(HELPER_KEY, relation ? { name, email, relation } : { name, email });
+    setStatus(`Saved. When you press "I'm stuck", I'll ask before I tell ${relation ? `your ${relation}, ${name}` : name}.`);
   };
   const remove = async () => {
     await deviceStore.remove(HELPER_KEY);
@@ -59,6 +60,8 @@ export function HelperCard() {
       <input id="helper-name" value={helper.name} autoComplete="off" onChange={(e) => setHelper({ ...helper, name: e.target.value })} />
       <label htmlFor="helper-email">Their email address</label>
       <input id="helper-email" type="email" value={helper.email} autoComplete="off" onChange={(e) => setHelper({ ...helper, email: e.target.value })} />
+      <label htmlFor="helper-relation">Who are they to you? (you can leave this empty)</label>
+      <input id="helper-relation" value={helper.relation ?? ''} autoComplete="off" placeholder="daughter" onChange={(e) => setHelper({ ...helper, relation: e.target.value })} />
       <div className="row">
         <button type="button" className="btn main" onClick={save}>Save</button>
         <button type="button" className="btn" onClick={remove}>Remove</button>

@@ -8,27 +8,47 @@ import { DETAILS_KEY } from '@/shared/details';
 import { HELPER_KEY, type Helper, type StuckNote } from '@/shared/family';
 import { need } from '@/shared/ports';
 import type { Tool, ToolResult } from '@/shared/tools';
+import { listen } from '../listening';
 import * as player from '../player';
 
 /** Long enough for a person to read an email and pick up the telephone. */
 const QUIET_MS = 3 * 60_000;
 
 export interface StuckState {
-  status: 'offer' | 'sent' | 'failed' | 'declined' | 'no-helper';
+  status: 'offer' | 'sent' | 'failed' | 'declined' | 'no-helper' | 'need-email' | 'need-name';
   said: string;
   options?: string[];
+  /** How Steady's face should look while it says this. */
+  mood?: 'worried' | 'reassuring';
 }
 
 let offering = false;
 let lastSentAt = 0;
+/** No helper is saved, and she is typing one in: first the address, then the name, then a yes. */
+let asking: { step: 'email' } | { step: 'name'; email: string } | { step: 'confirm'; helper: Helper } | null = null;
+
+const setAsking = (next: typeof asking): void => {
+  asking = next;
+  listen('family', next?.step === 'email' || next?.step === 'name'); // what she types now is the address or the name
+};
+
+/** "your daughter, Maya" when she has said who they are to her, otherwise "Maya". */
+const who = (helper: Helper): string => (helper.relation ? `your ${helper.relation}, ${helper.name}` : helper.name);
+const tidyRelation = (text?: string): string | undefined => {
+  const t = (text ?? '').toLowerCase().replace(/^my\s+/, '').replace(/[^a-z' -]/g, '').trim().slice(0, 24);
+  return t || undefined;
+};
 
 export async function loadHelper(): Promise<Helper | null> {
   const saved = await need('store').get<Helper>(HELPER_KEY);
-  return saved?.name?.trim() && /^\S+@\S+\.\S+$/.test(saved.email ?? '') ? saved : null;
+  if (!saved?.name?.trim() || !/^\S+@\S+\.\S+$/.test(saved.email ?? '')) return null;
+  const relation = tidyRelation(saved.relation);
+  return relation ? { name: saved.name, email: saved.email, relation } : { name: saved.name, email: saved.email };
 }
 
 export async function saveHelper(helper: Helper): Promise<void> {
-  await need('store').set(HELPER_KEY, { name: helper.name.trim(), email: helper.email.trim() });
+  const relation = tidyRelation(helper.relation);
+  await need('store').set(HELPER_KEY, { name: helper.name.trim(), email: helper.email.trim(), ...(relation ? { relation } : {}) });
 }
 
 export async function clearHelper(): Promise<void> {
@@ -40,18 +60,72 @@ const NO_HELPER: StuckState = { status: 'no-helper', said: 'I don\'t know who to
 /** "I'm stuck": ask whether to tell her helper. Nothing is sent yet. */
 export async function offer(): Promise<StuckState> {
   const helper = await loadHelper();
-  if (!helper) return NO_HELPER;
+  if (!helper) {
+    // Nobody to ask yet. Don't send her off to a settings screen while she's stuck: ask here.
+    setAsking({ step: 'email' });
+    return {
+      status: 'need-email',
+      mood: 'worried',
+      said: "Oh no. I don't have anyone to ask yet. If you know the email address of someone you trust, type it in the box below. I'll send them a short note to say you'd like a hand.",
+      options: ['No, not yet'],
+    };
+  }
   if (lastSentAt && Date.now() - lastSentAt < QUIET_MS) {
-    return { status: 'sent', said: `I told ${helper.name} a moment ago. Give them a little time to answer.` };
+    return { status: 'sent', mood: 'reassuring', said: `I told ${helper.name} a moment ago. Give them a little time to answer.` };
   }
   offering = true;
   const at = player.where();
   const about = at ? ` with step ${at.step} of "${at.task}"` : '';
-  return { status: 'offer', said: `Want me to let ${helper.name} know you'd like a hand${about}?`, options: [`Yes, tell ${helper.name}`, 'No, not yet'] };
+  const name = helper.relation ? `${who(helper)},` : helper.name;
+  return { status: 'offer', mood: 'worried', said: `Want me to let ${name} know you'd like a hand${about}?`, options: [`Yes, tell ${helper.name}`, 'No, not yet'] };
 }
+
+/** She typed or said something while Steady is asking who to tell. */
+export function heard(words: string): StuckState {
+  if (asking?.step === 'email') {
+    const email = words.trim().toLowerCase().replace(/[.,;!]+$/, '');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      return { status: 'need-email', mood: 'worried', said: "That doesn't look like an email address yet. It should look like name@example.com. Have another go, or we can leave it for now.", options: ['No, not yet'] };
+    }
+    setAsking({ step: 'name', email });
+    return { status: 'need-name', said: "Thank you. And what's their first name?", options: ['No, not yet'] };
+  }
+  if (asking?.step === 'name') {
+    const name = words
+      .replace(/[^\p{L}' -]/gu, '')
+      .trim()
+      .slice(0, 30)
+      .replace(/(^|[ -])(\p{L})/gu, (_m, gap: string, letter: string) => gap + letter.toUpperCase());
+    if (!name) return { status: 'need-name', said: "I didn't catch a name. What's their first name?", options: ['No, not yet'] };
+    const helper: Helper = { name, email: asking.email };
+    setAsking({ step: 'confirm', helper });
+    offering = true;
+    return {
+      status: 'offer',
+      mood: 'worried',
+      said: `I'll send a short note to ${name} at ${helper.email}. Shall I? I'll remember them for next time, and you can change that in My details.`,
+      options: [`Yes, tell ${name}`, 'No, not yet'],
+    };
+  }
+  return { status: 'declined', said: '' };
+}
+
+/** She started something else: stop asking, keep nothing. */
+export function reset(): void {
+  setAsking(null);
+  offering = false;
+}
+
+/** Waiting for her to type the address or the name. */
+export const isAsking = (): boolean => asking?.step === 'email' || asking?.step === 'name';
 
 /** "Yes, tell Maya." */
 export async function send(): Promise<StuckState> {
+  // She has just typed in who to tell, and said yes: now it is kept.
+  if (asking?.step === 'confirm') {
+    await saveHelper(asking.helper);
+    setAsking(null);
+  }
   const helper = await loadHelper();
   if (!helper) return NO_HELPER;
   offering = false;
@@ -68,13 +142,18 @@ export async function send(): Promise<StuckState> {
   }
   if (!ok) {
     offering = true; // "Try again" is a yes
-    return { status: 'failed', said: `I couldn't reach ${helper.name} just now. That's not your fault. You could phone them, or I can try again.`, options: ['Try again', 'No, not yet'] };
+    return { status: 'failed', mood: 'worried', said: `I couldn't reach ${helper.name} just now. That's not your fault. You could phone them, or I can try again.`, options: ['Try again', 'No, not yet'] };
   }
   lastSentAt = Date.now();
-  return { status: 'sent', said: `I've told ${helper.name}. Nothing's lost. Everything on this page stays just as it is. You can wait for them, or keep going if you like.` };
+  return {
+    status: 'sent',
+    mood: 'reassuring',
+    said: `Don't worry. I've told ${who(helper)}. Nothing's lost, and everything on this page stays just as it is. You can wait for them, or keep going if you like.`,
+  };
 }
 
 export function decline(): StuckState {
+  setAsking(null);
   offering = false;
   return { status: 'declined', said: 'That\'s fine. I\'m here if you change your mind.' };
 }

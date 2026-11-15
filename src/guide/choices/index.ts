@@ -24,10 +24,15 @@ export interface ChoicesResult {
 }
 
 /** One thing the page wants before its button will work: a box to fill in, or a choice to make. */
-interface ToDo {
+export interface ToDo {
+  /** The box, the list, or the first of a set of choices. */
   el: PageElement;
   name: string;
   how: 'type' | 'list' | 'one-of' | 'tick';
+  /** Every element that belongs to it: one for a box, all of them for a set of choices. */
+  ids: string[];
+  /** What can be chosen, as the page words it. Lists and sets of choices only. */
+  options?: string[];
 }
 
 const TEXT_KINDS = new Set(['text', 'email', 'password', 'number', 'tel', 'date', 'time', 'textarea']);
@@ -38,7 +43,7 @@ const short = (name: string) => (name.length > 60 ? `${name.slice(0, 57).trimEnd
  * on a page with empty boxes is not helped by being sent to the button first: it won't work yet.
  * Only whether a box is empty is looked at, never what is in it.
  */
-function before(button: PageElement, map: PageMap): ToDo[] {
+export function before(button: PageElement, map: PageMap): ToDo[] {
   const form = map.forms.find((f) => f.id === button.formId);
   if (!form || form.isSearch) return [];
   const mine = map.elements.slice(0, map.elements.indexOf(button)).filter((e) => e.formId === form.id && e.visible && !e.disabled && !e.covered);
@@ -52,19 +57,28 @@ function before(button: PageElement, map: PageMap): ToDo[] {
       if (groups.has(group)) continue;
       groups.add(group);
       const same = mine.filter((e) => e.kind === 'radio' && (e.group ?? (pageMap.elementFor(e.id) as HTMLInputElement | null)?.name ?? e.label) === group);
-      if (!same.some((e) => e.checked)) todo.push({ el, name: short(group), how: 'one-of' });
+      if (!same.some((e) => e.checked)) todo.push({ el, name: short(group), how: 'one-of', ids: same.map((e) => e.id), options: same.map((e) => e.label) });
     } else if (el.kind === 'select') {
       const select = dom as HTMLSelectElement | null;
       const picked = select?.selectedOptions?.[0];
       const placeholder = !picked || select!.value === '' || (select!.selectedIndex === 0 && /^(select|choose|pick|please|-)/i.test(picked.text.trim()));
-      if (placeholder) todo.push({ el, name: short(el.label), how: 'list' });
+      if (placeholder) todo.push({ el, name: short(el.label), how: 'list', ids: [el.id], options: (el.options ?? []).filter((o) => o.value !== '' && !o.disabled).map((o) => o.label) });
     } else if (el.kind === 'checkbox') {
-      if (el.required && !el.checked) todo.push({ el, name: short(el.label), how: 'tick' });
+      if (el.required && !el.checked) todo.push({ el, name: short(el.label), how: 'tick', ids: [el.id] });
     } else if (TEXT_KINDS.has(el.kind)) {
-      if (((dom as HTMLInputElement | null)?.value ?? '').trim() === '') todo.push({ el, name: short(el.label), how: 'type' });
+      if (((dom as HTMLInputElement | null)?.value ?? '').trim() === '') todo.push({ el, name: short(el.label), how: 'type', ids: [el.id] });
     }
   }
   return todo;
+}
+
+/** The button that moves a form on, and what the form still wants before it. Null when the page has no such form. */
+export function wayForward(map: PageMap): { button: PageElement; todo: ToDo[] } | null {
+  const basket = basketWord(map);
+  const button = candidates(map).find(
+    (el) => el.formId && !map.forms.find((f) => f.id === el.formId)?.isSearch && (el.protection !== 'none' || phraseFor(el, map, basket)?.tone === 'go'),
+  );
+  return button ? { button, todo: before(button, map) } : null;
 }
 
 const START: Record<ToDo['how'], string> = {

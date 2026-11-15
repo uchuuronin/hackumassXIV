@@ -55,10 +55,11 @@ export function parseReply(text: string): ChoiceLabelReply {
 }
 
 /** A model port built on any function that sends a prompt to Gemini and returns its text. */
-export function modelVia(ask: (prompt: string) => Promise<string>): ModelPort {
+export function modelVia(ask: (prompt: string, options?: { search?: boolean }) => Promise<string>): ModelPort {
   return {
     async labelChoices(request) {
       return parseReply(await ask(buildPrompt(request)));
     },
+    ask,
   };
 }

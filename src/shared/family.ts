@@ -7,6 +7,8 @@ export const HELPER_KEY = 'guide:helper';
 export interface Helper {
   name: string;
   email: string;
+  /** Who they are to her, in her word: "daughter", "neighbour". Optional. Never sent anywhere. */
+  relation?: string;
 }
 
 /**

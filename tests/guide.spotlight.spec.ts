@@ -1,6 +1,6 @@
 // Feature 5, "Spotlight": during a guided step the rest of the page is dimmed.
 import { expect, test, type Page } from '@playwright/test';
-import { html, one } from './helpers';
+import { html, inject, one } from './helpers';
 
 const overlayCalls = (page: Page) =>
   page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'overlay' && c.method === 'spotlight').map((c) => c.args[0]));
@@ -62,4 +62,30 @@ test('if the lit button disappears, the light goes out by itself', async ({ page
   await page.evaluate((i) => window.__steady.spotlight.on(i), one(map, 'Here').id);
   await page.evaluate(() => document.getElementById('b')!.remove());
   await expect.poll(async () => (await overlayCalls(page)).at(-1)).toBeNull();
+});
+
+test("when Steady's own big chooser opens over the lit box, the light and the dimming step aside, and come back after", async ({ page }) => {
+  await page.goto('/clinic/book.html?reset=1');
+  await inject(page);
+  const id = await page.evaluate(() => window.__steady.api.get().elements.find((e) => e.label === 'Reason for your visit')!.id);
+  await page.evaluate((i) => window.__steady.spotlight.on(i, 'Choose whichever suits you.'), id);
+  const last = () => page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'overlay' && c.method === 'spotlight').at(-1)!.args[0] as { targetId: string } | null);
+  expect((await last())?.targetId).toBe(id);
+
+  // A's Big Pick: a large panel of Steady's own, on top of the little list.
+  await page.evaluate(() => {
+    const panel = document.createElement('div');
+    panel.id = 'big-pick';
+    panel.setAttribute('data-steady-ui', '');
+    panel.style.cssText = 'position:fixed;inset:10% 10% 10% 10%;background:#fff;z-index:2147483000;';
+    document.documentElement.append(panel);
+  });
+  await expect.poll(last).toBeNull(); // nothing lit, nothing dimmed: the chooser is what she should see
+  expect(await page.evaluate(() => window.__steady.spotlight.lit())).toBe(id); // the step itself is still on
+
+  await page.evaluate(() => document.getElementById('big-pick')!.remove());
+  await expect.poll(async () => (await last())?.targetId).toBe(id);
+  await page.evaluate(() => window.__steady.spotlight.off());
+  await page.waitForTimeout(500);
+  expect(await last()).toBeNull(); // and off stays off
 });

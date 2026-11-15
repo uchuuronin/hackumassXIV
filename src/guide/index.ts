@@ -27,6 +27,8 @@ import { suggestTool } from './suggest';
 import * as timeout from './timeout';
 import * as trail from './trail';
 import { whereTool } from './trail';
+import { onListening } from './listening';
+import * as walk from './walk';
 import { timeoutTool } from './timeout';
 import type { StuckSend, StuckSent } from '@/shared/family';
 
@@ -89,8 +91,8 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
   if (!has('model')) {
     provide(
       'model',
-      modelVia(async (prompt) => {
-        const ask: GeminiAsk = { type: 'gemini/ask', prompt };
+      modelVia(async (prompt, options) => {
+        const ask: GeminiAsk = { type: 'gemini/ask', prompt, ...(options?.search ? { search: true } : {}) };
         const answer = (await browser.runtime.sendMessage(ask)) as GeminiAnswer | undefined;
         if (!answer?.ok) throw new Error('the relay did not answer');
         return answer.text;
@@ -150,6 +152,12 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
   await recorder.resume();
   const playing = await player.resume();
   if (playing) need('speech').say(playing.said, playing.options);
+
+  // "What do I click?" as a conversation. While one is on, the panel sends what she types or says here
+  // first, so she can answer a question in her own words. A booking that moves to a new page carries on.
+  onListening((on) => void browser.runtime.sendMessage({ type: 'guide/listening', on }).catch(() => undefined));
+  cleanups.push(() => onListening(() => undefined));
+  if (!playing) await walk.resume();
 
   ctx.onStop(() => {
     browser.runtime.onMessage.removeListener(onMessage);

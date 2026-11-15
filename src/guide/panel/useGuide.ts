@@ -8,6 +8,7 @@ import { browser } from 'wxt/browser';
 import { HELPER_KEY, type Helper } from '@/shared/family';
 import type { RecordedTask } from '@/shared/tasks';
 import type { HelperAnswer, ToolResult, ToolResultMsg, ToolRun } from '@/shared/tools';
+import { feelingOf, type Feeling } from './feeling';
 
 export interface Said {
   said: string;
@@ -49,10 +50,25 @@ const thenOf = (from: unknown): Said['then'] => {
   return then && typeof then.said === 'string' ? { said: then.said, options: Array.isArray(then.options) ? then.options.filter((o): o is string => typeof o === 'string') : undefined } : undefined;
 };
 
+/**
+ * True while Steady is going through a page with her, one question at a time. Then anything she types
+ * or says is an answer in her own words, and goes to the page before it goes anywhere else.
+ */
+let listening = false;
+
+/** How long each look stays before the face settles again. A concerned or reassuring look lingers; a glad one is brief. */
+const HOLD_MS: Record<Feeling, number> = { shocked: 6000, worried: 9000, reassuring: 10000, glad: 2500 };
+/** "!" is seen for at least this long before the face moves on to what Steady says next. */
+const SHOCK_MS = 1100;
+/** Set by the hook, so words that pass through `intent` can change the face. */
+let feel: (feeling: Feeling) => void = () => undefined;
+
 /** Plain words that mean one of the buttons, so typing or saying them works too. */
 export function intent(text: string, tasks: RecordedTask[]): string | null {
   const said = text.trim().toLowerCase().replace(/[?.!]+$/, '');
   if (!said) return null;
+  const feeling = feelingOf(text); // how she said it, for the face
+  if (feeling) feel(feeling);
   const task = tasks.find((t) => said === t.name.toLowerCase() || said.includes(t.name.toLowerCase()));
   if (task) return task.name;
   if (/\bwhere was i\b|\bwhat was i doing\b|\blost my place\b/.test(said)) return 'Where was I?';
@@ -60,6 +76,7 @@ export function intent(text: string, tasks: RecordedTask[]): string | null {
   if (/\b(i'?m|i am|im) stuck\b|\bask (my |someone|for help)|\bcall my\b|\bneed (some )?help from\b/.test(said)) return "I'm stuck";
   if (/\b(fill|type) (this|it|that|them|these|the form|my (name|address|details))\b|\bfill (this |it )?in\b/.test(said)) return 'Help me fill this in';
   if (/\bwhat (do|should|can) i (click|press)\b|\bwhich button\b|\bwhat do (these|the) buttons do\b/.test(said)) return 'What do I click?';
+  if (listening) return text.trim();
   return null;
 }
 
@@ -69,6 +86,24 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
   const [helper, setHelper] = useState<Helper | null>(null);
   const [recording, setRecording] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const [mood, setMood] = useState<Feeling | null>(null);
+  const settle = useRef<number | undefined>(undefined);
+  const show = useCallback((feeling: Feeling | null, after = 0) => {
+    window.clearTimeout(settle.current);
+    const go = () => {
+      setMood(feeling);
+      if (feeling) settle.current = window.setTimeout(() => setMood(null), HOLD_MS[feeling]);
+    };
+    if (after > 0) settle.current = window.setTimeout(go, after);
+    else go();
+  }, []);
+  useEffect(() => {
+    feel = (feeling) => show(feeling);
+    return () => {
+      feel = () => undefined;
+      window.clearTimeout(settle.current);
+    };
+  }, [show]);
   const say = useRef(onSaid);
   say.current = onSaid;
   const newPage = useRef(onNewPage);
@@ -82,20 +117,33 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
   const press = useCallback(
     async (words: string) => {
       setWorking(true);
+      const stuck = words === "I'm stuck";
+      const pressedAt = Date.now();
+      if (stuck) show('shocked'); // seen at once, before Steady has worked out what to say
       try {
         const result = await runOnPage('guide_answer', { words });
+        listening = (result?.data as { listening?: unknown } | undefined)?.listening === true;
+        const next = (result?.data as { mood?: unknown } | undefined)?.mood;
+        const feeling = next === 'worried' || next === 'reassuring' || next === 'glad' ? next : null;
+        if (stuck) show(feeling, Math.max(0, SHOCK_MS - (Date.now() - pressedAt)));
+        else if (feeling) show(feeling);
         say.current(result ? { said: result.said, options: optionsOf(result), then: thenOf(result.data) } : CANT);
       } finally {
         setWorking(false);
         void refreshHint();
       }
     },
-    [refreshHint],
+    [refreshHint, show],
   );
 
   // What Steady says as she goes along.
   useEffect(() => {
     const onMessage = (message: unknown, sender: { tab?: unknown }) => {
+      const walk = message as { type?: unknown; on?: unknown } | null;
+      if (walk?.type === 'guide/listening' && sender.tab) {
+        listening = walk.on === true;
+        return undefined;
+      }
       const note = message as Partial<HelperAnswer> | null;
       if (note?.type !== 'helper/answer' || !sender.tab || typeof note.said !== 'string') return undefined;
       say.current({ said: note.said, options: note.options, then: thenOf(note) });
@@ -136,5 +184,5 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
     return () => browser.storage.local.onChanged.removeListener(onChanged);
   }, []);
 
-  return { hint, tasks, helper, recording, working, press, refreshHint };
+  return { hint, tasks, helper, recording, working, press, refreshHint, mood };
 }

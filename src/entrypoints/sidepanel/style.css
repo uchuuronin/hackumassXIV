@@ -15,20 +15,41 @@ body { margin: 0; background: #1f2b3a; }
 
 .who { display: flex; align-items: center; gap: 12px; }
 h1 { margin: 0; font-size: 30px; font-weight: 800; }
-.buddy { flex: none; overflow: visible; }
+.buddy { flex: none; overflow: visible; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
 .buddy-body { transform-origin: 48px 84px; animation: breathe 3.2s ease-in-out infinite; }
 .buddy-eyes { transform-origin: 48px 44px; animation: blink 5.5s ease-in-out infinite; }
-.buddy-grin, .buddy-oh, .buddy-waves { display: none; }
-.buddy-glad .buddy-grin { display: block; } .buddy-glad .buddy-smile { display: none; }
+/* Every face is always there; a mood fades its parts in and the others out, so a change is never a jump. */
+.buddy-part { opacity: 0; transition: opacity 180ms ease; }
+.buddy-smile, .buddy-open { opacity: 1; }
+.buddy-open { transform-box: fill-box; transform-origin: center; transition: opacity 180ms ease, transform 200ms var(--ease-out); }
+.buddy-face { transition: fill 400ms ease; }
+.buddy-cheeks { transition: opacity 400ms ease; }
+.buddy-waves { display: none; }
+.buddy-glad .buddy-grin, .buddy-thinking .buddy-oh, .buddy-shocked .buddy-oh, .buddy-worried .buddy-flat, .buddy-worried .buddy-brows, .buddy-reassuring .buddy-closed { opacity: 1; }
+.buddy-glad .buddy-smile, .buddy-thinking .buddy-smile, .buddy-shocked .buddy-smile, .buddy-worried .buddy-smile, .buddy-reassuring .buddy-open { opacity: 0; }
 .buddy-glad .buddy-body { animation: hop 520ms cubic-bezier(.34, 1.5, .64, 1) 1, breathe 3.2s ease-in-out 520ms infinite; }
-.buddy-thinking .buddy-oh { display: block; } .buddy-thinking .buddy-smile { display: none; }
 .buddy-thinking .buddy-eyes { animation: look 2.4s ease-in-out infinite; }
 .buddy-listening .buddy-waves { display: block; animation: waves 1.2s ease-in-out infinite; }
+/* Concerned: the yellow cools and the cheeks fade. It breathes a little slower. */
+.buddy-worried .buddy-face { fill: #d9d6b4; }
+.buddy-worried .buddy-cheeks { opacity: .35; }
+.buddy-worried .buddy-body { animation-duration: 4.4s; }
+/* "I'm stuck": wide eyes, an "o", and an exclamation mark that rises in. One small start, then still. */
+.buddy-bang { opacity: 0; transform: translateY(5px) scale(.92); transform-box: fill-box; transform-origin: 50% 100%; transition: opacity 160ms ease, transform 200ms var(--ease-out); }
+.buddy-shocked .buddy-bang { opacity: 1; transform: none; }
+.buddy-shocked .buddy-face { fill: #fff0a6; }
+.buddy-shocked .buddy-open { transform: scale(1.3); }
+.buddy-shocked .buddy-eyes { animation: none; }
+.buddy-shocked .buddy-body { animation: startle 260ms var(--ease-out) 1, breathe 3.2s ease-in-out 260ms infinite; }
+/* Help is on its way: warm again, eyes closed in a smile, one slow nod. */
+.buddy-reassuring .buddy-body { animation: nod 600ms ease-in-out 1, breathe 3.2s ease-in-out 600ms infinite; }
 @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035, .97); } }
 @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
 @keyframes look { 0%, 100% { transform: translate(-3px, -2px); } 50% { transform: translate(3px, -2px); } }
 @keyframes hop { 0% { transform: translateY(0) scale(1); } 40% { transform: translateY(-9px) scale(.97, 1.04); } 100% { transform: translateY(0) scale(1); } }
 @keyframes waves { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@keyframes startle { 0% { transform: translateY(0); } 35% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
+@keyframes nod { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(3px); } }
 
 .talk { margin-top: 14px; }
 .bubble { position: relative; margin: 0; padding: 14px 16px; background: #fff; color: var(--ink); border-radius: 16px; font-size: 20px; font-weight: 600;
@@ -116,6 +137,9 @@ input::placeholder { color: var(--ink-quiet); }
 
 @media (prefers-reduced-motion: reduce) {
   .dots i, .buddy-body, .buddy-eyes, .buddy-waves, .bubble { animation: none !important; }
+  /* Less motion: the faces and colours still change, by fading. Nothing slides, grows or hops. */
+  .buddy-bang, .buddy-open { transition: opacity 180ms ease; }
+  .buddy-bang, .buddy-shocked .buddy-open { transform: none; }
   .btn, .tile { transition: none; }
 }
 

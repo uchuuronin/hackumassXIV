@@ -13,6 +13,7 @@ import * as player from '@/guide/player';
 import { suggest } from '@/guide/suggest';
 import * as timeout from '@/guide/timeout';
 import * as trail from '@/guide/trail';
+import * as walk from '@/guide/walk';
 import * as spotlight from '@/guide/spotlight';
 import { pageMap } from '@/guide/map';
 import { toModelSafe } from '@/shared/pagemap';
@@ -75,8 +76,8 @@ const steady = {
   choices,
   /** Wire choice labels to a function that sends a prompt to Gemini and returns its text. */
   useGemini(ask: (prompt: string) => Promise<string>) {
-    provide('model', modelVia(async (prompt) => {
-      calls.push({ port: 'gemini', method: 'ask', args: [prompt] });
+    provide('model', modelVia(async (prompt, options) => {
+      calls.push({ port: 'gemini', method: 'ask', args: [prompt, options] });
       return ask(prompt);
     }));
   },
@@ -90,6 +91,7 @@ const steady = {
   suggest,
   timeout,
   trail,
+  walk,
   /** The saved-data stand-in, for tests that need to put something there directly. */
   get store() {
     return need('store');

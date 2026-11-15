@@ -204,7 +204,8 @@ export default function App() {
     }
   }
 
-  const mood: Mood = listening ? 'listening' : busy || guide.working ? 'thinking' : glad ? 'glad' : 'idle';
+  // The guide's hook knows how the conversation is going (src/guide/panel/useGuide.ts): surprise shows at once, the rest when Steady isn't busy.
+  const mood: Mood = guide.mood === 'shocked' ? 'shocked' : listening ? 'listening' : busy || guide.working ? 'thinking' : (guide.mood ?? (glad ? 'glad' : 'idle'));
   const words = busy || guide.working ? 'Let me look…' : reply?.said || guide.hint.said || 'Hello, I\'m Steady. What are we doing today?';
   // Buttons under the bubble: the answers Steady offered, or, before anything is said, what fits this page
   // and is not already one of the big buttons below ("Help me sign in").

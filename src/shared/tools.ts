@@ -46,5 +46,5 @@ export interface ToolResultMsg { type: 'tool/result'; result: ToolResult }
 export type Msg = HelperAsk | HelperAnswer | ToolRun | ToolResultMsg;
 
 /** Ask Gemini through the relay. Sent to the background worker, which holds the relay URL. */
-export interface GeminiAsk { type: 'gemini/ask'; prompt: string }
+export interface GeminiAsk { type: 'gemini/ask'; prompt: string; /** Let Gemini search the web for this one (the relay decides whether it can). */ search?: boolean }
 export interface GeminiAnswer { type: 'gemini/answer'; ok: boolean; text: string }

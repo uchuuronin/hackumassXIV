@@ -10,6 +10,9 @@ const GONE = 'I can\'t find that on this page any more. The page may have change
 
 let current: { id: string; stopWatching: () => void } | null = null;
 
+/** How often a lit step is checked for something opening on top of it. */
+const LOOK_MS = 250;
+
 /** Light one element. Brings it into view first, gently. Says so, in plain words, when it can't. */
 export async function on(id: string, text?: string, options: { dim?: boolean; group?: string[] } = {}): Promise<SpotlightResult> {
   off();
@@ -32,9 +35,25 @@ export async function on(id: string, text?: string, options: { dim?: boolean; gr
   need('overlay').spotlight(target);
   pageMap.mark(el, 'current-step', 'This is the step you are on.');
   // If the page changes and the step is no longer there, don't leave a light on nothing.
-  const stopWatching = pageMap.onChange(() => {
+  const unwatch = pageMap.onChange(() => {
     if (current?.id === id && (!pageMap.elementFor(id) || !pageMap.liveRect(id))) off();
   });
+  // When she clicks a list or a date, the hands lane opens its big chooser on top (Big Pick). That chooser
+  // is now the thing to look at, so the light and the dimming step aside, and come back when it closes.
+  // Otherwise the page's little box stays lit behind the chooser and the chooser itself is dimmed.
+  let aside = false;
+  const look = window.setInterval(() => {
+    if (current?.id !== id) return;
+    const now = pageMap.elementFor(id);
+    const covered = !!now && !!pageMap.describe(now)?.covered;
+    if (covered === aside) return;
+    aside = covered;
+    need('overlay').spotlight(covered ? null : target);
+  }, LOOK_MS);
+  const stopWatching = () => {
+    unwatch();
+    window.clearInterval(look);
+  };
   current = { id, stopWatching };
   return { ok: true };
 }

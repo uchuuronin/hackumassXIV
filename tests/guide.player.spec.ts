@@ -283,3 +283,85 @@ test('a task that came from another computer: says so the first time, and where 
   const second = await page.evaluate((i) => window.__steady.player.start(i), id);
   expect(second.said).not.toContain('from another computer');
 });
+
+// ---- "Help me fill this in" in the middle of a saved task ----
+
+const weekdayFor = (page: Page) =>
+  page.evaluate(() => {
+    const d = new Date(`${(document.querySelector('#day') as HTMLInputElement).min}T12:00:00`);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  });
+
+/** Gets the clinic booking to its "Your details" part, as Rose would by hand. */
+async function toYourDetails(page: Page) {
+  await page.selectOption('#reason', 'Flu shot');
+  await page.check('[value="herrera"]');
+  await page.click('#next');
+  await page.fill('#day', await weekdayFor(page));
+  await page.locator('#day').blur();
+  await page.selectOption('#time', { index: 1 });
+  await page.click('#next');
+}
+
+/** A family member records the whole booking, up to the last "Next". Returns the task and where "First name" is in it. */
+async function recordWholeBooking(page: Page): Promise<{ id: string; firstName: number; steps: number }> {
+  await page.goto('/clinic/book.html?reset=1');
+  await inject(page);
+  await page.evaluate((n) => window.__steady.recorder.start(n), TASK);
+  await toYourDetails(page);
+  await page.fill('#first', 'A');
+  await page.locator('#first').blur();
+  await page.fill('#last', 'B');
+  await page.locator('#last').blur();
+  await page.selectOption('[name="dob_month"]', { index: 3 });
+  await page.selectOption('[name="dob_day"]', { index: 3 });
+  await page.selectOption('[name="dob_year"]', { index: 30 });
+  await page.fill('#phone', '4135550100');
+  await page.locator('#phone').blur();
+  await page.click('#next');
+  await page.waitForTimeout(50);
+  const { task } = await page.evaluate(() => window.__steady.recorder.stop());
+  // Later, Rose is part-way through the same booking, at "Your details".
+  await page.goto('/clinic/book.html?reset=1');
+  await inject(page);
+  await fast(page);
+  await page.evaluate(() => window.__steady.details.save({ givenName: 'Rose', familyName: 'Marchetti', phone: '413 555 0142' }));
+  await toYourDetails(page);
+  return { id: task.id, firstName: task.steps.findIndex((s) => s.locator.label === 'First name'), steps: task.steps.length };
+}
+
+test('boxes that are filled in already are skipped, and Steady says which', async ({ page }) => {
+  const task = await recordWholeBooking(page);
+  await page.fill('#first', 'Rose');
+  await page.fill('#last', 'Marchetti');
+  const state = await page.evaluate(([id, at]) => window.__steady.player.start(id as string, { at: at as number }), [task.id, task.firstName] as const);
+  expect(state.said).toContain('"First name" and "Last name" are filled in already, so we\'ll skip those.');
+  expect(state.said).toContain(`Step ${task.firstName + 3}.`);
+  expect(await litIs(page, '[name="dob_month"]')).toBe(true); // the first thing still to do: her date of birth
+});
+
+test('"Help me fill this in" in the middle of a task: the task waits quietly, then picks up at what is still to do', async ({ page }) => {
+  const task = await recordWholeBooking(page);
+  await page.evaluate(([id, at]) => window.__steady.player.start(id as string, { at: at as number }), [task.id, task.firstName] as const);
+  const before = (await spoken(page)).length;
+
+  await page.evaluate(() => window.__steady.answer('Help me fill this in'));
+  await page.evaluate(() => window.__steady.answer('Yes, fill them in'));
+  expect(await page.inputValue('#first')).toBe('Rose');
+  await page.waitForTimeout(400);
+  expect((await spoken(page)).length).toBe(before); // the task said nothing while the form was being filled
+
+  const done = await page.evaluate(() => window.__steady.answer('Stop for now')); // she ends the filling here
+  expect(done.then?.said).toContain('"First name" and "Last name" are filled in already, so we\'ll skip those.');
+  expect(done.then?.said).toMatch(/Step \d+\. /);
+  expect(await litIs(page, '[name="dob_month"]')).toBe(true); // her date of birth: the step in the middle that was left
+  expect(await page.evaluate(() => window.__steady.player.isPlaying())).toBe(true);
+
+  // She does that one herself. The phone number is filled in already, so the task goes straight on to "Next".
+  await page.selectOption('[name="dob_month"]', { index: 3 });
+  await page.selectOption('[name="dob_day"]', { index: 3 });
+  await page.selectOption('[name="dob_year"]', { index: 30 });
+  await expect.poll(async () => (await spoken(page)).at(-1)).toMatch(/^"Mobile phone" is filled in already, so we'll skip it\. Step \d+\. Click "Next"\./);
+  expect(await page.locator('[data-step="you"]').isVisible()).toBe(true); // and "Next" is still hers to click
+});

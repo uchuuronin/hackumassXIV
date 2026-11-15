@@ -16,7 +16,7 @@ export default defineBackground(() => {
 
     // Everything that needs Gemini goes through here, so the relay URL lives in one place.
     if (msg?.type === 'gemini/ask') {
-      askRelay(String((msg as GeminiAsk).prompt ?? '')).then(sendResponse);
+      askRelay(String((msg as GeminiAsk).prompt ?? ''), (msg as GeminiAsk).search === true).then(sendResponse);
       return true;
     }
 

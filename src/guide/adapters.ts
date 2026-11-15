@@ -46,7 +46,18 @@ export function adaptOverlay(getOverlay: () => Overlay): OverlayPort {
       // One element, or the whole set of options under one question.
       const ids = target.group?.length ? target.group : [target.targetId];
       const where = () => {
-        const rects = ids.map((id) => pageMap.liveRect(id)).filter((r): r is NonNullable<typeof r> => !!r);
+        // In a set of choices, each one is the whole card a person reads and clicks, not only its little circle.
+        const card = (id: string) => {
+          const rect = pageMap.liveRect(id);
+          const label = ids.length > 1 ? pageMap.elementFor(id)?.closest('label') : null;
+          if (!rect || !label || label.ownerDocument !== document) return rect;
+          const box = label.getBoundingClientRect();
+          if (!box.width || !box.height) return rect;
+          const x = Math.min(rect.x, box.left);
+          const y = Math.min(rect.y, box.top);
+          return { x, y, width: Math.max(rect.x + rect.width, box.right) - x, height: Math.max(rect.y + rect.height, box.bottom) - y };
+        };
+        const rects = ids.map(card).filter((r): r is NonNullable<typeof r> => !!r);
         if (rects.length <= 1) return rects[0] ?? null;
         const x = Math.min(...rects.map((r) => r.x));
         const y = Math.min(...rects.map((r) => r.y));
