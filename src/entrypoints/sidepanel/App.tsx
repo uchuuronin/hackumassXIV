@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
 import { toModelSafe, type PageMapResponse } from '@/shared/pagemap';
-import { HELPER_KEYS, type GeminiAnswer, type GeminiAsk, type ToolResult, type ToolResultMsg } from '@/shared/tools';
+import { HELPER_KEYS, type GeminiAnswer, type GeminiAsk, type HelpLevel, type ToolResult, type ToolResultMsg } from '@/shared/tools';
 import { getProfile, setProfile } from '@/helper/profile';
 import { theme } from '@/shared/theme';
 import { TONE } from '@/shared/voice';
@@ -24,7 +24,7 @@ ${TONE}
 Answer the question directly. Only ask a question back if two different elements could both be right.
 To pay or check out, the person usually starts at the basket or cart: point at that element and say so.
 Use only the page data below. If an element has labelConfident false, say it might be that, never state it as fact.
-Reply with ONLY JSON: {"said": string, "point": id of the one element to point at (leave out if none), "options": up to 3 short choices (only if you must ask which one they mean), "tool": {"name": string, "args": object} (only if a TOOLS entry clearly fits what was asked; never to pay, send or submit)}.`;
+Reply with ONLY JSON: {"said": string, "point": id of the one element to point at (leave out if none), "options": up to 3 short choices (only if you must ask which one they mean), "tool": {"name": string, "args": object} (only if a TOOLS entry clearly fits what was asked; never to pay, send or submit; then say in one short question what you will do, for example: Shall I press the Add to basket button?)}.`;
 
 async function activeTabId(): Promise<number | undefined> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -88,6 +88,7 @@ export default function App() {
   const [micProblem, setMicProblem] = useState(false);
   const [micError, setMicError] = useState('');
   const inFlight = useRef(false);
+  const pending = useRef<{ tabId: number; name: string; args: Record<string, unknown> } | null>(null);
   const lastAsk = useRef(0);
   const voiceRef = useRef(true);
   const [screen, setScreen] = useState<'home' | 'details' | 'teach' | 'settings'>('home');
@@ -166,15 +167,18 @@ export default function App() {
     lastAsk.current = Date.now();
     setBusy(true);
     setReply(null);
+    pending.current = null;
     try {
       // C's buttons and shortcuts ("help me fill this in", a saved task's name) work for the voice too.
       const button = intent(q, guide.tasks);
       if (button) { setText(''); guide.press(button); return; }
       const tabId = await activeTabId();
-      const tools = tabId ? await listTools(tabId) : [];
+      const level = await getProfile<HelpLevel>(HELPER_KEYS.level, 'with-me');
+      const tools = tabId && level !== 'show' ? await listTools(tabId) : [];
       const page = tabId ? await readPage(tabId) : '';
       const toolText = tools.length ? tools.map((t) => `- ${t.name}(${Object.keys(t.parameters).join(', ')}): ${t.description}`).join('\n') : '(none)';
-      const prompt = `${RULES}\n\nTOOLS:\n${toolText}\n\nPAGE:\n${page || '(could not read this page)'}\n\nPERSON: ${q}`;
+      const note = level === 'show' ? '\n\nNOTE: The person chose Show me. Only explain and point. Do not offer to click or fill.' : '';
+      const prompt = `${RULES}\n\nTOOLS:\n${toolText}\n\nPAGE:\n${page || '(could not read this page)'}${note}\n\nPERSON: ${q}`;
       const msg: GeminiAsk = { type: 'gemini/ask', prompt };
       const ans = (await browser.runtime.sendMessage(msg)) as GeminiAnswer | undefined;
       if (!ans?.ok) {
@@ -182,8 +186,10 @@ export default function App() {
       } else {
         const r = parse(ans.text);
         if (r.tool && tabId && tools.some((t) => t.name === r.tool!.name)) {
-          const out = await runTool(tabId, r.tool.name, r.tool.args);
-          if (out?.said) r.said = out.said;
+          // "Do it with me": nothing runs until the person says yes.
+          pending.current = { tabId, name: r.tool.name, args: r.tool.args };
+          r.options = ['Yes, do it', 'No thanks'];
+          if (!r.said.trim().endsWith('?')) r.said = `${r.said} Shall I do that?`;
         }
         setReply(r);
         say(r.said);
@@ -215,7 +221,18 @@ export default function App() {
     setText('');
     return guide.press(button);
   };
-  const pressAnswer = (o: string) => (!reply || reply.guide ? guide.press(o) : (setText(o), ask(o)));
+  const confirmTool = async (p: { tabId: number; name: string; args: Record<string, unknown> }, o: string) => {
+    if (o !== 'Yes, do it') { setReply({ said: 'All right. I will leave it.' }); return; }
+    const out = await runTool(p.tabId, p.name, p.args);
+    const said = out?.said || 'Done.';
+    setReply({ said });
+    say(said);
+  };
+  const pressAnswer = (o: string) => {
+    const p = pending.current;
+    if (p && reply && !reply.guide) { pending.current = null; return confirmTool(p, o); }
+    return !reply || reply.guide ? guide.press(o) : (setText(o), ask(o));
+  };
   const vars = {
     '--paper': theme.paper, '--card': theme.card, '--ink': theme.ink, '--ink-quiet': theme.inkQuiet, '--edge': theme.edge, '--hairline': theme.hairline,
     '--sun': theme.sun, '--teal': theme.teal, '--coral': theme.coral, '--focus': theme.focus,
