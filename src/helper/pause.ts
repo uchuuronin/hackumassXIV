@@ -8,6 +8,7 @@ import { HELPER_KEYS } from '@/shared/tools';
 import { getProfile } from './profile';
 import { siteLines } from './sites';
 import { findRisks } from './risk';
+import { isOn } from './features';
 
 let bypass = false;
 let open: HTMLElement | null = null;
@@ -37,7 +38,7 @@ function describeRisk(el: PageElement): { title: string; lines: string[]; go: st
     lines.push(`Careful: this repeats (${String(a.recurring)}): ${a.text}.`);
   }
   const giftField = ['checkout', 'payment'].includes(map.stage.kind) && map.elements.some((e) => e.secret === 'gift-card' && e.visible);
-  const risks = pay ? findRisks(pageText(), giftField) : [];
+  const risks = pay && isOn('scam') ? findRisks(pageText(), giftField) : [];
   if (risks.length) {
     return {
       title: 'Stop. This may be a scam.',

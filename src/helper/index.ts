@@ -9,6 +9,7 @@ import { startPause } from './pause';
 import { startFakeCheck } from './fake';
 import { startHomeTurf } from './sites';
 import { startOverAsk } from './overask';
+import { loadFeatures, watchFeatures, type FeatureId } from './features';
 
 registerTool({
   name: 'point_at',
@@ -28,11 +29,33 @@ registerTool({
   },
 });
 
+/** Returns a function that starts the feature when its switch is on and stops it when it goes off. */
+function manage(ctx: LaneContext, id: FeatureId, start: (c: LaneContext) => void | Promise<void>) {
+  let stops: Array<() => void> = [];
+  let running = false;
+  const sub: LaneContext = { dev: ctx.dev, onStop: (f) => { stops.push(f); } };
+  const stop = () => {
+    running = false;
+    const fs = stops;
+    stops = [];
+    for (const f of fs) { try { f(); } catch (err) { console.error(`[Steady] stopping ${id}`, err); } }
+  };
+  ctx.onStop(stop);
+  return (on: boolean) => {
+    if (on === running) return;
+    if (!on) { stop(); return; }
+    running = true;
+    Promise.resolve().then(() => start(sub)).catch((err) => console.error(`[Steady] ${id}`, err));
+  };
+}
+
 export function startHelper(ctx: LaneContext): void {
-  startPause(ctx);
-  startFakeCheck(ctx);
-  startHomeTurf(ctx).catch((err) => console.error('[Steady] home turf', err));
-  startOverAsk(ctx);
+  const parts: Array<[FeatureId, (c: LaneContext) => void | Promise<void>]> = [
+    ['pause', startPause], ['fake', startFakeCheck], ['turf', startHomeTurf], ['overask', startOverAsk],
+  ];
+  const applies = parts.map(([id, start]) => ({ id, apply: manage(ctx, id, start) }));
+  loadFeatures().then((f) => applies.forEach((a) => a.apply(f[a.id])));
+  ctx.onStop(watchFeatures((f) => applies.forEach((a) => a.apply(f[a.id]))));
   const onMessage = (message: unknown, _sender: unknown, sendResponse: (r: unknown) => void) => {
     const raw = message as { type?: string } | null;
     if (raw?.type === 'tool/list') {

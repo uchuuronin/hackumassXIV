@@ -11,6 +11,7 @@ import { theme } from '@/shared/theme';
 import { TONE } from '@/shared/voice';
 import { Buddy, type Mood } from '@/guide/panel/Buddy';
 import { GetTaskCard, HelperCard, RememberCard, TeachScreen } from '@/guide/panel/FamilyCard';
+import { Settings } from './Settings';
 import { MyDetailsCard } from '@/guide/panel/MyDetailsCard';
 import { intent, useGuide } from '@/guide/panel/useGuide';
 
@@ -88,7 +89,7 @@ export default function App() {
   const inFlight = useRef(false);
   const lastAsk = useRef(0);
   const voiceRef = useRef(true);
-  const [screen, setScreen] = useState<'home' | 'details' | 'teach'>('home');
+  const [screen, setScreen] = useState<'home' | 'details' | 'teach' | 'settings'>('home');
   const [glad, setGlad] = useState(false);
   // The guide lane: its sentences are shown and read aloud exactly like an answer.
   const guide = useGuide((r) => {
@@ -219,6 +220,20 @@ export default function App() {
     '--care': theme.tones.careful.soft, '--care-deep': theme.tones.careful.deep, '--depth': `${theme.depth}px`,
   } as React.CSSProperties;
 
+  if (screen === 'settings') {
+    return (
+      <div className="app" style={vars}>
+        <header className="band small">
+          <Dots />
+          <button type="button" className="btn back" onClick={() => setScreen('home')}><Icon name="back" /> Back</button>
+        </header>
+        <main className="sheet">
+          <Settings />
+        </main>
+      </div>
+    );
+  }
+
   if (screen === 'details') {
     return (
       <div className="app" style={vars}>
@@ -332,6 +347,9 @@ export default function App() {
           </button>
           <button type="button" className="btn quiet" onClick={() => setScreen('details')}>
             <Icon name="person" /> My details
+          </button>
+          <button type="button" className="btn quiet" onClick={() => setScreen('settings')}>
+            <Icon name="steps" /> Settings
           </button>
         </footer>
       </main>
