@@ -1,4 +1,4 @@
-// Hands lane (A): tremor filter, click steadying, Big Pick, reading adjustments, and the overlay.
+// Hands lane (A): tremor filter, click steadying, steady scrolling, Big Pick, reading adjustments, and the overlay.
 //
 // Other lanes import the overlay from here:
 //   import { getOverlay } from '@/hands';
@@ -17,6 +17,7 @@ import { startKeyGuard } from './keys/startKeyGuard';
 import { startDwellClick, type DwellClick } from './dwell/dwellClick';
 import { pageObstacles } from './obstacles';
 import { startBigPick } from './bigpick';
+import { startSteadyScroll } from './scroll/startSteadyScroll';
 import { startReading, type Reading } from './reading';
 import { createOverlay } from './overlay';
 import { startPointer } from './pointer';
@@ -53,6 +54,7 @@ const FITTING_KEY = 'hands:fitting' as const;
 const SLIP_KEY = 'hands:slipPx' as const;
 const KEY_GUARD_KEY = 'hands:keyGuardMs' as const;
 const BIG_PICK_KEY = 'hands:bigPick' as const;
+const SCROLL_KEY = 'hands:scroll' as const;
 
 const DWELL_KEY = 'hands:dwell' as const;
 interface DwellSetting {
@@ -157,6 +159,16 @@ export function startHands(ctx: LaneContext): void {
   browser.storage.onChanged.addListener(onBigPickStorage);
   ctx.onStop(() => browser.storage.onChanged.removeListener(onBigPickStorage));
 
+  // Steady scrolling: wheel and trackpad movements are calmed. Off unless the person turned it on.
+  const steadyScroll = startSteadyScroll(ctx);
+  getProfile<boolean>(SCROLL_KEY, false).then((on) => steadyScroll.setEnabled(on), () => undefined);
+  const onScrollStorage = (changes: Record<string, { newValue?: unknown }>, area: string) => {
+    const change = changes[SCROLL_KEY];
+    if (area === 'local' && change) steadyScroll.setEnabled(change.newValue === true);
+  };
+  browser.storage.onChanged.addListener(onScrollStorage);
+  ctx.onStop(() => browser.storage.onChanged.removeListener(onScrollStorage));
+
   if (ctx.dev) {
     startTuning(ctx, getOverlay(), tracker);
 
@@ -179,6 +191,19 @@ export function startHands(ctx: LaneContext): void {
     };
     window.addEventListener('keydown', onBigPickKey, true);
     ctx.onStop(() => window.removeEventListener('keydown', onBigPickKey, true));
+
+    // While building: Alt+Shift+W turns steady scrolling on or off. It is remembered in the profile.
+    const onScrollKey = (event: KeyboardEvent) => {
+            if (!(event.altKey && event.shiftKey && event.code === 'KeyW')) return;
+      const next = !steadyScroll.enabled();
+      steadyScroll.setEnabled(next);
+      setProfile(SCROLL_KEY, next).catch(() => undefined);
+      const o = getOverlay();
+      o.show({ id: 'scroll-status', box: false, where: { x: 16, y: 16, width: 1, height: 1 }, label: next ? 'Steady scrolling on: the page glides and small flicks back are ignored' : 'Steady scrolling off', tone: 'step' });
+      setTimeout(() => o.hide('scroll-status'), 2500);
+    };
+    window.addEventListener('keydown', onScrollKey, true);
+    ctx.onStop(() => window.removeEventListener('keydown', onScrollKey, true));
 
     // While building: Alt+Shift+D turns dwell click on or off. It is remembered in the profile.
     const onDwellKey = (event: KeyboardEvent) => {
