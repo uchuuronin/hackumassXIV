@@ -22,7 +22,7 @@ The extension ID is fixed at **ifacloijdkldongodjgeccgmlodnogeg** by the `key` i
 | Folder | What lives there | Owner |
 | --- | --- | --- |
 | `src/entrypoints/` | Background worker, content script, side panel | B (background, panel), shared (content) |
-| `src/hands/` | Tremor filter, click steadying, Big Pick, reading adjustments | A |
+| `src/hands/` | Tremor filter, click steadying, dwell click, Big Pick, steady scrolling, reading adjustments (see [its README](src/hands/README.md)) | A |
 | `src/helper/` | Tool list, Gemini, voice, protect features | B |
 | `src/guide/` | Page map, guided steps, recorder, family | C |
 | `src/shared/` | Shared types and messages | Each owner edits their own part |
