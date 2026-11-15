@@ -122,6 +122,7 @@ input::placeholder { color: var(--ink-quiet); }
 .saved small { font-size: 15px; }
 .saved .btn { width: auto; flex: none; margin: 0 0 var(--depth); }
 .saved li { flex-wrap: wrap; }
+.card h3 { margin: 22px 0 8px; padding-top: 18px; border-top: 2px solid var(--hairline, #e3ded2); font-size: 22px; }
 /* Three words to read out over the telephone: big, and nothing else on the line. */
 .words { margin-top: 14px; padding: 14px; background: var(--info); border: 2px solid var(--ink); border-radius: 14px; }
 .words p { margin: 0 0 10px; }

@@ -30,7 +30,7 @@ import { whereTool } from './trail';
 import { onListening } from './listening';
 import * as walk from './walk';
 import { timeoutTool } from './timeout';
-import type { StuckSend, StuckSent } from '@/shared/family';
+import type { HelperNote, StuckSend, StuckSent } from '@/shared/family';
 
 export type { AmountHit } from './pagemap/amounts';
 export { typeItYourself } from './words';
@@ -127,6 +127,13 @@ export async function startGuide(ctx: LaneContext): Promise<void> {
     if (request?.type === 'pagemap/watch') {
       watched = request.on === true;
       sendResponse({ ok: true });
+      return true;
+    }
+    // A note her helper sent back. Only Steady's own panel sends this, when it collects one from the relay.
+    // It is deliberately not a tool, so nothing Gemini says can ever make a "note from your helper" appear.
+    const note = message as { type?: unknown; note?: HelperNote } | null;
+    if (note?.type === 'family/note' && note.note) {
+      sendResponse(family.showNote(note.note) as never);
       return true;
     }
     return undefined;

@@ -24,7 +24,8 @@ const whole = (value: unknown): number | null => {
   return Number.isInteger(n) && n >= 1 && n <= 500 ? n : null;
 };
 
-export function stuckMessage(body: StuckBody): { to: string; subject: string; text: string } | null {
+/** `replyUrl` is only given when she has switched reply notes on: the link to the small page where the helper can write one. */
+export function stuckMessage(body: StuckBody, replyUrl?: string): { to: string; subject: string; text: string } | null {
   const to = clean(body.to, 120);
   if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(to)) return null;
   const helper = clean(body.helperName, 60) || 'there';
@@ -41,6 +42,7 @@ export function stuckMessage(body: StuckBody): { to: string; subject: string; te
     ...(where ? [where] : []),
     '',
     'A telephone call is usually the quickest way to help.',
+    ...(replyUrl ? ['', `To send ${from} a short note that appears in Steady, open this link:`, replyUrl, 'It works for 2 days.'] : []),
     '',
     'Steady sent only what you see here. It did not send the website, the page, or anything that was typed.',
   ].join('\n');

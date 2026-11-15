@@ -5,9 +5,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
-import { HELPER_KEY, type Helper } from '@/shared/family';
+import { HELPER_KEY, REPLY_KEY, type Helper, type HelperNote } from '@/shared/family';
 import type { RecordedTask } from '@/shared/tasks';
 import type { HelperAnswer, ToolResult, ToolResultMsg, ToolRun } from '@/shared/tools';
+import { collect, expectSoon, shouldCollect, SOON_KEY } from '../family/link';
 import { feelingOf, type Feeling } from './feeling';
 
 export interface Said {
@@ -140,6 +141,8 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
         const feeling = next === 'worried' || next === 'reassuring' || next === 'glad' ? next : null;
         if (stuck) show(feeling, Math.max(0, SHOCK_MS - (Date.now() - pressedAt)));
         else if (feeling) show(feeling);
+        // The note has just gone and she allows one back: look for it every few seconds for a while.
+        if (feeling === 'reassuring' && (await browser.storage.local.get(REPLY_KEY))[REPLY_KEY] === true) void expectSoon(15);
         say.current(result ? { said: result.said, options: optionsOf(result), then: thenOf(result.data) } : await cantSay());
       } finally {
         setWorking(false);
@@ -182,6 +185,59 @@ export function useGuide(onSaid: (reply: Said) => void, onNewPage: () => void = 
       browser.tabs.onUpdated.removeListener(onUpdated);
     };
   }, [refreshHint]);
+
+  // What a linked helper has sent, and notes that came back after "I'm stuck". Steady can only look while
+  // this panel is open. Someone with no link and reply notes off never asks the relay at all.
+  useEffect(() => {
+    let stopped = false;
+    let timer: number | undefined;
+    const showNote = async (note: HelperNote) => {
+      let said = `${note.from} says: "${note.text}"`;
+      try {
+        const tabId = await activeTabId();
+        const shown = tabId ? ((await browser.tabs.sendMessage(tabId, { type: 'family/note', note })) as { said?: string } | undefined) : undefined;
+        if (shown?.said) said = shown.said; // the page has drawn it beside the step she is on
+      } catch {
+        // no page to draw on: the words in the panel are enough
+      }
+      say.current({ said });
+      show('reassuring');
+    };
+    const look = async () => {
+      if (stopped) return;
+      let wait = 30_000;
+      try {
+        const why = await shouldCollect();
+        if (why.soon) wait = 5_000;
+        if (why.yes && document.visibilityState === 'visible') {
+          const got = await collect();
+          // One message for everything that came, so a later line never hides an earlier one.
+          const news: string[] = [];
+          if (got?.justLinked) news.push(`${got.helperName === 'Your helper' ? "Your helper's" : `${got.helperName}'s`} computer is linked to this one now. A task they make for you will arrive here by itself.`);
+          for (const task of got?.tasks ?? []) news.push(`${got!.helperName} has sent you a task: "${task.name}". It's a yellow button on the first screen now.`);
+          if (news.length) say.current({ said: news.join(' ') });
+          for (const note of got?.notes ?? []) await showNote(note);
+        }
+      } catch {
+        // try again next time
+      }
+      if (!stopped) timer = window.setTimeout(() => void look(), wait);
+    };
+    void look();
+    // Something has just become worth waiting for (a code was shown, a note was sent, replies were switched on):
+    // look now, not at the end of the slow wait.
+    const onChanged = (changes: Record<string, unknown>) => {
+      if (!(SOON_KEY in changes) && !(REPLY_KEY in changes)) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void look(), 1500);
+    };
+    browser.storage.local.onChanged.addListener(onChanged);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      browser.storage.local.onChanged.removeListener(onChanged);
+    };
+  }, [show]);
 
   // Saved tasks and the person who helps, kept on this computer.
   useEffect(() => {

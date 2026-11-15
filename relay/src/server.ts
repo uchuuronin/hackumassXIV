@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { GoogleGenAI } from '@google/genai';
+import { registerFamily } from './familyRoutes';
 import { registerStuck } from './stuck';
 import { registerTasks } from './tasks';
 
@@ -41,6 +42,9 @@ await app.register(cors, { origin: ALLOWED || true });
 
 app.addHook('onRequest', async (req, reply) => {
   if (req.url === '/health' || !ALLOWED) return;
+  // The reply page (owner: C) is opened from an email in an ordinary browser, so it has no extension origin.
+  // It is guarded by a long secret in its address instead. See ./familyRoutes.ts.
+  if (req.url.startsWith('/reply/')) return;
   if (req.headers.origin !== ALLOWED) {
     return reply.code(403).send({ error: 'forbidden' });
   }
@@ -53,6 +57,9 @@ registerStuck(app);
 
 // Passing a recorded task to another computer (owner: C): three words, kept for seven days. See ./tasks.ts.
 registerTasks(app);
+
+// Linking a helper by a short code, tasks that arrive by themselves, and reply notes (owner: C). See ./familyRoutes.ts.
+registerFamily(app);
 
 app.post<{ Body: { prompt: string } }>('/gemini', async (req, reply) => {
   const prompt = req.body?.prompt;

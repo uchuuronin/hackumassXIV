@@ -155,3 +155,40 @@ test('a typed address is only ever used after a yes: starting something else dro
   expect(await page.evaluate(() => window.__steady.family.loadHelper())).toBeNull();
   expect(await sent(page)).toEqual([]);
 });
+
+// ---- Reply notes (off by default) ----
+
+test('reply notes are off unless she turns them on: nothing about an inbox leaves the computer', async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => window.__steady.family.offer());
+  await page.evaluate(() => window.__steady.family.send());
+  expect(Object.keys((await sent(page))[0] as object).sort()).toEqual(['fromName', 'helperName', 'to']);
+});
+
+test('reply notes on: the note also carries the secret of her inbox, and still nothing about the page', async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => window.__steady.store.set('guide:reply-notes', true));
+  await page.evaluate(() => window.__steady.family.offer());
+  await page.evaluate(() => window.__steady.family.send());
+  const note = (await sent(page))[0] as Record<string, string>;
+  expect(Object.keys(note).sort()).toEqual(['fromName', 'helperName', 'replyInbox', 'to']);
+  expect(note.replyInbox).toMatch(/^[a-f0-9]{32}$/);
+  expect(JSON.stringify(note)).not.toMatch(/localhost|clinic|book\.html/);
+});
+
+test('a note from her helper is drawn beside the step she is on, with their name, as plain words', async ({ page }) => {
+  await ready(page);
+  await inTask(page);
+  const shown = await page.evaluate(() => window.__steady.family.showNote({ text: 'Pick <b>Dr. Herrera</b>. See http://bad.example/x', from: 'Maya' }));
+  expect(shown.said).toBe('Maya says: "Pick b Dr. Herrera /b . See" I\'ve put it beside the step you\'re on.');
+  const drawn = await page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'overlay' && c.method === 'labels' && c.args[0] === 'family-note').at(-1)!.args[1] as Array<{ targetId: string; text: string }>);
+  expect(drawn[0]!.text).toBe('Maya says: "Pick b Dr. Herrera /b . See"');
+  expect(drawn[0]!.targetId).toBe(await page.evaluate(() => window.__steady.spotlight.lit()));
+});
+
+test('a note that arrives when she is not in a task is said, and nothing is drawn', async ({ page }) => {
+  await ready(page);
+  const shown = await page.evaluate(() => window.__steady.family.showNote({ text: 'Ring me after lunch.', from: 'Maya' }));
+  expect(shown.said).toBe('Maya says: "Ring me after lunch."');
+  expect(await page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'overlay' && c.args[0] === 'family-note').length)).toBe(0);
+});

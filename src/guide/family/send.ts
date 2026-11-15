@@ -2,11 +2,13 @@
 // Only the background worker imports this (pages can't call the relay themselves).
 
 import { RELAY_URL } from '@/helper/relay';
+import { deviceStore } from '@/shared/device-store';
 import type { StuckNote, StuckSent } from '@/shared/family';
 
 export async function sendStuck(note: StuckNote): Promise<StuckSent> {
   try {
-    const r = await fetch(`${RELAY_URL}/stuck`, {
+    // While building, 'guide:relay-url' can point at a relay on this computer (as in ./share.ts and ./link.ts).
+    const r = await fetch(`${(await deviceStore.get<string>('guide:relay-url')) ?? RELAY_URL}/stuck`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(note),

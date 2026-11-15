@@ -3,9 +3,11 @@
 //   - TeachScreen: for that person, to record a task once so Steady can walk her through it.
 
 import { useEffect, useState } from 'react';
+import { browser } from 'wxt/browser';
 import { deviceStore } from '@/shared/device-store';
-import { HELPER_KEY, type Helper } from '@/shared/family';
+import { HELPER_KEY, REPLY_KEY, type Helper } from '@/shared/family';
 import type { RecordedTask } from '@/shared/tasks';
+import { getCode, isHelping, isLinked, joinWith, sendLinked, stopHelping, unlinkAll } from '../family/link';
 import { findTask, keepTask, sendTask } from '../family/share';
 import { runOnPage } from './useGuide';
 
@@ -52,6 +54,41 @@ export function HelperCard() {
     setStatus('Removed. Nobody will be told when you are stuck.');
   };
 
+  // Reply notes: off unless she turns them on.
+  const [replies, setReplies] = useState(false);
+  // Linking their computer to this one.
+  const [linked, setLinked] = useState(false);
+  const [code, setCode] = useState<{ words: string; minutes: number } | null>(null);
+  const [linkStatus, setLinkStatus] = useState('');
+  useEffect(() => {
+    const load = async () => {
+      setReplies((await deviceStore.get<boolean>(REPLY_KEY)) === true);
+      const now = await isLinked();
+      setLinked(now);
+      if (now) setCode(null);
+    };
+    void load();
+    const onChanged = () => void load();
+    browser.storage.local.onChanged.addListener(onChanged);
+    return () => browser.storage.local.onChanged.removeListener(onChanged);
+  }, []);
+  const flipReplies = async () => {
+    await deviceStore.set(REPLY_KEY, !replies);
+    setReplies(!replies);
+  };
+  const makeCode = async () => {
+    setLinkStatus('Getting a code…');
+    const result = await getCode();
+    if (!result.ok) return setLinkStatus(result.said);
+    setLinkStatus('');
+    setCode({ words: result.code, minutes: result.minutes });
+  };
+  const unlink = async () => {
+    const done = await unlinkAll();
+    setLinkStatus(done ? 'Unlinked. Their computer can no longer send anything here.' : "I couldn't reach Steady's server just now, so nothing has changed. Please try again.");
+    if (done) setLinked(false);
+  };
+
   return (
     <section className="card">
       <h2>Who helps you</h2>
@@ -67,6 +104,35 @@ export function HelperCard() {
         <button type="button" className="btn" onClick={remove}>Remove</button>
       </div>
       <p className="status" role="status">{status}</p>
+
+      <h3>A note back from them</h3>
+      <div className="switches">
+        <button type="button" role="switch" aria-checked={replies} className="switch" onClick={flipReplies}>
+          <span><b>Let them send me a short note</b><small>When you press "I'm stuck", their email gets a link where they can write one short note. It shows beside the step you're on. They never see the website or what you typed.</small></span>
+          <span className="pill">{replies ? 'On' : 'Off'}</span>
+        </button>
+      </div>
+
+      <h3>Link their computer</h3>
+      {linked ? (
+        <>
+          <p>Their computer is linked to this one. A task they make for you arrives here by itself, and I'll tell you when it does.</p>
+          <button type="button" className="btn" onClick={unlink}>Unlink</button>
+        </>
+      ) : (
+        <>
+          <p>If they have Steady too, you can link the two computers. Then a task they make for you arrives here by itself.</p>
+          <button type="button" className="btn main" onClick={makeCode}>Get a code to read to them</button>
+          {code && (
+            <div className="words" role="status">
+              <p>Read these three words to them:</p>
+              <p className="three">{code.words}</p>
+              <p>They type them into their Steady, under <strong>For the person who helps</strong>. The words work once, for {code.minutes} minutes. Only give them to someone you know and trust.</p>
+            </div>
+          )}
+        </>
+      )}
+      <p className="status" role="status">{linkStatus}</p>
     </section>
   );
 }
@@ -89,10 +155,38 @@ export function TeachScreen({ recording, tasks }: { recording: string | null; ta
     const result = await runOnPage('record_stop');
     setStatus(result ? `${result.said} It's now a yellow button on the first screen.` : 'I couldn\'t reach the page. Go back to the website and press this again.');
   };
+  // Linked to the person they help: Send goes straight to that computer.
+  const [helping, setHelping] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [linkStatus, setLinkStatus] = useState('');
+  useEffect(() => {
+    void isHelping().then(setHelping);
+  }, []);
+  const link = async () => {
+    setLinkStatus('Linking…');
+    const result = await joinWith(typed);
+    if (!result.ok) return setLinkStatus(result.said);
+    setHelping(true);
+    setTyped('');
+    setLinkStatus(`${result.fixed.length ? `I took that to be: ${result.fixed.join(', ')}. ` : ''}Linked. From now on, Send puts a task straight onto their computer.`);
+  };
+  const leave = async () => {
+    await stopHelping();
+    setHelping(false);
+    setLinkStatus('This computer is no longer linked to theirs.');
+  };
+
   const [sent, setSent] = useState<{ name: string; words: string; days: number } | null>(null);
   const send = async (task: RecordedTask) => {
     setSent(null);
     setStatus('Sending the steps…');
+    if (helping) {
+      const over = await sendLinked(task);
+      if (over.ok) return setStatus(`Sent "${task.name}" to their computer. It appears the next time Steady is open there. Only the steps were sent, never anyone's answers.`);
+      if (!over.unlinked) return setStatus(over.said);
+      setHelping(false); // they unlinked: fall back to three words
+      setLinkStatus(over.said);
+    }
     const result = await sendTask(task);
     if (!result.ok) return setStatus(result.said);
     setStatus('');
@@ -154,7 +248,25 @@ export function TeachScreen({ recording, tasks }: { recording: string | null; ta
             <p>On their computer: <strong>My details</strong>, then <strong>A task someone made for you</strong>. The words work for {sent.days} days. Only the steps were sent, never anyone's answers.</p>
           </div>
         )}
-        <p>Recorded it on your own computer? <strong>Send</strong> gives you three words to read out to them.</p>
+        <p>{helping ? <>This computer is linked to theirs, so <strong>Send</strong> puts a task straight onto their computer.</> : <>Recorded it on your own computer? <strong>Send</strong> gives you three words to read out to them.</>}</p>
+      </section>
+
+      <section className="card">
+        <h2>Link to the person you help</h2>
+        {helping ? (
+          <>
+            <p>This computer is linked to theirs. A task you send arrives there by itself, and Steady tells them who it's from.</p>
+            <button type="button" className="btn" onClick={leave}>Stop being linked</button>
+          </>
+        ) : (
+          <>
+            <p>On their computer, open <strong>My details</strong>, find <strong>Who helps you</strong>, and press <strong>Get a code to read to them</strong>. Type the three words here.</p>
+            <label htmlFor="link-words">The three words</label>
+            <input id="link-words" value={typed} autoComplete="off" placeholder="garden kettle tulip" onChange={(e) => setTyped(e.target.value)} />
+            <button type="button" className="btn main" onClick={link}>Link</button>
+          </>
+        )}
+        <p className="status" role="status">{linkStatus}</p>
       </section>
     </>
   );

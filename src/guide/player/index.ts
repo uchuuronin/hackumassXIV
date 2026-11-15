@@ -371,7 +371,8 @@ function listen(): void {
 function begin(task: RecordedTask, at: number, lead: string): Promise<PlayState> {
   // A task that came from another computer: say so once, and where it goes, before the first step.
   if (lead && task.shared && !task.shared.said) {
-    lead = lead.replace(' together. ', ` together. Someone sent you this one from another computer, and it's for the website ${hostOf(task.site)}. `);
+    const sender = task.shared.from ? `${task.shared.from} sent you this one` : 'Someone sent you this one from another computer';
+    lead = lead.replace(' together. ', ` together. ${sender}, and it's for the website ${hostOf(task.site)}. `);
     void markSaid(task.id);
   }
   quiet();

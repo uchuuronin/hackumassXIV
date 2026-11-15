@@ -22,6 +22,35 @@ export interface StuckNote {
   task?: string;
   step?: number;
   of?: number;
+  /**
+   * Only when she has switched reply notes on: the secret of her Steady's inbox, so the relay can put a
+   * link in the email and bring a short note back. It says nothing about her, the page or what she typed.
+   */
+  replyInbox?: string;
+}
+
+// ---- Linking a helper's computer, and notes that come back ----
+
+/** Her Steady's own secret. Made on this computer; the relay keeps only a fingerprint of it. */
+export const INBOX_KEY = 'guide:inbox';
+/** On her computer: whether a helper's computer is linked. */
+export const LINK_KEY = 'guide:link';
+/** On the helper's computer: the token that lets Send put a task on her computer. */
+export const HELPS_KEY = 'guide:helps';
+/** On her computer: reply notes switched on. Off unless she ticks it. */
+export const REPLY_KEY = 'guide:reply-notes';
+
+/** A note from her helper, as it arrives. Plain text. */
+export interface HelperNote {
+  text: string;
+  from: string;
+  task?: string;
+  step?: number;
+}
+
+/** A secret for this computer's inbox: 16 random bytes, written as 32 letters and digits. */
+export function newSecret(): string {
+  return [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** Page or panel to the background worker. */

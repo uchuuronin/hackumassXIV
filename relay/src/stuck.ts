@@ -7,6 +7,9 @@
 
 import type { FastifyInstance } from 'fastify';
 import nodemailer from 'nodemailer';
+import { randomBytes } from 'node:crypto';
+import { openReply } from './family';
+import { familyStore } from './familyStore';
 import { stuckMessage, type StuckBody } from './stuckMessage';
 
 export function registerStuck(app: FastifyInstance): void {
@@ -16,14 +19,28 @@ export function registerStuck(app: FastifyInstance): void {
   const transport = dryRun ? nodemailer.createTransport({ jsonTransport: true }) : user && pass ? nodemailer.createTransport({ service: 'gmail', auth: { user, pass } }) : null;
 
   // A person presses this by hand, a few times at most. Far stricter than the limit on the rest of the relay.
-  app.post<{ Body: StuckBody }>('/stuck', { config: { rateLimit: { max: 5, timeWindow: '10 minutes' } } }, async (req, reply) => {
-    const message = stuckMessage(req.body ?? {});
-    if (!message) return reply.code(400).send({ error: 'bad note' });
+  app.post<{ Body: StuckBody & { replyInbox?: unknown } }>('/stuck', { config: { rateLimit: { max: 5, timeWindow: '10 minutes' } } }, async (req, reply) => {
+    const body = req.body ?? {};
+    if (!stuckMessage(body)) return reply.code(400).send({ error: 'bad note' });
+    // Reply notes are off unless her Steady asks for them. If the link can't be made, the email still goes, without one.
+    let replyUrl: string | undefined;
+    const store = body.replyInbox ? familyStore() : null;
+    if (store) {
+      try {
+        const token = await openReply(store, body.replyInbox, body, () => randomBytes(16).toString('hex'));
+        const base = (process.env.PUBLIC_URL ?? `${req.protocol}://${req.headers.host ?? ''}`).replace(/\/+$/, '');
+        if (token) replyUrl = `${base}/reply/${token}`;
+      } catch (e) {
+        req.log.error(e);
+      }
+    }
+    const message = stuckMessage(body, replyUrl)!;
     if (!transport) return reply.code(503).send({ error: 'email is not set up on the relay' });
     try {
       await transport.sendMail({ from: `Steady <${user || 'steady@localhost'}>`, to: message.to, subject: message.subject, text: message.text });
       req.log.info({ dryRun }, 'stuck note sent'); // never log who it went to or what it said
-      return { ok: true };
+      // In a dry run nothing was sent, so the words are handed back for whoever is trying things out to read.
+      return dryRun ? { ok: true, preview: message.text } : { ok: true };
     } catch (e) {
       req.log.error(e);
       return reply.code(502).send({ error: 'email failed' });

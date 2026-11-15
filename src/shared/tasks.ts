@@ -50,7 +50,7 @@ export interface RecordedTask {
   recordedAt: number;
   steps: TaskStep[];
   /** Set when the task arrived from another computer, so Steady can always say so. */
-  shared?: { at: number; said?: boolean };
+  shared?: { at: number; said?: boolean; /** The first name of the linked helper who sent it, when it came that way. */ from?: string };
 }
 
 // ---- A task that arrives from another computer ----

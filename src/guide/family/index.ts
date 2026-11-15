@@ -5,11 +5,12 @@
 
 import type { MyDetails } from '@/shared/details';
 import { DETAILS_KEY } from '@/shared/details';
-import { HELPER_KEY, type Helper, type StuckNote } from '@/shared/family';
+import { HELPER_KEY, INBOX_KEY, REPLY_KEY, newSecret, type Helper, type HelperNote, type StuckNote } from '@/shared/family';
 import { need } from '@/shared/ports';
 import type { Tool, ToolResult } from '@/shared/tools';
 import { listen } from '../listening';
 import * as player from '../player';
+import * as spotlight from '../spotlight';
 
 /** Long enough for a person to read an email and pick up the telephone. */
 const QUIET_MS = 3 * 60_000;
@@ -133,6 +134,12 @@ export async function send(): Promise<StuckState> {
   const at = player.where();
   const note: StuckNote = { to: helper.email, helperName: helper.name, fromName: mine.givenName?.trim() || 'Someone you help' };
   if (at) Object.assign(note, { task: at.task, step: at.step, of: at.of });
+  // Reply notes are off unless she has ticked the box. When on, the email gets a link for one short note back.
+  if ((await need('store').get<boolean>(REPLY_KEY)) === true) {
+    let inbox = await need('store').get<string>(INBOX_KEY);
+    if (!inbox) await need('store').set(INBOX_KEY, (inbox = newSecret()));
+    note.replyInbox = inbox;
+  }
 
   let ok = false;
   try {
@@ -160,6 +167,39 @@ export function decline(): StuckState {
 
 /** Waiting for a yes or a no. */
 export const isOffering = (): boolean => offering;
+
+// ---- A note that came back from her helper ----
+
+const NOTE_LAYER = 'family-note';
+let noteTimer: number | undefined;
+
+/** Plain words only, whatever arrived: no markup, no web addresses, cut short. */
+function plainNote(text: unknown, max: number): string {
+  return String(text ?? '')
+    .replace(/[\u0000-\u001f\u007f<>]+/g, ' ')
+    .replace(/\b(?:https?:\/\/|www\.)\S+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+/**
+ * Show her helper's note. If she is in the middle of a saved task, it is drawn beside the step she is on,
+ * with the helper's name, for long enough to read twice. It is always said as well.
+ */
+export function showNote(note: HelperNote): StuckState {
+  const text = plainNote(note.text, 200);
+  const from = plainNote(note.from, 40) || 'Your helper';
+  if (!text) return { status: 'declined', said: '' };
+  const said = `${from} says: "${text}"`;
+  const lit = player.isPlaying() ? spotlight.lit() : null;
+  if (lit) {
+    window.clearTimeout(noteTimer);
+    need('overlay').labels(NOTE_LAYER, [{ targetId: lit, text: said, tone: 'info' }]);
+    noteTimer = window.setTimeout(() => need('overlay').clear(NOTE_LAYER), 45_000);
+  }
+  return { status: 'sent', mood: 'reassuring', said: lit ? `${said} I've put it beside the step you're on.` : said };
+}
 
 // ---- tools, for B's tool list ----
 
