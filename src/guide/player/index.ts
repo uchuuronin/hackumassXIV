@@ -8,6 +8,7 @@
 import { need } from '@/shared/ports';
 import type { RecordedTask, TaskStep } from '@/shared/tasks';
 import type { Tool, ToolResult } from '@/shared/tools';
+import { calmPage, restorePage } from '../calm';
 import * as details from '../details';
 import { pageMap } from '../map';
 import { locate, tasks } from '../recorder';
@@ -380,6 +381,7 @@ function begin(task: RecordedTask, at: number, lead: string): Promise<PlayState>
     void markSaid(task.id);
   }
   quiet();
+  void calmPage(); // the plan: the page is quietened during guided steps
   pendingAsk = null;
   run = { task, at, ids: [], lead, misses: 0, elsewhere: false };
   listen();
@@ -491,6 +493,7 @@ async function finish(): Promise<PlayState> {
 function quiet(): void {
   clearTimers();
   detach?.();
+  if (run) void restorePage(); // the page was calmed for the guided steps: put it back
   run = null;
   spotlight.off();
 }

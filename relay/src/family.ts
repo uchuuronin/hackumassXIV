@@ -181,13 +181,17 @@ export function replyPage(info: ReplyInfo | null, state: 'ask' | 'sent' | 'empty
   const foot = '</main></body></html>';
   if (!info || state === 'gone') return `${head}<h1>This link has finished</h1><p>It only works for ${REPLY_DAYS} days. A telephone call is the quickest way to help now.</p>${foot}`;
   const who = esc(info.fromName);
+  // With no first name saved: the heading says "Someone you help" once, and after that it is "they".
+  const named = info.fromName !== 'Someone you help';
+  const they = named ? who : 'They';
+  const lower = named ? who : 'they';
   const where = info.task && info.step && info.of ? `They were on step ${info.step} of ${info.of} of “${esc(info.task)}”.` : info.task ? `They were doing “${esc(info.task)}”.` : '';
-  if (state === 'sent') return `${head}<h1>Sent</h1><p>${who} will see your note in Steady, beside the step they are on. A telephone call still helps most.</p>${foot}`;
+  if (state === 'sent') return `${head}<h1>Sent</h1><p>${they} will see your note in Steady, beside the step they are on. A telephone call still helps most.</p>${foot}`;
   if (state === 'enough') return `${head}<h1>That's all the notes for this one</h1><p>You've sent ${NOTES_PER_REPLY} notes for this message. A telephone call is the quickest way to help now.</p>${foot}`;
   const problem = state === 'empty' ? '<p role="alert"><strong>There was nothing to send. Please write a few words.</strong> Web addresses are taken out.</p>' : '';
   return `${head}<h1>${who} would like a hand</h1><p>${where} You can send one short note. It appears in Steady on their computer, beside the step they are on.</p>${problem}
 <form method="post"><label for="note">Your note (up to ${NOTE_MAX} letters, plain words only)</label><textarea id="note" name="note" maxlength="${NOTE_MAX}" required></textarea><button type="submit">Send the note</button></form>
-<small>Steady did not tell us what website ${who} was on or anything they typed, so this page can't show it. Web addresses in a note are taken out.</small>${foot}`;
+<small>Steady did not tell us what website ${lower} ${named ? 'was' : 'were'} on or anything they typed, so this page can't show it. Web addresses in a note are taken out.</small>${foot}`;
 }
 
 // ---- A store kept in the relay's memory: for trying things out, and for the tests ----

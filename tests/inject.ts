@@ -14,6 +14,7 @@ import { suggest } from '@/guide/suggest';
 import * as timeout from '@/guide/timeout';
 import * as trail from '@/guide/trail';
 import * as walk from '@/guide/walk';
+import { registerTool } from '@/helper/registry';
 import * as spotlight from '@/guide/spotlight';
 import { pageMap } from '@/guide/map';
 import { toModelSafe } from '@/shared/pagemap';
@@ -92,6 +93,8 @@ const steady = {
   timeout,
   trail,
   walk,
+  /** Tests stand in for another lane's tools (the helper's quiet_page, for one). */
+  registerTool,
   /** The saved-data stand-in, for tests that need to put something there directly. */
   get store() {
     return need('store');

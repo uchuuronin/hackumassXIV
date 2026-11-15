@@ -12,6 +12,7 @@
 import type { PageElement, PageMap } from '@/shared/pagemap';
 import { need, type FollowUp } from '@/shared/ports';
 import { HELPER_KEYS, type HelpLevel } from '@/shared/tools';
+import { calmPage, restorePage } from '../calm';
 import * as choices from '../choices';
 import { mainWay, wayForward, type ToDo } from '../choices';
 import * as details from '../details';
@@ -183,6 +184,7 @@ function begin(fresh: State): void {
     unwatch();
   };
   listen('walk', true); // from now on, what she types or says comes here first
+  void calmPage(); // the plan: the page is quietened during guided steps
   void save();
 }
 
@@ -318,6 +320,7 @@ function finish(said: string): Reply {
   offered = false;
   spotlight.off();
   listen('walk', false);
+  void restorePage();
   void need('store').remove(KEY);
   return { said };
 }

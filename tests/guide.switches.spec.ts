@@ -14,7 +14,7 @@ async function clinic(page: Page, switches: Record<string, boolean> = {}) {
 test('everything is on unless she has turned it off, and "Keep it light" only quietens Steady', () => {
   expect(readSwitches(undefined)).toEqual(ALL_ON);
   expect(readSwitches({ walk: false, nonsense: true, trail: 'no' })).toEqual({ ...ALL_ON, walk: false });
-  expect(LIGHT).toEqual({ walk: false, hints: false, nudges: false, trail: true, lastTime: true, timeout: true });
+  expect(LIGHT).toEqual({ walk: false, hints: false, nudges: false, calm: true, trail: true, lastTime: true, timeout: true });
 });
 
 test('"Go through pages with me" off: "What do I click?" only says what the buttons do', async ({ page }) => {
@@ -83,4 +83,51 @@ test('"Mention what I picked last time" off: the choice is not kept', async ({ p
   await page.selectOption('#reason', 'Annual check-up');
   await page.waitForTimeout(300);
   expect(await page.evaluate(() => window.__steady.player.lastChoices())).toEqual({});
+});
+
+// ---- Calming the page during guided steps (the helper lane's quiet_page and unquiet_page tools) ----
+
+async function withQuietTools(page: Page) {
+  await page.evaluate(() => {
+    const s = window.__steady;
+    for (const name of ['quiet_page', 'unquiet_page']) {
+      s.registerTool({ name, owner: 'helper', description: name, parameters: {}, run: async () => (s.calls.push({ port: 'tool', method: name, args: [] }), { ok: true, said: '' }) });
+    }
+  });
+}
+const quietCalls = (page: Page) => page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'tool').map((c) => c.method));
+
+test('the page is calmed while Steady goes through it with her, and put back when that ends', async ({ page }) => {
+  await clinic(page);
+  await withQuietTools(page);
+  await page.evaluate(() => window.__steady.answer('What do I click?'));
+  expect(await quietCalls(page)).toEqual([]); // not until she says yes
+  await page.evaluate(() => window.__steady.answer('Yes, help me book'));
+  expect(await quietCalls(page)).toEqual(['quiet_page']);
+  await page.evaluate(() => window.__steady.answer('Stop for now'));
+  expect(await quietCalls(page)).toEqual(['quiet_page', 'unquiet_page']);
+});
+
+test('the same during a saved task', async ({ page }) => {
+  await clinic(page);
+  await page.evaluate(() => window.__steady.recorder.start('Booking'));
+  await page.selectOption('#reason', 'Flu shot');
+  await page.waitForTimeout(50);
+  const { task } = await page.evaluate(() => window.__steady.recorder.stop());
+  await page.goto('/clinic/book.html?reset=1');
+  await inject(page);
+  await withQuietTools(page);
+  await page.evaluate((id) => window.__steady.player.start(id), task.id);
+  expect(await quietCalls(page)).toEqual(['quiet_page']);
+  await page.evaluate(() => window.__steady.player.stop());
+  expect(await quietCalls(page)).toEqual(['quiet_page', 'unquiet_page']);
+});
+
+test('"Calm the page during a task" off: the page is left exactly as it is', async ({ page }) => {
+  await clinic(page, { calm: false });
+  await withQuietTools(page);
+  await page.evaluate(() => window.__steady.answer('What do I click?'));
+  await page.evaluate(() => window.__steady.answer('Yes, help me book'));
+  await page.evaluate(() => window.__steady.answer('Stop for now'));
+  expect(await quietCalls(page)).toEqual([]);
 });

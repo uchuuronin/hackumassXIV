@@ -30,11 +30,16 @@ export function stuckMessage(body: StuckBody, replyUrl?: string): { to: string; 
   if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(to)) return null;
   const helper = clean(body.helperName, 60) || 'there';
   const from = clean(body.fromName, 60) || 'Someone you help';
+  // With no first name saved, say it once and then "they" and "them", as a person writing the email would.
+  const named = from !== 'Someone you help';
+  const they = named ? from : 'They';
+  const them = named ? from : 'them';
   const task = clean(body.task, 120);
   const step = whole(body.step);
   const of = whole(body.of);
 
-  const where = task && step && of && step <= of ? `${from} was on step ${step} of ${of} of "${task}".` : task ? `${from} was doing "${task}".` : '';
+  const was = named ? 'was' : 'were';
+  const where = task && step && of && step <= of ? `${they} ${was} on step ${step} of ${of} of "${task}".` : task ? `${they} ${was} doing "${task}".` : '';
   const text = [
     `Hello ${helper},`,
     '',
@@ -42,7 +47,7 @@ export function stuckMessage(body: StuckBody, replyUrl?: string): { to: string; 
     ...(where ? [where] : []),
     '',
     'A telephone call is usually the quickest way to help.',
-    ...(replyUrl ? ['', `To send ${from} a short note that appears in Steady, open this link:`, replyUrl, 'It works for 2 days.'] : []),
+    ...(replyUrl ? ['', `To send ${them} a short note that appears in Steady, open this link:`, replyUrl, 'It works for 2 days.'] : []),
     '',
     'Steady sent only what you see here. It did not send the website, the page, or anything that was typed.',
   ].join('\n');

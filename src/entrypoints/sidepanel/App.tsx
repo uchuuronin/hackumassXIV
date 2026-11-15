@@ -257,6 +257,7 @@ export default function App() {
             onMic={() => { browser.tabs.create({ url: browser.runtime.getURL('/mic.html' as never) }); }}
             onSkip={() => finish()}
             onDetails={() => finish('details')}
+            onHelper={() => { finish('details'); window.setTimeout(() => document.getElementById('helper-name')?.scrollIntoView({ block: 'center' }), 400); }}
             onDone={() => finish()}
           />
         </main>

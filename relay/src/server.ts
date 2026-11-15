@@ -20,16 +20,24 @@ const withTimeout = <T>(p: Promise<T>, ms: number) =>
   ]);
 
 // 20 s limit per try: main model, one retry, then the lighter fallback model
-async function ask(prompt: string) {
-  const tries = [MODEL, FALLBACK].filter(Boolean);
+//
+// `search` (asked for by the guide lane, owner C, only when the person asks a question): the main model
+// may look things up on the web for this one. If that try fails for any reason (a model that doesn't
+// take the search tool, a time-out), the same prompt is asked again in the ordinary way, so a question
+// with search on can never do worse than one without.
+async function ask(prompt: string, search = false) {
+  const tries: Array<{ model: string; search: boolean }> = [
+    ...(search && MODEL ? [{ model: MODEL, search: true }] : []),
+    ...[MODEL, FALLBACK].filter(Boolean).map((model) => ({ model, search: false })),
+  ];
   let lastErr: unknown;
-  for (const model of tries) {
+  for (const t of tries) {
     try {
       const r = await withTimeout(
-        ai.models.generateContent({ model, contents: prompt }),
+        ai.models.generateContent({ model: t.model, contents: prompt, ...(t.search ? { config: { tools: [{ googleSearch: {} }] } } : {}) }),
         20000,
       );
-      return { text: r.text ?? '', model };
+      return { text: r.text ?? '', model: t.model, searched: t.search };
     } catch (e) {
       lastErr = e;
     }
@@ -62,13 +70,13 @@ registerTasks(app);
 // Linking a helper by a short code, tasks that arrive by themselves, and reply notes (owner: C). See ./familyRoutes.ts.
 registerFamily(app);
 
-app.post<{ Body: { prompt: string } }>('/gemini', async (req, reply) => {
+app.post<{ Body: { prompt: string; search?: boolean } }>('/gemini', async (req, reply) => {
   const prompt = req.body?.prompt;
   if (typeof prompt !== 'string' || !prompt || prompt.length > 20000) {
     return reply.code(400).send({ error: 'bad prompt' });
   }
   try {
-    return await ask(prompt);
+    return await ask(prompt, req.body?.search === true);
   } catch (e) {
     req.log.error(e);
     return reply.code(502).send({ error: 'gemini failed' });
