@@ -16,6 +16,7 @@ import { createHandsTools } from './tools';
 import { startKeyGuard } from './keys/startKeyGuard';
 import { startDwellClick, type DwellClick } from './dwell/dwellClick';
 import { pageObstacles } from './obstacles';
+import { startBigPick } from './bigpick';
 import { createOverlay } from './overlay';
 import { startPointer } from './pointer';
 import { startClickSteadying } from './steady/clickSteadying';
@@ -44,6 +45,7 @@ const REACH_KEY = 'hands:reach' as const;
 const FITTING_KEY = 'hands:fitting' as const;
 const SLIP_KEY = 'hands:slipPx' as const;
 const KEY_GUARD_KEY = 'hands:keyGuardMs' as const;
+const BIG_PICK_KEY = 'hands:bigPick' as const;
 
 const DWELL_KEY = 'hands:dwell' as const;
 interface DwellSetting {
@@ -134,8 +136,31 @@ export function startHands(ctx: LaneContext): void {
     overlay = undefined;
   });
 
+  // Big Pick: dropdowns, date fields and number boxes open as large buttons. On unless the person turned it off.
+  const bigPick = startBigPick(ctx, pageMap);
+  getProfile<boolean>(BIG_PICK_KEY, true).then((on) => bigPick.setEnabled(on), () => bigPick.setEnabled(true));
+  const onBigPickStorage = (changes: Record<string, { newValue?: unknown }>, area: string) => {
+    const change = changes[BIG_PICK_KEY];
+    if (area === 'local' && change) bigPick.setEnabled(change.newValue !== false);
+  };
+  browser.storage.onChanged.addListener(onBigPickStorage);
+  ctx.onStop(() => browser.storage.onChanged.removeListener(onBigPickStorage));
+
   if (ctx.dev) {
     startTuning(ctx, getOverlay(), tracker);
+
+    // While building: Alt+Shift+B turns Big Pick on or off. It is remembered in the profile.
+    const onBigPickKey = (event: KeyboardEvent) => {
+      if (!(event.altKey && event.shiftKey && event.code === 'KeyB')) return;
+      const next = !bigPick.enabled();
+      bigPick.setEnabled(next);
+      setProfile(BIG_PICK_KEY, next).catch(() => undefined);
+      const o = getOverlay();
+      o.show({ id: 'bigpick-status', box: false, where: { x: 16, y: 16, width: 1, height: 1 }, label: next ? 'Big Pick on: dropdowns and dates open as large buttons' : 'Big Pick off', tone: 'step' });
+      setTimeout(() => o.hide('bigpick-status'), 2500);
+    };
+    window.addEventListener('keydown', onBigPickKey, true);
+    ctx.onStop(() => window.removeEventListener('keydown', onBigPickKey, true));
 
     // While building: Alt+Shift+D turns dwell click on or off. It is remembered in the profile.
     const onDwellKey = (event: KeyboardEvent) => {
