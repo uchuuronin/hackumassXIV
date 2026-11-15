@@ -77,11 +77,12 @@ export function startFakeCheck(ctx: LaneContext): void {
       getOverlay().hide(`fake-${id}`);
       marked.delete(id);
     }
-    // Draw a warning on the ones in view (at most two, so the page stays readable).
+    // Draw a warning on the ones in view. At most two in all, buttons and frames together, so the page stays readable.
+    const MAX_WARNINGS = 2;
     let drawn = 0;
     for (const [id, reason] of marked) {
       const el = map.elements.find((e) => e.id === id);
-      if (el?.inViewport && !el.covered && drawn < 2) {
+      if (el?.inViewport && !el.covered && drawn < MAX_WARNINGS) {
         getOverlay().show({ id: `fake-${id}`, where: () => pageMap.liveRect(id), label: reason, tone: 'warning' });
         drawn++;
       } else {
@@ -91,11 +92,15 @@ export function startFakeCheck(ctx: LaneContext): void {
     // Adverts in frames from other sites: we can't see inside, so warn about the whole frame.
     const frameIds = new Set<string>();
     map.frames.forEach((f, i) => {
-      if (f.sameSite || !f.visible) return;
+      if (f.sameSite || !f.visible || drawn >= MAX_WARNINGS) return;
       const iframe = Array.from(document.querySelectorAll('iframe')).find((x) => x.src === f.src);
       if (!iframe || (!inAdvert(iframe) && !AD_SRC.test(f.src))) return;
+      // Only a frame that is on screen: a busy page can have dozens, and the person can only see these.
+      const box = iframe.getBoundingClientRect();
+      if (box.width <= 0 || box.bottom <= 0 || box.top >= window.innerHeight) return;
       const id = `fake-frame-${i}`;
       frameIds.add(id);
+      drawn++;
       getOverlay().show({
         id,
         where: () => {
