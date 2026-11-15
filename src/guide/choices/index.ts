@@ -19,6 +19,76 @@ export interface ChoicesResult {
   unsure: string[];
   /** What the helper says afterwards. */
   said: string;
+  /** When there are boxes to do before the button: a note on the first of them, shown before any button's note. */
+  start?: OverlayLabel;
+}
+
+/** One thing the page wants before its button will work: a box to fill in, or a choice to make. */
+interface ToDo {
+  el: PageElement;
+  name: string;
+  how: 'type' | 'list' | 'one-of' | 'tick';
+}
+
+const TEXT_KINDS = new Set(['text', 'email', 'password', 'number', 'tel', 'date', 'time', 'textarea']);
+const short = (name: string) => (name.length > 60 ? `${name.slice(0, 57).trimEnd()}…` : name);
+
+/**
+ * What is still to do in the form before `button`, in reading order. Someone who asks "what do I click?"
+ * on a page with empty boxes is not helped by being sent to the button first: it won't work yet.
+ * Only whether a box is empty is looked at, never what is in it.
+ */
+function before(button: PageElement, map: PageMap): ToDo[] {
+  const form = map.forms.find((f) => f.id === button.formId);
+  if (!form || form.isSearch) return [];
+  const mine = map.elements.slice(0, map.elements.indexOf(button)).filter((e) => e.formId === form.id && e.visible && !e.disabled && !e.covered);
+  const todo: ToDo[] = [];
+  const groups = new Set<string>();
+  for (const el of mine) {
+    if (/\boptional\b/i.test(el.label)) continue;
+    const dom = pageMap.elementFor(el.id);
+    if (el.kind === 'radio') {
+      const group = el.group ?? (dom as HTMLInputElement | null)?.name ?? el.label;
+      if (groups.has(group)) continue;
+      groups.add(group);
+      const same = mine.filter((e) => e.kind === 'radio' && (e.group ?? (pageMap.elementFor(e.id) as HTMLInputElement | null)?.name ?? e.label) === group);
+      if (!same.some((e) => e.checked)) todo.push({ el, name: short(group), how: 'one-of' });
+    } else if (el.kind === 'select') {
+      const select = dom as HTMLSelectElement | null;
+      const picked = select?.selectedOptions?.[0];
+      const placeholder = !picked || select!.value === '' || (select!.selectedIndex === 0 && /^(select|choose|pick|please|-)/i.test(picked.text.trim()));
+      if (placeholder) todo.push({ el, name: short(el.label), how: 'list' });
+    } else if (el.kind === 'checkbox') {
+      if (el.required && !el.checked) todo.push({ el, name: short(el.label), how: 'tick' });
+    } else if (TEXT_KINDS.has(el.kind)) {
+      if (((dom as HTMLInputElement | null)?.value ?? '').trim() === '') todo.push({ el, name: short(el.label), how: 'type' });
+    }
+  }
+  return todo;
+}
+
+const START: Record<ToDo['how'], string> = {
+  type: 'Start here. Type in this box.',
+  list: 'Start here. Choose from this list.',
+  'one-of': 'Start here. Choose one of these.',
+  tick: 'Start here. Tick this box.',
+};
+const COUNT = ['', 'one', 'two', 'three'];
+
+/** The opening sentences when there is something to do before the button. */
+function lead(button: PageElement, todo: ToDo[], map: PageMap, buttons: number): string {
+  const choosing = todo.filter((t) => t.how !== 'type').length;
+  const noun = choosing === todo.length ? 'things to choose' : choosing * 2 >= todo.length ? 'things to fill in or choose' : 'boxes to fill in';
+  const names = todo.map((t) => `"${t.name}"`);
+  const heading = map.headings.find((h) => h.level === 1)?.text.trim();
+  const page = heading && heading.length <= 60 && !todo.some((t) => t.name === heading) && heading !== button.label ? `This page is "${heading}". ` : '';
+  let what: string;
+  if (todo.length === 1) what = `Before "${button.label}", this page needs one thing from you: ${names[0]}.`;
+  else if (todo.length <= 3) what = `Before "${button.label}", there are ${COUNT[todo.length]} ${noun} on this page: ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}.`;
+  else what = `Before "${button.label}", there are ${todo.length} ${noun} on this page. The first is ${names[0]}.`;
+  const show = `I'll show you where ${todo.length === 1 ? 'it is' : 'to start'}, and then the ${buttons === 1 ? 'button for afterwards' : 'main buttons'}.`;
+  const fill = todo.filter((t) => t.el.fillAs).length >= 2 ? ' I can do your name and address with you. Just press "Help me fill this in".' : '';
+  return `${page}${what} ${show}${fill}`;
 }
 
 /** A small button that only serves the box next to it ("Apply" beside a promo code) is not a main choice. */
@@ -101,11 +171,17 @@ export async function show(): Promise<ChoicesResult> {
   // other ways on next, and the buttons that take something away last.
   const rank = (tone: OverlayLabel['tone']) => (tone === 'go' ? 0 : tone === 'careful' || tone === 'stop' ? 2 : 1);
   const inOrder = [...labels].sort((a, b) => rank(a.tone) - rank(b.tone));
-  void oneAtATime(inOrder, ++showing);
+
+  // The button that moves things on, and whatever its form still wants first.
+  const forward = chosen.map((c) => c.el).find((el) => el.formId && labels.some((l) => l.targetId === el.id && (l.tone === 'go' || el.protection !== 'none')));
+  const todo = forward ? before(forward, map) : [];
+  const start: OverlayLabel | undefined = todo[0] && { targetId: todo[0].el.id, text: START[todo[0].how], tone: 'info' };
+  void oneAtATime(start ? [start, ...inOrder] : inOrder, ++showing);
   // A cookie box is the pop-up people meet most, and nobody ever says what a cookie is.
   const cookies = /cookie|privacy|consent|tracking/i.test(map.dialog?.label ?? '')
     ? 'This box is asking about cookies. Cookies are little notes a website keeps on your computer so it remembers you. It\'s safe to say no, and the website will still work. '
     : '';
+  if (forward && start) return { labels, unsure, start, said: cookies + lead(forward, todo, map, labels.length) };
   return { labels, unsure, said: cookies + summary(labels.length, unsure) };
 }
 

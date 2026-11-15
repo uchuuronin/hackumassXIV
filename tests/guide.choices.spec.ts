@@ -251,3 +251,57 @@ test('the way forward is shown first, and the buttons that take things away come
       'Click this to take the Large-number kitchen timer out of your basket.',
     ]);
 });
+
+// "What do I click?" on a page where the button is not the first thing to do.
+const shownNotes = (page: Page) =>
+  page.evaluate(() =>
+    window.__steady.calls.filter((c) => c.port === 'overlay' && c.args[0] === 'choices' && c.method === 'labels').map((c) => (c.args[1] as Array<{ text: string }>)[0]!.text),
+  );
+
+test('things to choose before the button: says what they are, and shows where to start before it shows the button', async ({ page }) => {
+  await page.goto('/clinic/book.html?reset=1');
+  const result = await show(page);
+  expect(result.said).toBe(
+    'Before "Next", there are two things to choose on this page: "Reason for your visit" and "Who would you like to see?". I\'ll show you where to start, and then the button for afterwards.',
+  );
+  expect(result.labels).toEqual({ Next: 'go: Click this to go on to the next step.' });
+  await expect.poll(() => shownNotes(page)).toEqual(['Start here. Choose from this list.', 'Click this to go on to the next step.']);
+});
+
+test('one thing left before the button: names it and starts there', async ({ page }) => {
+  await page.goto('/clinic/book.html?reset=1');
+  await page.selectOption('#reason', 'Flu shot');
+  const result = await show(page);
+  expect(result.said).toBe(
+    'Before "Next", this page needs one thing from you: "Who would you like to see?". I\'ll show you where it is, and then the button for afterwards.',
+  );
+  await expect.poll(() => shownNotes(page)).toEqual(['Start here. Choose one of these.', 'Click this to go on to the next step.']);
+});
+
+test('nothing left to do before the button: goes straight to the button, as before', async ({ page }) => {
+  await page.goto('/clinic/book.html?reset=1');
+  await page.selectOption('#reason', 'Flu shot');
+  await page.check('[value="okafor"]');
+  const result = await show(page);
+  expect(result.said).toBe("I'll show you the main button. After that, rest the pointer on it and I'll tell you again what it does.");
+  await expect.poll(() => shownNotes(page)).toEqual(['Click this to go on to the next step.']);
+});
+
+test('a long form before the pay button: counts the boxes, names the first, and offers to fill in the name and address', async ({ page }) => {
+  await page.goto('/shop/checkout.html?reset=1');
+  const result = await show(page);
+  expect(result.said).toBe(
+    'This page is "Checkout". Before "Place order", there are 12 boxes to fill in on this page. The first is "Email for your receipt". I\'ll show you where to start, and then the main buttons. I can do your name and address with you. Just press "Help me fill this in".',
+  );
+  expect((await shownNotes(page))[0]).toBe('Start here. Type in this box.');
+});
+
+test('a box marked optional, and a search box, are not counted as things to do', async ({ page }) => {
+  await html(
+    page,
+    `<header><form role="search"><input type="search" aria-label="Search"><button>Search</button></form></header>
+     <main><h1>Join the list</h1><form><label>Email <input type="email"></label><label>Nickname (optional) <input></label><button type="submit">Continue</button></form></main>`,
+  );
+  const result = await show(page);
+  expect(result.said).toContain('Before "Continue", this page needs one thing from you: "Email".');
+});
