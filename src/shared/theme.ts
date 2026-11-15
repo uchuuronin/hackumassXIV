@@ -29,6 +29,8 @@ export const theme = {
   coral: '#e8605d',
   /** The keyboard focus ring. */
   focus: '#1d5fd0',
+  /** The same ring on the navy band, where the blue would be too dark to see (it is 2.5 to 1 there). */
+  focusOnInk: '#ffffff',
   /** Behind a pop-up, and around a spotlit step. */
   veil: 'rgba(31, 43, 58, 0.55)',
   tones: {

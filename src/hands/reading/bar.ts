@@ -37,7 +37,7 @@ const CSS = `
   button { font: 600 18px/1.15 ${theme.font}; color: ${theme.ink}; min-height: 56px; padding: 6px 14px; border: 3px solid ${theme.ink}; border-radius: ${theme.radius}px; background: ${theme.card}; cursor: pointer; box-shadow: 0 ${theme.depth}px 0 ${theme.ink}; transition: transform ${theme.motion.press}ms ${theme.motion.ease}, box-shadow ${theme.motion.press}ms ${theme.motion.ease}; text-align: left; }
   button:active { transform: translateY(${theme.depth}px); box-shadow: 0 0 0 ${theme.ink}; }
   button:focus-visible { outline: 4px solid ${theme.focus}; outline-offset: 3px; }
-  button small { display: block; font-weight: 500; font-size: 14px; color: ${theme.inkQuiet}; }
+  button small { display: block; font-weight: 500; font-size: 18px; color: ${theme.inkQuiet}; }
   button.on { background: ${theme.tones.go.soft}; border-color: ${theme.tones.go.line}; }
   button.round { min-width: 56px; text-align: center; font-size: 28px; padding: 0 10px; }
   button.quiet { margin-left: auto; text-align: center; }

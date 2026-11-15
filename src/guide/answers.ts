@@ -62,6 +62,7 @@ export async function answer(words: string): Promise<Answer> {
   if (said === walk.YES_BOOK || said === walk.YES) return walk.yes();
   if (said === walk.NO) return walk.no();
   if (said === walk.READY) return walk.ready();
+  if (walk.isOffer(said)) return walk.pick(said); // one of the things Steady said she could do on this page
   if (said === walk.LOOKING) return walk.looking();
   if (walk.isActive()) {
     if (said === 'Show me again') return walk.repeat();

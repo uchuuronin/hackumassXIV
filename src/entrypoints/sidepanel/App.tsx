@@ -16,6 +16,8 @@ import { GuideSwitches } from '@/guide/panel/GuideSwitches';
 import { Welcome } from './Welcome';
 import { MyDetailsCard } from '@/guide/panel/MyDetailsCard';
 import { intent, useGuide } from '@/guide/panel/useGuide';
+import { useScreenFocus } from '@/guide/panel/useScreenFocus';
+import { useStill } from '@/guide/panel/useStill';
 
 interface Reply { quiet?: boolean; said: string; point?: string; tool?: { name: string; args: Record<string, unknown> }; options?: string[]; /** From the guide lane: its buttons go back to the page, not to Gemini. */ guide?: boolean; /** A second, separate message under the first. */ then?: { said: string; options?: string[] } }
 
@@ -95,6 +97,9 @@ export default function App() {
   const [screen, setScreen] = useState<'home' | 'details' | 'teach' | 'settings'>('home');
   const [glad, setGlad] = useState(false);
   const [welcome, setWelcome] = useState(false);
+  // Guide lane (C): focus follows the screen, and the panel keeps still if she asked for that.
+  useScreenFocus(welcome ? 'welcome' : screen);
+  const still = useStill();
   // The guide lane: its sentences are shown and read aloud exactly like an answer.
   const guide = useGuide((r) => {
     setReply({ ...r, guide: true });
@@ -237,10 +242,12 @@ export default function App() {
   };
   const vars = {
     '--paper': theme.paper, '--card': theme.card, '--ink': theme.ink, '--ink-quiet': theme.inkQuiet, '--edge': theme.edge, '--hairline': theme.hairline,
-    '--sun': theme.sun, '--teal': theme.teal, '--coral': theme.coral, '--focus': theme.focus,
+    '--sun': theme.sun, '--teal': theme.teal, '--coral': theme.coral, '--focus': theme.focus, '--focus-on-ink': theme.focusOnInk,
     '--go': theme.tones.go.soft, '--go-deep': theme.tones.go.deep, '--info': theme.tones.info.soft, '--info-deep': theme.tones.info.deep,
     '--care': theme.tones.careful.soft, '--care-deep': theme.tones.careful.deep, '--depth': `${theme.depth}px`,
   } as React.CSSProperties;
+
+  const appClass = still ? 'app still' : 'app';
 
   if (welcome) {
     const finish = (next?: 'details') => {
@@ -249,8 +256,8 @@ export default function App() {
       if (next) setScreen(next);
     };
     return (
-      <div className="app" style={vars}>
-        <header className="band small"><Dots /></header>
+      <div className={appClass} style={vars}>
+        <header className="band small"><Dots /><h1 className="where" tabIndex={-1}>Welcome to Steady</h1></header>
         <main className="sheet">
           <Welcome
             say={say}
@@ -267,10 +274,11 @@ export default function App() {
 
   if (screen === 'settings') {
     return (
-      <div className="app" style={vars}>
+      <div className={appClass} style={vars}>
         <header className="band small">
           <Dots />
           <button type="button" className="btn back" onClick={() => setScreen('home')}><Icon name="back" /> Back</button>
+          <h1 className="where" tabIndex={-1}>Settings</h1>
         </header>
         <main className="sheet">
           <Settings />
@@ -282,17 +290,18 @@ export default function App() {
 
   if (screen === 'details') {
     return (
-      <div className="app" style={vars}>
+      <div className={appClass} style={vars}>
         <header className="band small">
           <Dots />
           <button type="button" className="btn back" onClick={() => setScreen('home')}><Icon name="back" /> Back</button>
+          <h1 className="where" tabIndex={-1}>My details</h1>
         </header>
         <main className="sheet">
           <section className="card"><MyDetailsCard /></section>
           <HelperCard />
           <GetTaskCard />
           <RememberCard />
-          <button type="button" className="btn quiet" onClick={() => setScreen('teach')}>
+          <button type="button" id="open-teach" className="btn quiet" onClick={() => setScreen('teach')}>
             <Icon name="steps" /> For the person who helps
           </button>
         </main>
@@ -302,10 +311,11 @@ export default function App() {
 
   if (screen === 'teach') {
     return (
-      <div className="app" style={vars}>
+      <div className={appClass} style={vars}>
         <header className="band small">
           <Dots />
           <button type="button" className="btn back" onClick={() => setScreen('details')}><Icon name="back" /> Back</button>
+          <h1 className="where" tabIndex={-1}>For the person who helps</h1>
         </header>
         <main className="sheet">
           <TeachScreen recording={guide.recording} tasks={guide.tasks} />
@@ -315,7 +325,7 @@ export default function App() {
   }
 
   return (
-    <div className="app" style={vars}>
+    <div className={appClass} style={vars}>
       <header className="band">
         <Dots />
         <div className="who">
@@ -376,7 +386,8 @@ export default function App() {
             </button>
           </div>
         </form>
-        {micError && <p className="note">Microphone problem: {micError}</p>}
+        <p className="sr" role="status">{listening ? "I'm listening." : busy ? 'Looking.' : ''}</p>
+        {micError && <p className="note" role="alert">{micWords(micError)}</p>}
         {micProblem && (
           <button type="button" className="btn" onClick={openMicPage}>
             I need your OK to use the microphone. Tap here.
@@ -391,16 +402,25 @@ export default function App() {
           <button type="button" className="btn quiet" onClick={toggleVoice}>
             <Icon name={voiceOn ? 'sound' : 'mute'} /> {voiceOn ? 'Voice: on' : 'Voice: off'}
           </button>
-          <button type="button" className="btn quiet" onClick={() => setScreen('details')}>
+          <button type="button" id="open-details" className="btn quiet" onClick={() => setScreen('details')}>
             <Icon name="person" /> My details
           </button>
-          <button type="button" className="btn quiet" onClick={() => setScreen('settings')}>
+          <button type="button" id="open-settings" className="btn quiet" onClick={() => setScreen('settings')}>
             <Icon name="steps" /> Settings
           </button>
         </footer>
       </main>
     </div>
   );
+}
+
+/** What went wrong with the microphone, in words a person can act on. */
+function micWords(error: string): string {
+  if (error === 'not-allowed' || error === 'service-not-allowed') return "I can't hear you yet. The microphone isn't allowed. Press the button below and say yes.";
+  if (error === 'no-speech') return "I didn't hear anything. Press \"Talk to me\" and try again, or type instead.";
+  if (error === 'audio-capture') return "I can't find a microphone on this computer. You can type instead.";
+  if (error === 'not-supported') return "Talking isn't available in this browser. You can type instead.";
+  return "The microphone didn't work this time. You can try again, or type instead.";
 }
 
 /** The row of small squares from the top of the sheet, twinkling slowly. Decoration only. */

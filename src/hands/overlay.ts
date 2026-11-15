@@ -41,6 +41,8 @@ const CSS = `
     font: 600 18px/1.4 ${theme.font};
     box-shadow: 0 ${theme.depth}px 0 ${theme.ink};
   }
+  /* Windows high contrast removes shadows and fills: the spotlight and the notes keep an edge. */
+  @media (forced-colors: active) { .spot { outline: 4px solid Highlight; } .label { box-shadow: none; border-color: CanvasText; } .ring { border-color: Highlight; } }
   ${gentleCss}
 `;
 

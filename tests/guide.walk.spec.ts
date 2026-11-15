@@ -1,6 +1,6 @@
 // "What do I click?" as a conversation: what this page is, what she's here to do, then one question at a time.
 import { expect, test, type Page } from '@playwright/test';
-import { inject } from './helpers';
+import { html, inject } from './helpers';
 
 const WALKING = ['Show me again', 'Skip this one', 'Stop for now'];
 const spoken = (page: Page) => page.evaluate(() => window.__steady.calls.filter((c) => c.port === 'speech').map((c) => String(c.args[0])));
@@ -290,4 +290,73 @@ test('a shop front does not offer to open the basket she can already see, and na
   await inject(page);
   const reply = await press(page, 'What do I click?');
   expect(reply.said).toContain('From here you can search for something, look at Kitchen, Living room or Garden, or open your basket.');
+});
+
+// ---- A page the rules don't recognise: Gemini says what it is and what she can do, from button names only ----
+
+const GARDEN = `<header><a href="/">Greenfinger Garden Club</a></header>
+  <main><h1>Members' corner</h1>
+    <p>Private text about a member that must never leave the computer.</p>
+    <a href="/events" id="events">See this month's events</a>
+    <a href="/renew" id="renew">Renew my membership</a>
+    <a href="/newsletter" id="news">Read the newsletter</a>
+    <button id="pay">Pay now</button>
+  </main>`;
+const idOf = (page: Page, label: string) => page.evaluate((l) => window.__steady.api.get().elements.find((e) => e.label === l)!.id, label);
+
+test('an unfamiliar page: says what the page is, in Gemini\'s words, and offers things she can do as buttons', async ({ page }) => {
+  await html(page, GARDEN);
+  await inject(page);
+  const events = await idOf(page, "See this month's events");
+  const renew = await idOf(page, 'Renew my membership');
+  await page.evaluate(([e, r]) => window.__steady.useGemini(async () => JSON.stringify({ page: "This is the members' page of a garden club.", can: [{ id: e, say: "See what's on this month" }, { id: r, say: 'Renew your membership' }] })), [events, renew]);
+  const reply = await press(page, 'What do I click?');
+  expect(reply.said).toBe("This is the members' page of a garden club. Here are a few things you can do from here.");
+  expect(reply.options).toEqual(["See what's on this month", 'Renew your membership', 'No, just show me the buttons']);
+
+  const picked = await press(page, 'Renew your membership');
+  expect(picked.said).toBe('That\'s this one: "Renew my membership". I\'ve lit it up. Click it when you\'re ready.');
+  expect(await lit(page)).toBe('Renew my membership');
+  expect(page.url()).not.toContain('renew'); // nothing was clicked
+});
+
+test('Gemini is shown the names of buttons and links, and never the words on the page', async ({ page }) => {
+  await html(page, GARDEN);
+  await inject(page);
+  await gemini(page, () => ({ page: 'A club page.', can: [] }));
+  await press(page, 'What do I click?');
+  const sent = (await prompts(page)).at(-1)!;
+  expect(sent).toContain('Renew my membership');
+  expect(sent).not.toContain('Private text about a member');
+  expect(sent).not.toContain("Members' corner"); // not even the heading: the plan keeps headings on the computer
+});
+
+test('a suggestion that pays, or points at something that is not on the page, is dropped', async ({ page }) => {
+  await html(page, GARDEN);
+  await inject(page);
+  const pay = await idOf(page, 'Pay now');
+  const news = await idOf(page, 'Read the newsletter');
+  await page.evaluate(([p, n]) => window.__steady.useGemini(async () => JSON.stringify({ page: 'A club page.', can: [{ id: p, say: 'Pay your fees' }, { id: 's999', say: 'Win a prize' }, { id: n, say: 'Read the newsletter' }, { id: n, say: 'Go to http://evil.example' }] })), [pay, news]);
+  const reply = await press(page, 'What do I click?');
+  expect(reply.options).toEqual(['Read the newsletter', 'No, just show me the buttons']);
+});
+
+test('if Gemini is slow, wrong or not there, Steady answers the way it always has', async ({ page }) => {
+  await html(page, GARDEN);
+  await inject(page);
+  await page.evaluate(() => window.__steady.walk.setPace({ understandMs: 150 }));
+  await page.evaluate(() => window.__steady.useGemini(() => new Promise((r) => setTimeout(() => r('{"page":"Too late."}'), 1500))));
+  const slow = await press(page, 'What do I click?');
+  expect(slow.said).toContain('This is "Members\' corner".');
+  await gemini(page, () => 'not json at all');
+  expect((await press(page, 'What do I click?')).said).toContain('This is "Members\' corner".');
+});
+
+test('the same page asked about twice only costs one question to Gemini', async ({ page }) => {
+  await html(page, GARDEN);
+  await inject(page);
+  await gemini(page, () => ({ page: 'A club page.', can: [] }));
+  await press(page, 'What do I click?');
+  await press(page, 'What do I click?');
+  expect((await prompts(page)).length).toBe(1);
 });

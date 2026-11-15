@@ -29,7 +29,7 @@ export function GuideSwitches() {
   };
   const flip = (id: GuideSwitchId) => void save({ ...on, [id]: !on[id] });
   // "Keep it light" and "Everything on" change how much Steady says. What is remembered stays as she set it.
-  const light = same(on, { ...LIGHT, calm: on.calm, trail: on.trail, lastTime: on.lastTime, timeout: on.timeout });
+  const light = same(on, { ...LIGHT, calm: on.calm, trail: on.trail, lastTime: on.lastTime, timeout: on.timeout, motion: on.motion });
 
   return (
     <section className="card">

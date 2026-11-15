@@ -91,7 +91,7 @@ svg {
   padding:       0.75rem 1.5rem;
   background:    var(--teal-d);
   color:         #fff;
-  font-size:     1rem;
+  font-size:     1.125rem;
   font-weight:   700;
   text-decoration: none;
   border-radius: var(--radius);
@@ -159,11 +159,14 @@ header nav {
 
 header nav a {
   color:           var(--teal-d);
-  font-size:       1rem;
+  font-size:       1.125rem;
   font-weight:     600;
   text-decoration: none;
-  padding:         0.3rem 0.5rem;
+  padding:         0.3rem 0.75rem;
   border-radius:   6px;
+  display:         inline-flex;
+  align-items:     center;
+  min-height:      48px;      /* same floor as the buttons in Steady itself */
 }
 
 header nav a:hover {
@@ -214,7 +217,7 @@ a:hover {
   justify-content: center;
   min-height:      56px;      /* minimum touch / click target */
   padding:         0.5rem 1.75rem;
-  font-size:       1.1rem;
+  font-size:       1.125rem;
   font-weight:     700;
   border-radius:   var(--radius);
   text-decoration: none;
@@ -304,7 +307,7 @@ section {
   display:     flex;
   align-items: flex-start;
   gap:         1rem;
-  font-size:   1.05rem;
+  font-size:   1.125rem;
   line-height: 1.6;
 }
 
@@ -338,13 +341,13 @@ section {
 }
 
 .card p {
-  font-size:   1rem;
+  font-size:   1.125rem;
   line-height: 1.6;
   color:       var(--ink);
 }
 
 .side-note {
-  font-size:   1rem;
+  font-size:   1.125rem;
   font-weight: 700;
   color:       var(--teal-d);
   border-left: 4px solid var(--teal-m);
@@ -375,7 +378,7 @@ section {
 }
 
 .screenshot-card figcaption {
-  font-size:   1rem;
+  font-size:   1.125rem;
   line-height: 1.5;
   color:       var(--ink);
 }
@@ -405,17 +408,16 @@ section {
 
 .limits-box p {
   color:       var(--amber-ink);
-  font-size:   1.05rem;
+  font-size:   1.125rem;
   line-height: 1.65;
 }
 
 /* ── How it was built ────────────────────── */
 
 .label-small {
-  font-size:   1rem;
+  font-size:   1.125rem;
   font-weight: 400;
-  color:       var(--teal-d);
-  opacity:     0.75;
+  color:       var(--teal-d);   /* full strength: at 75% it failed contrast */
 }
 
 .built-grid {
@@ -438,7 +440,7 @@ section {
 }
 
 .built-cell dt {
-  font-size:      0.82rem;
+  font-size:      1.125rem;
   font-weight:    800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -447,7 +449,7 @@ section {
 }
 
 .built-cell dd {
-  font-size: 1rem;
+  font-size: 1.125rem;
   color:     var(--ink);
 }
 
@@ -462,7 +464,7 @@ section {
 }
 
 .next-list li {
-  font-size:     1.05rem;
+  font-size:     1.125rem;
   line-height:   1.6;
   padding:       0.9rem 1.1rem;
   background:    var(--bg);
@@ -494,8 +496,16 @@ footer nav {
 footer nav a {
   color:           var(--teal-l);
   font-weight:     700;
-  font-size:       1rem;
+  font-size:       1.125rem;
   text-decoration: underline;
+  display:         inline-flex;
+  align-items:     center;
+  min-height:      48px;
+}
+
+/* The teal ring can't be seen on the dark footer. */
+footer :focus-visible {
+  outline-color: #fff;
 }
 
 footer nav a:hover {
@@ -503,7 +513,7 @@ footer nav a:hover {
 }
 
 .footer-note {
-  font-size: 0.9rem;
+  font-size: 1.125rem;
   color:     #aac8c6;
 }
 

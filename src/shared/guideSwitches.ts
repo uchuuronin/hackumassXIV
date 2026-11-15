@@ -6,7 +6,7 @@
 
 export const GUIDE_SWITCH_KEY = 'guide:switches';
 
-export type GuideSwitchId = 'walk' | 'hints' | 'nudges' | 'calm' | 'trail' | 'lastTime' | 'timeout';
+export type GuideSwitchId = 'walk' | 'hints' | 'nudges' | 'calm' | 'trail' | 'lastTime' | 'timeout' | 'motion';
 export type GuideSwitches = Record<GuideSwitchId, boolean>;
 
 export const GUIDE_SWITCHES: Array<{ id: GuideSwitchId; label: string; hint: string }> = [
@@ -17,9 +17,11 @@ export const GUIDE_SWITCHES: Array<{ id: GuideSwitchId; label: string; hint: str
   { id: 'trail', label: 'Remember my place', hint: 'I keep ordinary boxes you filled in, on this computer, so "Where was I?" can put them back. Off: nothing is kept, and what I had is forgotten.' },
   { id: 'lastTime', label: 'Mention what I picked last time', hint: 'In a saved task, such as which doctor and which day. Off: nothing is kept, and what I had is forgotten.' },
   { id: 'timeout', label: 'Warn me before a page times out', hint: 'Some pages log you out if you take a while. I say so when I see the warning.' },
+  // Anything that keeps moving by itself needs a way to stop it (WCAG 2.2.2). This is that way, for the panel.
+  { id: 'motion', label: 'Let my face move', hint: 'My face breathes and blinks, and the little lights along the top twinkle. Off: everything in this panel keeps still. My face still changes, without moving.' },
 ];
 
-export const ALL_ON: GuideSwitches = { walk: true, hints: true, nudges: true, calm: true, trail: true, lastTime: true, timeout: true };
+export const ALL_ON: GuideSwitches = { walk: true, hints: true, nudges: true, calm: true, trail: true, lastTime: true, timeout: true, motion: true };
 /**
  * "Keep it light": for someone who wants Steady there when asked and quiet otherwise. It stops the talking,
  * not the remembering or the warnings.

@@ -1,5 +1,5 @@
-// The first-run welcome: three short steps, shown once. Owner: B.
-import { useEffect, useState } from 'react';
+// The first-run welcome: four short steps, shown once. Owner: B.
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   say: (t: string) => void;
@@ -23,14 +23,20 @@ export function Welcome({ say, onMic, onSkip, onDetails, onHelper, onDone }: Pro
   const [step, setStep] = useState(0);
   const s = STEPS[step] ?? STEPS[0];
 
+  const heading = useRef<HTMLHeadingElement>(null);
+  const first = useRef(true);
+
   useEffect(() => {
     say(`${s.title} ${s.body}`);
+    // After "Next", focus goes to the new step's title, so a screen reader reads it and Tab starts from the top.
+    if (!first.current) heading.current?.focus();
+    first.current = false;
   }, [step]);
 
   return (
     <section className="card">
-      <p className="note">Step {step + 1} of {STEPS.length}</p>
-      <h2>{s.title}</h2>
+      <p className="count">Step {step + 1} of {STEPS.length}</p>
+      <h2 ref={heading} tabIndex={-1}>{s.title}</h2>
       <p>{s.body}</p>
       <div style={{ display: 'grid', gap: 14, marginTop: 14 }}>
         {step === 1 && <button type="button" className="btn main" onClick={onMic}>Allow the microphone</button>}

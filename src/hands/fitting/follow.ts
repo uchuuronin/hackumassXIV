@@ -24,10 +24,11 @@ const CSS = `
   :host { all: initial; }
   .back { position: fixed; inset: 0; z-index: 2147483647; background: rgba(250, 247, 240, 0.97); font: 600 22px/1.4 system-ui, sans-serif; color: #1f2a37; }
   .card { position: fixed; left: 50%; top: 32px; transform: translateX(-50%); max-width: min(640px, 90vw); text-align: center; background: #fff; border: 2px solid #1d4ed8; border-radius: 16px; padding: 14px 22px; box-shadow: 0 6px 24px rgba(0,0,0,0.15); }
-  .card small { display: block; font-weight: 500; font-size: 16px; color: #475569; margin-top: 4px; }
+  .card small { display: block; font-weight: 500; font-size: 18px; color: #475569; margin-top: 4px; }
   .dot { position: fixed; left: 0; top: 0; width: ${DOT}px; height: ${DOT}px; margin: -${DOT / 2}px 0 0 -${DOT / 2}px; border-radius: 50%; background: #dc2626; box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.25); }
   .bar { position: fixed; left: 0; bottom: 0; height: 8px; background: #1d4ed8; width: 0; }
-  button { font: 600 18px system-ui, sans-serif; margin-top: 10px; padding: 8px 18px; border-radius: 10px; border: 2px solid #475569; background: #fff; cursor: pointer; }
+  button { font: 600 18px system-ui, sans-serif; margin-top: 10px; min-height: 48px; min-width: 96px; padding: 8px 18px; border-radius: 10px; border: 2px solid #475569; background: #fff; color: #1f2a37; cursor: pointer; }
+  button:focus-visible { outline: 4px solid #1d4ed8; outline-offset: 3px; }
 `;
 
 /**
@@ -45,6 +46,7 @@ export function runFollowTheDot(doc: Document, tracker: PointerTracker): Promise
     back.className = 'back';
     const card = doc.createElement('div');
     card.className = 'card';
+    card.setAttribute('role', 'status'); // each new instruction is read out, not only shown
     const dot = doc.createElement('div');
     dot.className = 'dot';
     const bar = doc.createElement('div');

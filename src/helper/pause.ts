@@ -1,5 +1,6 @@
 // Pay Pause: stops a click on a pay or delete button and asks first, in plain words. Owner: B.
 import { gentleCss, theme } from '@/shared/theme';
+import { openDialog } from '@/shared/dialog';
 import { browser } from 'wxt/browser';
 import { pageMap } from '@/guide';
 import { STEADY_UI_ATTR, fullLabel, type PageElement } from '@/shared/pagemap';
@@ -13,6 +14,8 @@ import { isOn } from './features';
 let bypass = false;
 let open: HTMLElement | null = null;
 let timer: number | undefined;
+/** Lets go of the keyboard and gives focus back to the button she pressed (guide lane's shared pop-up rules). */
+let letGo: (() => void) | null = null;
 
 const pageText = () => (document.body?.innerText ?? '').slice(0, 30000);
 
@@ -20,6 +23,8 @@ function closePause() {
   window.clearInterval(timer);
   open?.remove();
   open = null;
+  letGo?.();
+  letGo = null;
   browser.runtime.sendMessage({ type: 'tts/stop' }).catch(() => undefined);
 }
 
@@ -77,6 +82,7 @@ function showPause(el: PageElement, target: Element) {
     .stop:hover { background: ${theme.teal}; }
     button:disabled { opacity: .55; cursor: not-allowed; }
     button:focus-visible { outline: 4px solid ${theme.focus}; outline-offset: 4px; }
+    @media (forced-colors: active) { .box { border-width: 4px; } button { box-shadow: none; } }
     @media (prefers-reduced-motion: reduce) { button { transition: none; } }
     ${gentleCss}
   `;
@@ -90,11 +96,14 @@ function showPause(el: PageElement, target: Element) {
   const h = document.createElement('h2');
   h.textContent = risk.title;
   box.append(h);
+  // The lines are read out with the title when the card opens, so a screen reader says what the pause is about.
+  const about = document.createElement('div');
   for (const line of risk.lines) {
     const p = document.createElement('p');
     p.textContent = line;
-    box.append(p);
+    about.append(p);
   }
+  box.append(about);
   const stop = document.createElement('button');
   stop.className = 'stop';
   stop.textContent = 'Not yet';
@@ -123,7 +132,8 @@ function showPause(el: PageElement, target: Element) {
   root.append(style, back);
   document.documentElement.append(host);
   open = host;
-  stop.focus();
+  // Named after its heading, focus on the safe choice, and Tab stays on the card until she answers.
+  letGo = openDialog(box, { title: h, about, first: stop });
 
   getProfile(HELPER_KEYS.voiceOn, true).then((on) => {
     if (on) browser.runtime.sendMessage({ type: 'tts/say', text: `${risk.title} ${risk.lines.join(' ')}` }).catch(() => undefined);

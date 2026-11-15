@@ -15,6 +15,7 @@ import * as timeout from '@/guide/timeout';
 import * as trail from '@/guide/trail';
 import * as walk from '@/guide/walk';
 import { registerTool } from '@/helper/registry';
+import { keepFocusInside, openDialog } from '@/shared/dialog';
 import * as spotlight from '@/guide/spotlight';
 import { pageMap } from '@/guide/map';
 import { toModelSafe } from '@/shared/pagemap';
@@ -72,6 +73,8 @@ provide('store', {
 provide('clicks', createClickSource());
 
 const steady = {
+  keepFocusInside,
+  openDialog,
   api: pageMap,
   toModelSafe,
   choices,

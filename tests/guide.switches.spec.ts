@@ -14,7 +14,7 @@ async function clinic(page: Page, switches: Record<string, boolean> = {}) {
 test('everything is on unless she has turned it off, and "Keep it light" only quietens Steady', () => {
   expect(readSwitches(undefined)).toEqual(ALL_ON);
   expect(readSwitches({ walk: false, nonsense: true, trail: 'no' })).toEqual({ ...ALL_ON, walk: false });
-  expect(LIGHT).toEqual({ walk: false, hints: false, nudges: false, calm: true, trail: true, lastTime: true, timeout: true });
+  expect(LIGHT).toEqual({ walk: false, hints: false, nudges: false, calm: true, trail: true, lastTime: true, timeout: true, motion: true });
 });
 
 test('"Go through pages with me" off: "What do I click?" only says what the buttons do', async ({ page }) => {

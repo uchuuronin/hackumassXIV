@@ -2,6 +2,7 @@
 // Three kinds: a list of choices (dropdowns), a month of days (date fields), a number with big plus and minus.
 // Each returns what the person chose, or null if they cancelled. Colours come from C's theme.
 
+import { openDialog } from '@/shared/dialog';
 import { STEADY_UI_ATTR } from '@/shared/pagemap';
 import { theme } from '@/shared/theme';
 import { monthGrid, monthHasDays, movePage, pageFor, parseIso, shiftMonth, stepNumber } from './logic';
@@ -28,6 +29,8 @@ const CSS = `
   button { font: 600 24px/1.2 ${theme.font}; color: ${theme.ink}; min-height: 66px; padding: 8px 14px; border: 3px solid ${theme.ink}; border-radius: ${theme.radius}px; background: ${theme.card}; cursor: pointer; box-shadow: 0 ${theme.depth}px 0 ${theme.ink}; transition: transform ${theme.motion.press}ms ${theme.motion.ease}, box-shadow ${theme.motion.press}ms ${theme.motion.ease}; }
   button:active:not([disabled]) { transform: translateY(${theme.depth}px); box-shadow: 0 0 0 ${theme.ink}; }
   button:focus-visible { outline: 4px solid ${theme.focus}; outline-offset: 3px; }
+  @media (forced-colors: active) { button { box-shadow: none; } button.picked { border-width: 6px; } }
+  @media (prefers-reduced-motion: reduce) { button { transition: none; } }
   button[disabled] { opacity: 0.35; cursor: default; box-shadow: none; border-style: dashed; }
   button.picked { background: ${theme.tones.go.soft}; border-color: ${theme.tones.go.line}; }
   button.main { background: ${theme.main}; color: ${theme.onMain}; }
@@ -64,11 +67,13 @@ function open<T>(doc: Document, title: string, build: Build): Promise<T | null> 
     root.append(style, veil);
 
     let finished = false;
+    let letGo: (() => void) | null = null;
     const done = (value: unknown) => {
       if (finished) return;
       finished = true;
       doc.removeEventListener('keydown', onKey, true);
       host.remove();
+      letGo?.();
       resolve(value as T | null);
     };
     const onKey = (event: KeyboardEvent) => {
@@ -85,7 +90,8 @@ function open<T>(doc: Document, title: string, build: Build): Promise<T | null> 
     build(card, done, doc);
     doc.documentElement.append(host);
     const first = (card.querySelector('button.picked') ?? card.querySelector('button:not([disabled])')) as HTMLElement | null;
-    first?.focus({ preventScroll: true });
+    // Shared pop-up rules (guide lane): named by its heading, Tab stays inside, focus goes back afterwards.
+    letGo = openDialog(card, { title: heading, first });
   });
 }
 
