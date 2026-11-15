@@ -12,6 +12,7 @@ import { TONE } from '@/shared/voice';
 import { Buddy, type Mood } from '@/guide/panel/Buddy';
 import { GetTaskCard, HelperCard, RememberCard, TeachScreen } from '@/guide/panel/FamilyCard';
 import { Settings } from './Settings';
+import { Welcome } from './Welcome';
 import { MyDetailsCard } from '@/guide/panel/MyDetailsCard';
 import { intent, useGuide } from '@/guide/panel/useGuide';
 
@@ -91,6 +92,7 @@ export default function App() {
   const voiceRef = useRef(true);
   const [screen, setScreen] = useState<'home' | 'details' | 'teach' | 'settings'>('home');
   const [glad, setGlad] = useState(false);
+  const [welcome, setWelcome] = useState(false);
   // The guide lane: its sentences are shown and read aloud exactly like an answer.
   const guide = useGuide((r) => {
     setReply({ ...r, guide: true });
@@ -101,6 +103,7 @@ export default function App() {
 
   useEffect(() => {
     getProfile(HELPER_KEYS.voiceOn, true).then((v) => { voiceRef.current = v; setVoiceOn(v); });
+    getProfile('helper:welcomed', false).then((seen) => setWelcome(!seen));
     return () => { browser.runtime.sendMessage({ type: 'tts/stop' }).catch(() => undefined); };
   }, []);
 
@@ -219,6 +222,28 @@ export default function App() {
     '--go': theme.tones.go.soft, '--go-deep': theme.tones.go.deep, '--info': theme.tones.info.soft, '--info-deep': theme.tones.info.deep,
     '--care': theme.tones.careful.soft, '--care-deep': theme.tones.careful.deep, '--depth': `${theme.depth}px`,
   } as React.CSSProperties;
+
+  if (welcome) {
+    const finish = (next?: 'details') => {
+      setProfile('helper:welcomed', true);
+      setWelcome(false);
+      if (next) setScreen(next);
+    };
+    return (
+      <div className="app" style={vars}>
+        <header className="band small"><Dots /></header>
+        <main className="sheet">
+          <Welcome
+            say={say}
+            onMic={() => { browser.tabs.create({ url: browser.runtime.getURL('/mic.html' as never) }); }}
+            onSkip={() => finish()}
+            onDetails={() => finish('details')}
+            onDone={() => finish()}
+          />
+        </main>
+      </div>
+    );
+  }
 
   if (screen === 'settings') {
     return (
