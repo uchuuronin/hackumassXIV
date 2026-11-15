@@ -32,10 +32,33 @@ async function activeTabId(): Promise<number | undefined> {
   return tab?.id;
 }
 
+/** Keeps what Gemini needs from a big page: what is on screen first, short labels, and whole entries only. */
+function compactMap(safe: unknown): string {
+  const map = (safe ?? {}) as Record<string, unknown>;
+  const list = Array.isArray(map.elements) ? (map.elements as Array<Record<string, unknown>>) : [];
+  const rank = (e: Record<string, unknown>) => (e.inViewport === false ? 2 : 0) + (e.covered === true ? 3 : 0) + (e.label ? 0 : 4);
+  const ordered = list.map((e, i) => ({ e, i })).sort((a, b) => rank(a.e) - rank(b.e) || a.i - b.i).map((x) => x.e);
+  const slim = ordered.map((e) => {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(e)) {
+      if (typeof v === 'string') out[k] = v.slice(0, 60);
+      else if (typeof v === 'number' || typeof v === 'boolean' || k === 'marks') out[k] = v;
+    }
+    return out;
+  });
+  let count = Math.min(slim.length, 150);
+  let text = JSON.stringify({ ...map, elements: slim.slice(0, count) });
+  while (text.length > 12000 && count > 10) {
+    count = Math.floor(count * 0.8);
+    text = JSON.stringify({ ...map, elements: slim.slice(0, count) });
+  }
+  return text.slice(0, 14000);
+}
+
 async function readPage(tabId: number): Promise<string> {
   try {
     const res = (await browser.tabs.sendMessage(tabId, { type: 'pagemap/get' })) as PageMapResponse;
-    return JSON.stringify(toModelSafe(res.map)).slice(0, 8000);
+    return compactMap(toModelSafe(res.map));
   } catch {
     return '';
   }
