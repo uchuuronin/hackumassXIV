@@ -21,3 +21,20 @@ export async function sendStuck(note: StuckNote): Promise<StuckSent> {
     return { type: 'stuck/sent', ok: false };
   }
 }
+
+/** The one hello to a newly added helper (see ./hello.ts). Fails quietly: an older relay just answers 404. */
+export async function sendHello(note: { to: string; helperName: string; fromName: string }): Promise<boolean> {
+  try {
+    const r = await fetch(`${(await deviceStore.get<string>('guide:relay-url')) ?? RELAY_URL}/helper-hello`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(note),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!r.ok) console.error('[Milo] the relay would not send the hello to the helper:', r.status);
+    return r.ok;
+  } catch (err) {
+    console.error('[Milo] could not reach the relay for the hello to the helper', err);
+    return false;
+  }
+}

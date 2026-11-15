@@ -167,15 +167,7 @@ export function startPause(ctx: LaneContext): void {
   const onKey = (e: KeyboardEvent) => {
     if (!open) return;
     if (e.key === 'Escape') { closePause(); return; }
-    if (e.key === 'Tab') {
-      // Keep Tab between the card's own buttons, so it cannot wander to the page behind.
-      const els = Array.from(open.shadowRoot?.querySelectorAll('button:not(:disabled)') ?? []) as HTMLElement[];
-      if (!els.length) return;
-      const i = els.indexOf(open.shadowRoot?.activeElement as HTMLElement);
-      const next = e.shiftKey ? els[(i <= 0 ? els.length : i) - 1] : els[(i + 1) % els.length];
-      e.preventDefault();
-      next?.focus();
-    }
+    // Tab is kept on the card by openDialog (src/shared/dialog.ts). A second handler here moved focus twice, so Tab stuck on "Not yet". (C)
   };
   document.addEventListener('click', onClick, true);
   document.addEventListener('keydown', onKey, true);

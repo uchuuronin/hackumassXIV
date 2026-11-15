@@ -10,7 +10,7 @@ import nodemailer from 'nodemailer';
 import { randomBytes } from 'node:crypto';
 import { openReply } from './family';
 import { familyStore } from './familyStore';
-import { stuckMessage, type StuckBody } from './stuckMessage';
+import { helloMessage, stuckMessage, type StuckBody } from './stuckMessage';
 
 export function registerStuck(app: FastifyInstance): void {
   const user = process.env.EMAIL_USER ?? process.env.GMAIL_USER ?? process.env.SMTP_USER ?? '';
@@ -40,6 +40,21 @@ export function registerStuck(app: FastifyInstance): void {
       await transport.sendMail({ from: `Milo <${user || 'steady@localhost'}>`, to: message.to, subject: message.subject, text: message.text });
       req.log.info({ dryRun }, 'stuck note sent'); // never log who it went to or what it said
       // In a dry run nothing was sent, so the words are handed back for whoever is trying things out to read.
+      return dryRun ? { ok: true, preview: message.text } : { ok: true };
+    } catch (e) {
+      req.log.error(e);
+      return reply.code(502).send({ error: 'email failed' });
+    }
+  });
+
+  // POST /helper-hello: the one hello a helper gets when they are added. Same sender, fixed wording, stricter limit.
+  app.post<{ Body: StuckBody }>('/helper-hello', { config: { rateLimit: { max: 3, timeWindow: '10 minutes' } } }, async (req, reply) => {
+    const message = helloMessage(req.body ?? {});
+    if (!message) return reply.code(400).send({ error: 'bad note' });
+    if (!transport) return reply.code(503).send({ error: 'email is not set up on the relay' });
+    try {
+      await transport.sendMail({ from: `Milo <${user || 'steady@localhost'}>`, to: message.to, subject: message.subject, text: message.text });
+      req.log.info({ dryRun }, 'helper hello sent'); // never log who it went to
       return dryRun ? { ok: true, preview: message.text } : { ok: true };
     } catch (e) {
       req.log.error(e);

@@ -9,6 +9,7 @@ import { HELPER_KEY, REPLY_KEY, tidyHelper, type Helper } from '@/shared/family'
 import type { RecordedTask } from '@/shared/tasks';
 import { getCode, isHelping, isLinked, joinWith, sendLinked, stopHelping, unlinkAll } from '../family/link';
 import { findTask, keepTask, sendTask } from '../family/share';
+import { helloFromHere } from '../family/hello';
 import { runOnPage } from './useGuide';
 
 /** What Milo remembers from doing tasks, and the way to clear it. Sits under "My details". */
@@ -45,8 +46,9 @@ export function HelperCard() {
     if (!tidied.ok) return setStatus(tidied.said);
     const { name, relation } = tidied.helper;
     await deviceStore.set(HELPER_KEY, tidied.helper);
+    helloFromHere(tidied.helper); // once per address: a short email telling them what Milo will send and what they can do
     setHelper({ ...tidied.helper, relation: relation ?? '' });
-    setStatus(`${tidied.moved ? 'I put the email address in its own box. ' : ''}Saved. When you press "I'm stuck", I'll ask before I tell ${relation ? `your ${relation}, ${name}` : name}.`);
+    setStatus(`${tidied.moved ? 'I put the email address in its own box. ' : ''}Saved. I'll send ${name} a short hello so they know what to expect. When you press "I'm stuck", I'll ask before I tell ${relation ? `your ${relation}, ${name}` : name}.`);
   };
   const remove = async () => {
     await deviceStore.remove(HELPER_KEY);

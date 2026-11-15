@@ -53,3 +53,34 @@ export function stuckMessage(body: StuckBody, replyUrl?: string): { to: string; 
   ].join('\n');
   return { to, subject: `${from} would like a hand`, text };
 }
+
+/**
+ * The hello a helper gets once, when they are added under "Who helps you". Owner: C.
+ * Fixed wording, like the note above: only two cleaned first names vary.
+ */
+export function helloMessage(body: Pick<StuckBody, 'to' | 'helperName' | 'fromName'>): { to: string; subject: string; text: string } | null {
+  const to = clean(body.to, 120);
+  if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(to)) return null;
+  const helper = clean(body.helperName, 60) || 'there';
+  const from = clean(body.fromName, 60) || 'Someone you help';
+  const named = from !== 'Someone you help';
+  const they = named ? from : 'they';
+  const them = named ? from : 'them';
+  const has = named ? 'has' : 'have';
+  const text = [
+    `Hi ${helper},`,
+    '',
+    named
+      ? `I'm Milo, a helper that sits beside the web browser on ${from}'s computer. ${from} has added you as the person to ask when they're stuck on a website or unsure about a decision.`
+      : "I'm Milo, a helper that sits beside the web browser. Someone you help has added you as the person to ask when they're stuck on a website or unsure about a decision.",
+    '',
+    `When ${they} ${named ? 'presses' : 'press'} "I'm stuck", I'll email you what they were doing and which step they were on. A phone call is usually the quickest way to help. If ${they} ${has} switched on notes back, that email also has a link where you can write a short note with what to do next, and it shows up in Milo.`,
+    '',
+    `If you have Milo on your own computer, you can also do a task once while I watch, such as booking an appointment, and send it to ${them}. I then walk them through it one step at a time.`,
+    '',
+    "There is nothing to do now. If this wasn't meant for you, you can ignore it.",
+    '',
+    'Milo',
+  ].join('\n');
+  return { to, subject: `${from} added you as their helper in Milo`, text };
+}

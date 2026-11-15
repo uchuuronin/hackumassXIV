@@ -1,7 +1,8 @@
 // Owner: B (background worker and messages).
 import { askRelay } from '@/helper/relay';
 import { takePicture } from '@/guide/sight';
-import { sendStuck } from '@/guide/family/send';
+import { sendHello, sendStuck } from '@/guide/family/send';
+import type { HelloSend } from '@/guide/family/hello';
 import type { StuckSend } from '@/shared/family';
 import type { GeminiAsk } from '@/shared/tools';
 import { speak } from '@/shared/voice';
@@ -42,6 +43,12 @@ export default defineBackground(() => {
     // "I'm stuck" (owner: C): the one short note to the person who helps goes out through the relay.
     if (msg?.type === 'stuck/send') {
       sendStuck((message as StuckSend).note).then(sendResponse);
+      return true;
+    }
+
+    // A helper was just added (owner: C): one hello email explaining what they'll get and can do.
+    if (msg?.type === 'helper/hello') {
+      sendHello((message as HelloSend).note).then((ok) => sendResponse({ ok }));
       return true;
     }
 

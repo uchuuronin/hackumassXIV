@@ -33,3 +33,46 @@ test('cannot be used to send someone an arbitrary message', () => {
   expect(m.text).not.toContain('<a');
   expect(m.text.length).toBeLessThan(700);
 });
+
+// ---- The hello a helper gets once, when they are added ----
+import { helloMessage } from '../relay/src/stuckMessage';
+
+test('the hello says who added them, what "I\'m stuck" sends, and what else they can do', () => {
+  const m = helloMessage({ to: 'maya@example.com', helperName: 'Maya', fromName: 'Rose' })!;
+  expect(m.to).toBe('maya@example.com');
+  expect(m.subject).toBe('Rose added you as their helper in Milo');
+  expect(m.text).toBe(
+    [
+      'Hi Maya,',
+      '',
+      "I'm Milo, a helper that sits beside the web browser on Rose's computer. Rose has added you as the person to ask when they're stuck on a website or unsure about a decision.",
+      '',
+      'When Rose presses "I\'m stuck", I\'ll email you what they were doing and which step they were on. A phone call is usually the quickest way to help. If Rose has switched on notes back, that email also has a link where you can write a short note with what to do next, and it shows up in Milo.',
+      '',
+      'If you have Milo on your own computer, you can also do a task once while I watch, such as booking an appointment, and send it to Rose. I then walk them through it one step at a time.',
+      '',
+      "There is nothing to do now. If this wasn't meant for you, you can ignore it.",
+      '',
+      'Milo',
+    ].join('\n'),
+  );
+});
+
+test('the hello with no first name saved still reads like a person wrote it', () => {
+  const m = helloMessage({ to: 'maya@example.com' })!;
+  expect(m.subject).toBe('Someone you help added you as their helper in Milo');
+  expect(m.text).toContain('Hi there,');
+  expect(m.text).toContain("I'm Milo, a helper that sits beside the web browser. Someone you help has added you");
+  expect(m.text).toContain('When they press "I\'m stuck"');
+  expect(m.text).toContain('If they have switched on notes back');
+  expect(m.text).toContain('send it to them.');
+});
+
+test('the hello cannot carry an arbitrary message either', () => {
+  expect(helloMessage({ to: 'not an address' })).toBeNull();
+  expect(helloMessage({ to: 'a@b.com, c@d.com' })).toBeNull();
+  const m = helloMessage({ to: 'maya@example.com', helperName: `<b>${'x'.repeat(500)}`, fromName: 'Rose\r\nBcc: all@example.com' })!;
+  expect(m.subject).not.toMatch(/[\r\n]/);
+  expect(m.text).not.toContain('<b>');
+  expect(m.text.length).toBeLessThan(1200);
+});

@@ -139,6 +139,7 @@ await page.getByRole('button', { name: 'Place order' }).click(); await page.wait
 await probe(page, 'Pay Pause card', 'page');
 const trail = []; for (let i = 0; i < 8; i++) { await page.keyboard.press('Tab'); trail.push(await page.evaluate(() => { const h = [...document.querySelectorAll('[data-steady-ui]')].find((x) => x.shadowRoot?.activeElement); return h ? h.shadowRoot.activeElement.textContent.slice(0, 10) : 'OUT'; })); }
 const out = trail.filter((t) => t === 'OUT').length; if (out) fails++;
+const moved = new Set(trail.filter((t) => t !== 'OUT')).size; if (moved < 2) { fails++; say('  Tab does not move between the buttons: STUCK'); }
 say(`  Tab x8 inside Pay Pause: ${trail.join(' > ')}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 const gone = await page.evaluate(() => ![...document.querySelectorAll('[data-steady-ui]')].some((h) => h.shadowRoot?.querySelector('[role=alertdialog]')));
