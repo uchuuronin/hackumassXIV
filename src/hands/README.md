@@ -81,6 +81,17 @@ The pointing test is the standard ISO 9241-9 task: nine circles in a ring, click
 
 The shake is simulated. It is not a clinical test, and it is not a person with tremor.
 
+### Result so far
+
+ISO 9241-9 pointing test, 9 targets of 56 px, 6 rounds, simulated strong shake (9 px at 6 Hz), one person, 2 runs per condition:
+
+| | Missed clicks per 100 clicks |
+| --- | --- |
+| Without Milo | 10.7 (12.9 and 8.5) |
+| With Milo | 7.7 (10.0 and 5.3) |
+
+About 28 percent fewer missed clicks. The runs vary about as much as the difference, so this is a small test that points the right way, not a proof. Time per target is not compared, because the click pace differed between runs.
+
 ## Known limits
 
 - Nothing steadies clicks inside another website's frame.
@@ -89,4 +100,7 @@ The shake is simulated. It is not a clinical test, and it is not a person with t
 - Reading filters sit on the page body so Milo's own bar keeps its place. A site's own fixed elements then scroll with the page.
 - There is no dark contrast mode: the first version turned pages that were already dark light.
 - The page map's ids go stale when a page redraws.
-- Tested by simulated shake and by hand, not yet with older adults.
+- Steady scrolling is off by default and can feel heavier on very busy pages, such as Amazon's.
+- Stronger contrast can wash out pale borders and tinted panels on some sites. It works best on plain pages.
+- On pages with many adverts, the fake-button check (the helper's lane) can still put warnings over content. It draws at most two at a time.
+- Tested by simulated shake and by hand on a few real sites (Booking.com, Amazon) and the demo sites, not yet with older adults.
